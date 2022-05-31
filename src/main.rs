@@ -1,28 +1,38 @@
 use std::env;
-use std::path::PathBuf;
+use lazy_static::lazy_static;
+use std::path::{Path, PathBuf};
 use std::io::{self, prelude::*, Error, ErrorKind, BufReader};
 use std::fs;
 use serde::Serialize;
 use serde_json::json;
-
-use handlebars::Handlebars;
-//use pulldown_cmark::{Parser, html};
 use warp::Filter;
+use handlebars::Handlebars;
+use pulldown_cmark::{Parser, html};
 
 const PAGE_SIZE: usize = 10;
+
+lazy_static! {
+    static ref BASE_PATH: String = env::var( "VELUM_BASE").expect("No VELUM_BASE env var set");
+}
 
 #[derive(Serialize)]
 struct ArticleHeader {
     path: PathBuf,
+    route: String,
     title: String,
     created_at: std::time::SystemTime
 }
 
-fn tmpl_path(base_path: &PathBuf, tmpl_name: &str) -> PathBuf {
-    let path = base_path.to_str().expect("Failed to convert path to string");
-    let mut filename = String::from(tmpl_name);
-    filename.push_str(".html.hbs");
-    [path, "templates", filename.as_str()].iter().collect()
+fn tmpl_path(base_path: &str, tmpl_name: &str) -> PathBuf {
+    let filename = [tmpl_name, ".html.hbs"].join("");
+    let path = Path::new(base_path).join("templates");
+    path.join(filename)
+}
+
+fn content_path(base_path: &str, article_name: &str) -> PathBuf {
+    let filename = [article_name, ".md"].join("");
+    let path = Path::new(base_path).join("articles");
+    path.join(filename)
 }
 
 fn read_article_title(path: &PathBuf) -> String {
@@ -34,8 +44,8 @@ fn read_article_title(path: &PathBuf) -> String {
     line.replacen("# ", "", 1)
 }
 
-fn gather_article_headers(base_path: &PathBuf) -> Result<Vec<ArticleHeader>, io::Error> {
-    let dir = base_path.join("articles");
+fn gather_article_headers(base_path: &str) -> Result<Vec<ArticleHeader>, io::Error> {
+    let dir = PathBuf::from(base_path).join("articles");
     if !dir.is_dir() {
         return Err(Error::new(ErrorKind::InvalidInput, "Provided base_path is not a directory"));
     }
@@ -46,8 +56,12 @@ fn gather_article_headers(base_path: &PathBuf) -> Result<Vec<ArticleHeader>, io:
         let entry = entry?;
         let path = entry.path();
         if !path.is_dir() {
+            let file_stem = path
+                .file_stem().expect("Unable to get file_stem from path")
+                .to_str().expect("Unable to convert OsStr to str");
             let article = ArticleHeader {
                 path: path.clone(),
+                route: String::from(["articles", file_stem].join("/")),
                 title: read_article_title(&path),
                 created_at: entry.metadata()?.created()?
             };
@@ -57,7 +71,7 @@ fn gather_article_headers(base_path: &PathBuf) -> Result<Vec<ArticleHeader>, io:
     Ok(article_headers)
 }
 
-fn render_index(base_path: &PathBuf, page: usize) -> String {
+fn render_index(base_path: &str, page: usize) -> String {
     let tmpl_path = tmpl_path(base_path, "index");
     let mut hb = Handlebars::new();
     hb.register_template_file("main", &tmpl_path).expect("Failed to register index template file");
@@ -73,27 +87,36 @@ fn render_index(base_path: &PathBuf, page: usize) -> String {
     hb.render("main", &json!({"articles": &paginated_headers[page]})).expect("Failed to render index")
 }
 
-fn render_article(base_path: &PathBuf, article_name: &str) -> String {
+fn render_article(base_path: &str, article_name: &str) -> String {
     let tmpl_path = tmpl_path(base_path, "article");
-    let article_path: PathBuf = [base_path.to_str().unwrap(), "articles", article_name, ".md"].iter().collect();
     let mut hb = Handlebars::new();
     hb.register_template_file("article", &tmpl_path).expect("Failed to register article template file");
+
+    let article_path = content_path(base_path, article_name);
     let article_content = fs::read_to_string(&article_path).expect("Unable to read article content");
-    hb.render("article", &json!({"content": &article_content})).expect("Failed to render article")
+    let parser = Parser::new(&article_content);
+    let mut parsed_article = String::new();
+    html::push_html(&mut parsed_article, parser);
+
+    hb.render("article", &json!({"content": &parsed_article})).expect("Failed to render article")
 }
 
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
 
-    let env_base_path = env::var( "VELUM_BASE").expect("No VELUM_BASE env var set");
-    let base_path = PathBuf::from(env_base_path);
-    let pi = base_path.clone();
-    let pa = base_path.clone();
+    //let base_path = Arc::new(env::var( "VELUM_BASE").expect("No VELUM_BASE env var set"));
+    //let base_path_articles = base_path.clone();
 
-    let article_index = warp::path::end().map(move || render_index(&pi, 0));
-    let article = warp::path!("articles" / String).map(move |name: String| render_article(&pa, name.as_str()));
+    let article_index = warp::path::end().map(||
+        warp::reply::html(render_index(&BASE_PATH, 0))
+    );
+    let article = warp::path!("articles" / String).map(|name: String|
+        warp::reply::html(render_article(&BASE_PATH, name.as_str()))
+    );
+
     let routes = article_index.or(article);
+
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3090))
         .await;
