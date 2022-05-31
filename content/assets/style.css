@@ -2,9 +2,15 @@ html {
     background-color: aliceblue;
     padding: 0;
     margin: 0;
+    font-family: sans-serif;
 }
 
 body {
     padding: 0;
     margin: 0;
+}
+
+#content {
+    margin: 1em auto;
+    max-width: 35em;
 }
