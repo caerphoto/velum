@@ -1,27 +1,93 @@
-use std::env;
 use std::convert::Infallible;
-use lazy_static::lazy_static;
 use std::path::{Path, PathBuf};
-use std::io::{self, prelude::*, Error, ErrorKind, BufReader};
-use std::fs;
-use serde::Serialize;
+use std::io::{self, ErrorKind};
+use std::{fs, time, cmp};
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
 use pulldown_cmark::{Parser, html};
+use redis;
+use redis::Commands;
+use regex::Regex;
+
+#[macro_use]
+extern crate lazy_static;
 
 const PAGE_SIZE: usize = 10;
+const BASE_PATH: &str = "./content";
 
-lazy_static! {
-    static ref BASE_PATH: String = env::var( "VELUM_BASE").expect("No VELUM_BASE env var set");
+#[derive(Debug)]
+struct Article {
+    content: String,
+    created_at: time::SystemTime
 }
 
-#[derive(Serialize)]
-struct ArticleHeader {
-    path: PathBuf,
-    route: String,
-    title: String,
-    created_at: std::time::SystemTime
+impl Article {
+    fn new(content: &str) -> Self {
+        Article {
+            content: String::from(content),
+            created_at: time::SystemTime::now(),
+        }
+    }
+
+    fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
+        let content = fs::read_to_string(path)?;
+        Ok(Article {
+            content,
+            created_at: time::SystemTime::now(),
+        })
+    }
+
+    fn title(&self) -> Option<String> {
+        lazy_static! { static ref H1: Regex = Regex::new(r"^#\w*").unwrap(); }
+        // Assumes first line of content text is formatted exactly as '# Article Title'
+        if let Some(l) = self.content.lines().nth(0) {
+            Some(String::from(
+                H1.replace(l, "")
+            ))
+        } else {
+            None
+        }
+    }
+
+    fn slug(&self) -> Result<String, &'static str> {
+        lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z\- ]").unwrap(); }
+        lazy_static! { static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap(); }
+        if let Some(t) = self.title() {
+            let lowercase_title = t.to_lowercase();
+            let simplified_key = INVALID_CHARS.replace_all(&lowercase_title, "-");
+            Ok(String::from(
+                SEQUENTIAL_HYPEHNS.replace_all(&simplified_key, "")
+            ))
+        } else {
+            Err("Unable to create key because artitcle has no title.")
+        }
+    }
+
+    fn age(&self) -> time::Duration {
+        let now = time::SystemTime::now();
+        match now.duration_since(self.created_at) {
+            Ok(d) => d,
+            Err(_) => time::Duration::new(0, 0)
+        }
+    }
+
+    fn formatted_date(&self) -> String {
+        // TODO: actual implementation
+        String::from("48th of Boptember, 1536")
+    }
+}
+
+impl Serialize for Article {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer {
+        let mut state = serializer.serialize_struct("Article", 3)?;
+        state.serialize_field("content", &self.content)?;
+        state.serialize_field("title", &self.title().unwrap())?;
+        state.serialize_field("created_at", &self.formatted_date())?;
+        state.end()
+    }
 }
 
 #[derive(Debug)]
@@ -30,69 +96,96 @@ impl warp::reject::Reject for ArticleNotFound {}
 
 fn tmpl_path(tmpl_name: &str) -> PathBuf {
     let filename = [tmpl_name, ".html.hbs"].join("");
-    let path = Path::new(BASE_PATH.as_str()).join("templates");
+    let path = Path::new(BASE_PATH).join("templates");
     path.join(filename)
 }
 
 fn content_path(article_name: &str) -> PathBuf {
     let filename = [article_name, ".md"].join("");
-    let path = Path::new(BASE_PATH.as_str()).join("articles");
+    let path = Path::new(BASE_PATH).join("articles");
     path.join(filename)
 }
 
-fn read_article_title(path: &PathBuf) -> String {
-    // Assumes first line of text in the article file is formatted exactly as '# Article Title'
-    let file = fs::File::open(path).expect("Unable to open article file");
-    let mut reader = BufReader::new(file);
-    let mut line = String::new();
-    reader.read_line(&mut line)
-        .expect("Unable to read first line of article file");
-    line.replacen("# ", "", 1)
-}
-
-fn gather_article_headers() -> Result<Vec<ArticleHeader>, io::Error> {
-    let dir = PathBuf::from(BASE_PATH.as_str()).join("articles");
+fn gather_articles() -> Result<Vec<Article>, io::Error> {
+    let dir = PathBuf::from(BASE_PATH).join("articles");
     if !dir.is_dir() {
-        return Err(Error::new(ErrorKind::InvalidInput, "Provided base_path is not a directory"));
+        return Err(io::Error::new(ErrorKind::InvalidInput, "Article path is not a directory"));
     }
 
-    let mut article_headers: Vec<ArticleHeader> = Vec::new();
+    let mut articles: Vec<Article> = Vec::new();
 
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_dir() {
-            let file_stem = path
-                .file_stem().expect("Unable to get file_stem from path")
-                .to_str().expect("Unable to convert OsStr to str");
-            let article = ArticleHeader {
-                path: path.clone(),
-                route: String::from(["articles", file_stem].join("/")),
-                title: read_article_title(&path),
-                created_at: entry.metadata()?.created()?
-            };
-            article_headers.push(article);
+            if let Ok(article) = Article::from_file(&path) {
+                articles.push(article);
+            }
         }
     }
-    Ok(article_headers)
+    Ok(articles)
 }
 
-fn render_index(page: usize) -> String {
+fn destroy_article_keys(con: &mut redis::Connection) -> redis::RedisResult<()> {
+    let keys: Vec<String> = con.keys("velum:articles:*")?;
+    for key in keys {
+        con.del(key)?;
+    }
+
+    Ok(())
+}
+
+fn rebuild_article_keys() -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_connection()?;
+
+    destroy_article_keys(&mut con)?;
+
+    if let Ok(articles) = gather_articles() {
+        for article in articles {
+            if let Ok(slug) = article.slug() {
+                let key = String::from("velum:articles:") + slug.as_str();
+                con.hset(key, "title", article.title().unwrap())?;
+                con.hset(key, "content", article.content)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn render_index_page(page: usize) -> String {
     let tmpl_path = tmpl_path("index");
     let mut hb = Handlebars::new();
     hb.register_template_file("main", &tmpl_path)
         .expect("Failed to register index template file");
 
-    let mut article_headers: Vec<ArticleHeader> = Vec::new();
-    match gather_article_headers() {
-        Err(_) => (),
-        Ok(gathered_headers) => article_headers = gathered_headers
+    // TODO: read articles from Redis, not filesystem
+    if let Ok(articles) = gather_articles() {
+        let pages: Vec<&[Article]> = articles.chunks(PAGE_SIZE).collect();
+        let constrained_page = cmp::min(pages.len() - 1, page);
+
+        match hb.render(
+            "main",
+            &json!({
+                "title": "Velum Blog Test",
+                "articles": &pages[constrained_page]
+            })
+        ) {
+            Ok(rendered_page) => rendered_page,
+            Err(_) => String::from("Error rendering page :("),
+        }
+    } else {
+        String::from("")
     }
 
-    let paginated_headers: Vec<&[ArticleHeader]> = article_headers.chunks(PAGE_SIZE).collect();
+}
 
-    hb.render("main", &json!({"title": "Velum Blog Test", "articles": &paginated_headers[page]}))
-        .expect("Failed to render index")
+async fn index() -> Result<impl warp::Reply, warp::Rejection> {
+    Ok(warp::reply::html(render_index_page(0)))
+}
+
+async fn index_at_offset(offset: usize) -> Result<impl warp::Reply, warp::Rejection> {
+    Ok(warp::reply::html(render_index_page(offset)))
 }
 
 async fn render_article(article_name: String) -> Result<impl warp::Reply, warp::Rejection> {
@@ -125,14 +218,20 @@ async fn file_not_found(_: warp::Rejection) -> Result<impl warp::Reply, Infallib
 async fn main() {
     pretty_env_logger::init();
 
-    let article_index = warp::path::end().map(||
-        warp::reply::html(render_index(0))
-    );
+
+
+    if let Err(e) = rebuild_article_headers() {
+        panic!("Failed to rebuild article headers: {:?}", e);
+    }
+
+    let article_index = warp::path::end().and_then(index);
+    let article_index_offset = warp::path!("page" / usize).and_then(index_at_offset);
+
     let article = warp::path!("articles" / String).and_then(render_article);
 
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
-    let routes = article_index.or(article).or(assets).recover(file_not_found);
+    let routes = article_index.or(article_index_offset).or(article).or(assets).recover(file_not_found);
 
     println!("Listening on 3090...");
     warp::serve(routes)
