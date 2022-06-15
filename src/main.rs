@@ -3,11 +3,12 @@ use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 use std::io::{self, ErrorKind};
 use std::{fs, time, cmp};
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use std::collections::BTreeMap;
+// use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
-use pulldown_cmark::{Parser, html};
+use pulldown_cmark as cmark;
 use redis;
 use redis::Commands;
 use regex::Regex;
@@ -17,33 +18,27 @@ extern crate lazy_static;
 
 const PAGE_SIZE: usize = 10;
 const BASE_PATH: &str = "./content";
+const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
 const BLOG_TITLE: &str = "Velum Test Blog";
 
-#[derive(Debug)]
-struct Article {
+// Struct for creating article data from a file on disk.
+struct FsArticle {
     content: String,
     created_at: time::SystemTime
 }
 
-impl Article {
-    fn new(content: &str) -> Self {
-        Article {
-            content: String::from(content),
-            created_at: time::SystemTime::now(),
-        }
-    }
-
+impl FsArticle {
     fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
         let content = fs::read_to_string(path)?;
-        Ok(Article {
+        Ok(Self {
             content,
             created_at: time::SystemTime::now(),
         })
     }
 
     fn title(&self) -> Option<String> {
-        lazy_static! { static ref H1: Regex = Regex::new(r"^#\w*").unwrap(); }
+        lazy_static! { static ref H1: Regex = Regex::new(r"^#\s*").unwrap(); }
         // Assumes first line of content text is formatted exactly as '# Article Title'
         if let Some(l) = self.content.lines().nth(0) {
             Some(String::from(
@@ -55,7 +50,7 @@ impl Article {
     }
 
     fn slug(&self) -> Result<String, &'static str> {
-        lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z\- ]").unwrap(); }
+        lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z\-]").unwrap(); }
         lazy_static! { static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap(); }
         if let Some(t) = self.title() {
             let lowercase_title = t.to_lowercase();
@@ -65,6 +60,14 @@ impl Article {
             ))
         } else {
             Err("Unable to create key because artitcle has no title.")
+        }
+    }
+
+    fn route(&self) -> Result<String, &'static str> {
+        if let Ok(slug) = self.slug() {
+            Ok(String::from("/articles/") + &slug)
+        } else {
+            Err("Unable to create route due to error in slug")
         }
     }
 
@@ -82,14 +85,40 @@ impl Article {
     }
 }
 
-impl Serialize for Article {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
-        let mut state = serializer.serialize_struct("Article", 3)?;
-        state.serialize_field("content", &self.content)?;
-        state.serialize_field("title", &self.title().unwrap())?;
-        state.serialize_field("created_at", &self.formatted_date())?;
-        state.end()
+#[derive(serde::Serialize)]
+struct ArticleHash {
+    title: String,
+    content: String,
+    route: String,
+    created_at: String
+}
+
+impl ArticleHash {
+    fn from_article(a: &FsArticle) -> Self {
+        Self {
+            title: a.title().unwrap(),
+            content: a.content.clone(),
+            route: a.route().unwrap(),
+            created_at: a.formatted_date()
+        }
+    }
+
+    fn from_redis(a: &BTreeMap<String, String>) -> Self {
+        Self {
+            title: a.get("title").unwrap().clone(),
+            content: a.get("content").unwrap().clone(),
+            route: a.get("route").unwrap().clone(),
+            created_at: a.get("created_at").unwrap().clone(),
+        }
+    }
+
+    fn as_kv_list(&self) -> Box<[(&str, &str)]> {
+        Box::new([
+            ("title", &self.title),
+            ("content", &self.content),
+            ("route", &self.route),
+            ("created_at", &self.created_at),
+        ])
     }
 }
 
@@ -109,23 +138,37 @@ fn content_path(article_name: &str) -> PathBuf {
     path.join(filename)
 }
 
-fn gather_articles() -> Result<Vec<Article>, io::Error> {
+fn gather_fs_articles() -> Result<Vec<FsArticle>, io::Error> {
     let dir = PathBuf::from(BASE_PATH).join("articles");
     if !dir.is_dir() {
         return Err(io::Error::new(ErrorKind::InvalidInput, "Article path is not a directory"));
     }
 
-    let mut articles: Vec<Article> = Vec::new();
+    let mut articles: Vec<FsArticle> = Vec::new();
 
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_dir() {
-            if let Ok(article) = Article::from_file(&path) {
+            if let Ok(article) = FsArticle::from_file(&path) {
                 articles.push(article);
             }
         }
     }
+    Ok(articles)
+}
+
+fn gather_redis_articles() -> Result<Vec<ArticleHash>, redis::RedisError> {
+    let client = redis::Client::open(REDIS_HOST)?;
+    let mut con = client.get_connection()?;
+    let mut articles: Vec<ArticleHash> = Vec::new();
+    let keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
+    for key in keys {
+        if let Ok(result) = con.hgetall(key) {
+            articles.push(ArticleHash::from_redis(&result))
+        }
+    }
+
     Ok(articles)
 }
 
@@ -138,18 +181,22 @@ fn destroy_article_keys(con: &mut redis::Connection) -> redis::RedisResult<()> {
     Ok(())
 }
 
-fn rebuild_article_keys() -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
+fn rebuild_redis_data() -> redis::RedisResult<()> {
+    let client = redis::Client::open(REDIS_HOST)?;
     let mut con = client.get_connection()?;
 
     destroy_article_keys(&mut con)?;
 
-    if let Ok(articles) = gather_articles() {
+    if let Ok(articles) = gather_fs_articles() {
         for article in articles {
             if let Ok(slug) = article.slug() {
                 let key = String::from(BASE_KEY) + slug.as_str();
-                con.hset(&key, "title", article.title().unwrap())?;
-                con.hset(&key, "content", article.content)?;
+                let hash = ArticleHash::from_article(&article);
+                con.hset_multiple(&key, &hash.as_kv_list())?;
+                // con.hset(&key, "title", article.title().unwrap())?;
+                // con.hset(&key, "content", &article.content)?;
+                // con.hset(&key, "route", article.route().unwrap())?;
+                // con.hset(&key, "created_at", article.formatted_date())?;
             }
         }
     }
@@ -158,8 +205,8 @@ fn rebuild_article_keys() -> redis::RedisResult<()> {
 
 fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
     // TODO: read articles from Redis, not filesystem
-    if let Ok(articles) = gather_articles() {
-        let pages: Vec<&[Article]> = articles.chunks(PAGE_SIZE).collect();
+    if let Ok(articles) = gather_redis_articles() {
+        let pages: Vec<&[ArticleHash]> = articles.chunks(PAGE_SIZE).collect();
         let constrained_page = cmp::min(pages.len() - 1, page);
 
         match hbs.render(
@@ -182,14 +229,15 @@ fn index_at_offset(offset: usize, hbs: &Handlebars<'_>) -> impl warp::Reply {
     warp::reply::html(render_index_page(offset, hbs))
 }
 
-fn render_article(article_name: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
-    let article_path = content_path(&article_name);
-    if let Ok(article_content) = fs::read_to_string(&article_path) {
+fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
+    let client = redis::Client::open(REDIS_HOST).unwrap();
+    let mut con = client.get_connection().unwrap();
 
-        let parser = Parser::new(&article_content);
+    if let Ok(result) = con.hgetall(String::from(BASE_KEY) + &slug) {
+        let article = ArticleHash::from_redis(&result);
+        let parser = cmark::Parser::new(&article.content);
         let mut parsed_article = String::new();
-        html::push_html(&mut parsed_article, parser);
-
+        cmark::html::push_html(&mut parsed_article, parser);
 
         let reply = warp::reply::html(
             hbs.render(
@@ -233,9 +281,11 @@ async fn main() {
 
     let hbs = Arc::new(create_handlebars());
 
-    if let Err(e) = rebuild_article_keys() {
-        panic!("Failed to rebuild article headers: {:?}", e);
+    print!("Rebuilding Redis data from files... ");
+    if let Err(e) = rebuild_redis_data() {
+        panic!("Failed to rebuild Redis data: {:?}", e);
     }
+    println!("done.");
 
     let hbs2 = hbs.clone();
     let article_index = warp::path::end().map(move || {
