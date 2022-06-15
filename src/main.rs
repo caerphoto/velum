@@ -79,6 +79,7 @@ impl FsArticle {
     }
 }
 
+// TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
 handlebars_helper!(date_from_timestamp: |ts: i64| {
     let dt = Utc.timestamp_millis(ts);
     dt.to_rfc2822()
@@ -200,7 +201,6 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
 }
 
 fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
-    // TODO: read articles from Redis, not filesystem
     if let Ok(articles) = gather_redis_articles() {
         let pages: Vec<&[ArticleHash]> = articles.chunks(PAGE_SIZE).collect();
         let constrained_page = cmp::min(pages.len() - 1, page);
