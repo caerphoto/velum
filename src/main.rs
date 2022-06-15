@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 use std::io::{self, ErrorKind};
@@ -16,6 +17,8 @@ extern crate lazy_static;
 
 const PAGE_SIZE: usize = 10;
 const BASE_PATH: &str = "./content";
+const BASE_KEY: &str = "velum:articles:";
+const BLOG_TITLE: &str = "Velum Test Blog";
 
 #[derive(Debug)]
 struct Article {
@@ -58,7 +61,7 @@ impl Article {
             let lowercase_title = t.to_lowercase();
             let simplified_key = INVALID_CHARS.replace_all(&lowercase_title, "-");
             Ok(String::from(
-                SEQUENTIAL_HYPEHNS.replace_all(&simplified_key, "")
+                SEQUENTIAL_HYPEHNS.replace_all(&simplified_key, "-")
             ))
         } else {
             Err("Unable to create key because artitcle has no title.")
@@ -95,13 +98,13 @@ struct ArticleNotFound;
 impl warp::reject::Reject for ArticleNotFound {}
 
 fn tmpl_path(tmpl_name: &str) -> PathBuf {
-    let filename = [tmpl_name, ".html.hbs"].join("");
+    let filename = [tmpl_name, "html.hbs"].join(".");
     let path = Path::new(BASE_PATH).join("templates");
     path.join(filename)
 }
 
 fn content_path(article_name: &str) -> PathBuf {
-    let filename = [article_name, ".md"].join("");
+    let filename = [article_name, "md"].join(".");
     let path = Path::new(BASE_PATH).join("articles");
     path.join(filename)
 }
@@ -127,7 +130,7 @@ fn gather_articles() -> Result<Vec<Article>, io::Error> {
 }
 
 fn destroy_article_keys(con: &mut redis::Connection) -> redis::RedisResult<()> {
-    let keys: Vec<String> = con.keys("velum:articles:*")?;
+    let keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
     for key in keys {
         con.del(key)?;
     }
@@ -144,30 +147,25 @@ fn rebuild_article_keys() -> redis::RedisResult<()> {
     if let Ok(articles) = gather_articles() {
         for article in articles {
             if let Ok(slug) = article.slug() {
-                let key = String::from("velum:articles:") + slug.as_str();
-                con.hset(key, "title", article.title().unwrap())?;
-                con.hset(key, "content", article.content)?;
+                let key = String::from(BASE_KEY) + slug.as_str();
+                con.hset(&key, "title", article.title().unwrap())?;
+                con.hset(&key, "content", article.content)?;
             }
         }
     }
     Ok(())
 }
 
-fn render_index_page(page: usize) -> String {
-    let tmpl_path = tmpl_path("index");
-    let mut hb = Handlebars::new();
-    hb.register_template_file("main", &tmpl_path)
-        .expect("Failed to register index template file");
-
+fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
     // TODO: read articles from Redis, not filesystem
     if let Ok(articles) = gather_articles() {
         let pages: Vec<&[Article]> = articles.chunks(PAGE_SIZE).collect();
         let constrained_page = cmp::min(pages.len() - 1, page);
 
-        match hb.render(
+        match hbs.render(
             "main",
             &json!({
-                "title": "Velum Blog Test",
+                "title": BLOG_TITLE,
                 "articles": &pages[constrained_page]
             })
         ) {
@@ -180,19 +178,11 @@ fn render_index_page(page: usize) -> String {
 
 }
 
-async fn index() -> Result<impl warp::Reply, warp::Rejection> {
-    Ok(warp::reply::html(render_index_page(0)))
+fn index_at_offset(offset: usize, hbs: &Handlebars<'_>) -> impl warp::Reply {
+    warp::reply::html(render_index_page(offset, hbs))
 }
 
-async fn index_at_offset(offset: usize) -> Result<impl warp::Reply, warp::Rejection> {
-    Ok(warp::reply::html(render_index_page(offset)))
-}
-
-async fn render_article(article_name: String) -> Result<impl warp::Reply, warp::Rejection> {
-    let tmpl_path = tmpl_path("article");
-    let mut hb = Handlebars::new();
-    hb.register_template_file("article", &tmpl_path).expect("Failed to register article template file");
-
+fn render_article(article_name: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
     let article_path = content_path(&article_name);
     if let Ok(article_content) = fs::read_to_string(&article_path) {
 
@@ -200,11 +190,18 @@ async fn render_article(article_name: String) -> Result<impl warp::Reply, warp::
         let mut parsed_article = String::new();
         html::push_html(&mut parsed_article, parser);
 
-        Ok(warp::reply::html(
-            hb.render("article", &json!({"content": &parsed_article})).expect("Failed to render article")
-        ))
+
+        let reply = warp::reply::html(
+            hbs.render(
+                "article",
+                &json!({"content": &parsed_article})
+            ).expect("Failed to render article")
+        );
+
+        warp::reply::with_status(reply, warp::http::StatusCode::OK)
     } else {
-        Err(warp::reject::not_found())
+        let reply = warp::reply::html(String::from("Unable to read article"));
+        warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -214,24 +211,52 @@ async fn file_not_found(_: warp::Rejection) -> Result<impl warp::Reply, Infallib
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::NOT_FOUND))
 }
 
+fn create_handlebars() -> Handlebars<'static> {
+    let mut hb = Handlebars::new();
+    let index_tmpl_path = tmpl_path("index");
+    let article_tmpl_path = tmpl_path("article");
+    hb.register_template_file(
+        "article",
+        &article_tmpl_path
+    ).expect("Failed to register article template file");
+    hb.register_template_file(
+        "main",
+        &index_tmpl_path
+    ).expect("Failed to register index template file");
+
+    hb
+}
+
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
 
+    let hbs = Arc::new(create_handlebars());
 
-
-    if let Err(e) = rebuild_article_headers() {
+    if let Err(e) = rebuild_article_keys() {
         panic!("Failed to rebuild article headers: {:?}", e);
     }
 
-    let article_index = warp::path::end().and_then(index);
-    let article_index_offset = warp::path!("page" / usize).and_then(index_at_offset);
+    let hbs2 = hbs.clone();
+    let article_index = warp::path::end().map(move || {
+        index_at_offset(0, &hbs2)
+    });
+    let hbs3 = hbs.clone();
+    let article_index_offset = warp::path!("page" / usize).map(move |page| {
+        index_at_offset(page, &hbs3)
+    });
 
-    let article = warp::path!("articles" / String).and_then(render_article);
+    let article = warp::path!("articles" / String).map(move |article| {
+        render_article(article, &hbs)
+    });
 
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
-    let routes = article_index.or(article_index_offset).or(article).or(assets).recover(file_not_found);
+    let routes = article_index.
+        or(article_index_offset).
+        or(article).
+        or(assets).
+        recover(file_not_found);
 
     println!("Listening on 3090...");
     warp::serve(routes)
