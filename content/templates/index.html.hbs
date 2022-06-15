@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>{{title}}</title>
+    <title>{{this.title}} &middot; blog.andyf.me</title>
     <link rel="stylesheet" href="/assets/style.css">
   </head>
   <body>
@@ -9,6 +9,7 @@
       <h1>{{title}}</h1>
       {{#each articles}}
         <h2><a href="{{this.route}}">{{this.title}}</a></h2>
+        <h3>{{date_from_timestamp this.timestamp}}
       {{/each}}
     </section>
   </body>

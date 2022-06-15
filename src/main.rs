@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 use std::io::{self, ErrorKind};
 use std::{fs, time, cmp};
 use std::collections::BTreeMap;
-// use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::json;
 use warp::Filter;
-use handlebars::Handlebars;
+use handlebars::{Handlebars, handlebars_helper};
+use chrono::prelude::*;
 use pulldown_cmark as cmark;
 use redis;
 use redis::Commands;
@@ -21,20 +21,27 @@ const BASE_PATH: &str = "./content";
 const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
 const BLOG_TITLE: &str = "Velum Test Blog";
+const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 
 // Struct for creating article data from a file on disk.
 struct FsArticle {
     content: String,
-    created_at: time::SystemTime
+    timestamp_millis: i64,
 }
 
 impl FsArticle {
     fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
+        let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
-        Ok(Self {
-            content,
-            created_at: time::SystemTime::now(),
-        })
+        let created = metadata.created()?;
+        if let Ok(s) = created.duration_since(UNIX_EPOCH) {
+            Ok(Self {
+                content,
+                timestamp_millis: s.as_millis() as i64
+            })
+        } else {
+            Err(io::Error::new(ErrorKind::Other, "failed to read file"))
+        }
     }
 
     fn title(&self) -> Option<String> {
@@ -70,54 +77,56 @@ impl FsArticle {
             Err("Unable to create route due to error in slug")
         }
     }
-
-    fn age(&self) -> time::Duration {
-        let now = time::SystemTime::now();
-        match now.duration_since(self.created_at) {
-            Ok(d) => d,
-            Err(_) => time::Duration::new(0, 0)
-        }
-    }
-
-    fn formatted_date(&self) -> String {
-        // TODO: actual implementation
-        String::from("48th of Boptember, 1536")
-    }
 }
 
+handlebars_helper!(date_from_timestamp: |ts: i64| {
+    let dt = Utc.timestamp_millis(ts);
+    dt.to_rfc2822()
+});
+
+// Struct for use in rendering.
 #[derive(serde::Serialize)]
 struct ArticleHash {
     title: String,
     content: String,
     route: String,
-    created_at: String
+    timestamp: i64,
 }
 
 impl ArticleHash {
+    fn parse_markdown(md: &str) -> String {
+        let parser = cmark::Parser::new(md);
+        let mut parsed_article = String::new();
+        cmark::html::push_html(&mut parsed_article, parser);
+        parsed_article
+    }
+
     fn from_article(a: &FsArticle) -> Self {
         Self {
             title: a.title().unwrap(),
-            content: a.content.clone(),
+            content: Self::parse_markdown(&a.content),
             route: a.route().unwrap(),
-            created_at: a.formatted_date()
+            timestamp: a.timestamp_millis,
         }
     }
 
     fn from_redis(a: &BTreeMap<String, String>) -> Self {
+        let timestamp = a.get("timestamp").unwrap();
         Self {
             title: a.get("title").unwrap().clone(),
-            content: a.get("content").unwrap().clone(),
+            content: Self::parse_markdown(a.get("content").unwrap()),
             route: a.get("route").unwrap().clone(),
-            created_at: a.get("created_at").unwrap().clone(),
+            timestamp: timestamp.parse::<i64>().unwrap_or(0),
         }
     }
 
-    fn as_kv_list(&self) -> Box<[(&str, &str)]> {
+    // For passing to Redis via hset_multiple
+    fn to_kv_list(&self) -> Box<[(String, String)]> {
         Box::new([
-            ("title", &self.title),
-            ("content", &self.content),
-            ("route", &self.route),
-            ("created_at", &self.created_at),
+            ("title".to_string(), self.title.clone()),
+            ("content".to_string(), self.content.clone()),
+            ("route".to_string(), self.route.clone()),
+            ("timestamp".to_string(), self.timestamp.to_string()),
         ])
     }
 }
@@ -125,18 +134,6 @@ impl ArticleHash {
 #[derive(Debug)]
 struct ArticleNotFound;
 impl warp::reject::Reject for ArticleNotFound {}
-
-fn tmpl_path(tmpl_name: &str) -> PathBuf {
-    let filename = [tmpl_name, "html.hbs"].join(".");
-    let path = Path::new(BASE_PATH).join("templates");
-    path.join(filename)
-}
-
-fn content_path(article_name: &str) -> PathBuf {
-    let filename = [article_name, "md"].join(".");
-    let path = Path::new(BASE_PATH).join("articles");
-    path.join(filename)
-}
 
 fn gather_fs_articles() -> Result<Vec<FsArticle>, io::Error> {
     let dir = PathBuf::from(BASE_PATH).join("articles");
@@ -169,6 +166,8 @@ fn gather_redis_articles() -> Result<Vec<ArticleHash>, redis::RedisError> {
         }
     }
 
+    articles.sort_by_key(|a| -a.timestamp);
+
     Ok(articles)
 }
 
@@ -193,7 +192,7 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
             if let Ok(slug) = article.slug() {
                 let key = String::from(BASE_KEY) + slug.as_str();
                 let hash = ArticleHash::from_article(&article);
-                con.hset_multiple(&key, &hash.as_kv_list())?;
+                con.hset_multiple(&key, &hash.to_kv_list())?;
             }
         }
     }
@@ -214,7 +213,7 @@ fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
             })
         ) {
             Ok(rendered_page) => rendered_page,
-            Err(_) => String::from("Error rendering page :("),
+            Err(e) => format!("Error rendering page {:?}", e),
         }
     } else {
         String::from("")
@@ -232,14 +231,10 @@ fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
 
     if let Ok(result) = con.hgetall(String::from(BASE_KEY) + &slug) {
         let article = ArticleHash::from_redis(&result);
-        let parser = cmark::Parser::new(&article.content);
-        let mut parsed_article = String::new();
-        cmark::html::push_html(&mut parsed_article, parser);
-
         let reply = warp::reply::html(
             hbs.render(
                 "article",
-                &json!({"content": &parsed_article})
+                &json!(article)
             ).expect("Failed to render article")
         );
 
@@ -256,6 +251,12 @@ async fn file_not_found(_: warp::Rejection) -> Result<impl warp::Reply, Infallib
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::NOT_FOUND))
 }
 
+fn tmpl_path(tmpl_name: &str) -> PathBuf {
+    let filename = [tmpl_name, "html.hbs"].join(".");
+    let path = Path::new(BASE_PATH).join("templates");
+    path.join(filename)
+}
+
 fn create_handlebars() -> Handlebars<'static> {
     let mut hb = Handlebars::new();
     let index_tmpl_path = tmpl_path("index");
@@ -268,6 +269,7 @@ fn create_handlebars() -> Handlebars<'static> {
         "main",
         &index_tmpl_path
     ).expect("Failed to register index template file");
+    hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
 
     hb
 }
@@ -297,11 +299,13 @@ async fn main() {
         render_article(article, &hbs)
     });
 
+    let images = warp::path("images").and(warp::fs::dir("content/images"));
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
     let routes = article_index.
         or(article_index_offset).
         or(article).
+        or(images).
         or(assets).
         recover(file_not_found);
 
