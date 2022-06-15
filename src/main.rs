@@ -50,7 +50,7 @@ impl FsArticle {
     }
 
     fn slug(&self) -> Result<String, &'static str> {
-        lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z\-]").unwrap(); }
+        lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap(); }
         lazy_static! { static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap(); }
         if let Some(t) = self.title() {
             let lowercase_title = t.to_lowercase();
@@ -187,16 +187,13 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
 
     destroy_article_keys(&mut con)?;
 
+    // TODO: handle potential failure
     if let Ok(articles) = gather_fs_articles() {
         for article in articles {
             if let Ok(slug) = article.slug() {
                 let key = String::from(BASE_KEY) + slug.as_str();
                 let hash = ArticleHash::from_article(&article);
                 con.hset_multiple(&key, &hash.as_kv_list())?;
-                // con.hset(&key, "title", article.title().unwrap())?;
-                // con.hset(&key, "content", &article.content)?;
-                // con.hset(&key, "route", article.route().unwrap())?;
-                // con.hset(&key, "created_at", article.formatted_date())?;
             }
         }
     }
