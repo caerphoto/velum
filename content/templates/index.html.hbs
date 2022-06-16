@@ -1,16 +1,29 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>{{this.title}} &middot; blog.andyf.me</title>
+    <title>{{title}} &middot; blog.andyf.me</title>
     <link rel="stylesheet" href="/assets/style.css">
   </head>
   <body>
     <section id="content">
       <h1>{{title}}</h1>
-      {{#each articles}}
-        <h2><a href="{{this.route}}">{{this.title}}</a></h2>
-        <h3>{{date_from_timestamp this.timestamp}}
-      {{/each}}
+      <ul>
+        {{#each articles}}
+        <li class="article-list_article">
+          <h2><a href="{{this.route}}">{{this.title}}</a></h2>
+          <h3>{{date_from_timestamp this.timestamp}}
+        </li>
+        {{/each}}
+      </ul>
+      <nav class="pagination">
+        {{#if (gt current_page  0)}}
+        <a href="/page/{{prev_page}}">&larr; previous</a> |
+        {{/if}}
+        {{display_page}}
+        {{#if (gt next_page 0)}}
+        | <a href="/page/{{next_page}}">next &rarr;</a>
+        {{/if}}
+      </nav>
     </section>
   </body>
 </html>

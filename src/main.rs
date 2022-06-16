@@ -203,12 +203,18 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
 fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
     if let Ok(articles) = gather_redis_articles() {
         let pages: Vec<&[ArticleHash]> = articles.chunks(PAGE_SIZE).collect();
-        let constrained_page = cmp::min(pages.len() - 1, page);
+        let max_page = pages.len().checked_sub(1).unwrap_or(0);
+        let constrained_page = cmp::min(max_page, page);
+        let display_page = page + 1;
 
         match hbs.render(
             "main",
             &json!({
                 "title": BLOG_TITLE,
+                "prev_page": page.checked_sub(1).unwrap_or(0),
+                "current_page": page,
+                "display_page": display_page,
+                "next_page": if page < max_page { page + 1 } else { 0 },
                 "articles": &pages[constrained_page]
             })
         ) {

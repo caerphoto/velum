@@ -14,3 +14,7 @@ body {
     margin: 1em auto;
     max-width: 35em;
 }
+
+.pagination {
+    text-align: center;
+}
