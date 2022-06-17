@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::io::{self, ErrorKind};
 use std::{fs, time, cmp};
 use std::collections::BTreeMap;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::json;
 use warp::Filter;
 use handlebars::{Handlebars, handlebars_helper};
@@ -21,15 +22,16 @@ const BASE_PATH: &str = "./content";
 const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
 const BLOG_TITLE: &str = "Velum Test Blog";
+const DEFAULT_TITLE: &str = "<no title>";
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 
-// Struct for creating article data from a file on disk.
-struct FsArticle {
+// Struct for creating and managing article data
+struct Article {
     content: String,
     timestamp_millis: i64,
 }
 
-impl FsArticle {
+impl Article {
     fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
         let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
@@ -42,6 +44,21 @@ impl FsArticle {
         } else {
             Err(io::Error::new(ErrorKind::Other, "failed to read file"))
         }
+    }
+
+    fn from_redis(a: &BTreeMap<String, String>) -> Self {
+        let timestamp = a.get("timestamp").unwrap();
+        Self {
+            content: a.get("content").unwrap().to_string(),
+            timestamp_millis: timestamp.parse::<i64>().unwrap_or(0),
+        }
+    }
+
+    fn parsed_content(&self) -> String {
+        let mut parsed_article = String::new();
+        let parser = cmark::Parser::new(&self.content);
+        cmark::html::push_html(&mut parsed_article, parser);
+        parsed_article
     }
 
     fn title(&self) -> Option<String> {
@@ -77,6 +94,27 @@ impl FsArticle {
             Err("Unable to create route due to error in slug")
         }
     }
+
+    // For passing to Redis via hset_multiple
+    fn to_kv_list(&self) -> Box<[(String, String)]> {
+        Box::new([
+            ("content".to_string(), self.content.clone()),
+            ("timestamp".to_string(), self.timestamp_millis.to_string()),
+        ])
+    }
+}
+
+impl Serialize for Article {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer {
+        let mut state = serializer.serialize_struct("Article", 4)?;
+        let title = &self.title().unwrap_or(String::from(DEFAULT_TITLE));
+        state.serialize_field("title", title)?;
+        state.serialize_field("content", &self.parsed_content())?;
+        state.serialize_field("route", &self.route().unwrap_or("/".to_string()))?;
+        state.serialize_field("timestamp", &self.timestamp_millis)?;
+        state.end()
+    }
 }
 
 // TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
@@ -85,70 +123,27 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
     dt.to_rfc2822()
 });
 
-// Struct for use in rendering.
-#[derive(serde::Serialize)]
-struct ArticleHash {
-    title: String,
-    content: String,
-    route: String,
-    timestamp: i64,
-}
-
-impl ArticleHash {
-    fn parse_markdown(md: &str) -> String {
-        let parser = cmark::Parser::new(md);
-        let mut parsed_article = String::new();
-        cmark::html::push_html(&mut parsed_article, parser);
-        parsed_article
-    }
-
-    fn from_article(a: &FsArticle) -> Self {
-        Self {
-            title: a.title().unwrap(),
-            content: Self::parse_markdown(&a.content),
-            route: a.route().unwrap(),
-            timestamp: a.timestamp_millis,
-        }
-    }
-
-    fn from_redis(a: &BTreeMap<String, String>) -> Self {
-        let timestamp = a.get("timestamp").unwrap();
-        Self {
-            title: a.get("title").unwrap().clone(),
-            content: Self::parse_markdown(a.get("content").unwrap()),
-            route: a.get("route").unwrap().clone(),
-            timestamp: timestamp.parse::<i64>().unwrap_or(0),
-        }
-    }
-
-    // For passing to Redis via hset_multiple
-    fn to_kv_list(&self) -> Box<[(String, String)]> {
-        Box::new([
-            ("title".to_string(), self.title.clone()),
-            ("content".to_string(), self.content.clone()),
-            ("route".to_string(), self.route.clone()),
-            ("timestamp".to_string(), self.timestamp.to_string()),
-        ])
-    }
-}
+handlebars_helper!(page_display: |current: usize, max: usize| {
+    format!("Page {} of {}", current + 1, max + 1)
+});
 
 #[derive(Debug)]
 struct ArticleNotFound;
 impl warp::reject::Reject for ArticleNotFound {}
 
-fn gather_fs_articles() -> Result<Vec<FsArticle>, io::Error> {
+fn gather_fs_articles() -> Result<Vec<Article>, io::Error> {
     let dir = PathBuf::from(BASE_PATH).join("articles");
     if !dir.is_dir() {
         return Err(io::Error::new(ErrorKind::InvalidInput, "Article path is not a directory"));
     }
 
-    let mut articles: Vec<FsArticle> = Vec::new();
+    let mut articles: Vec<Article> = Vec::new();
 
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_dir() {
-            if let Ok(article) = FsArticle::from_file(&path) {
+            if let Ok(article) = Article::from_file(&path) {
                 articles.push(article);
             }
         }
@@ -156,18 +151,18 @@ fn gather_fs_articles() -> Result<Vec<FsArticle>, io::Error> {
     Ok(articles)
 }
 
-fn gather_redis_articles() -> Result<Vec<ArticleHash>, redis::RedisError> {
+fn gather_redis_articles() -> Result<Vec<Article>, redis::RedisError> {
     let client = redis::Client::open(REDIS_HOST)?;
     let mut con = client.get_connection()?;
-    let mut articles: Vec<ArticleHash> = Vec::new();
+    let mut articles: Vec<Article> = Vec::new();
     let keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
     for key in keys {
         if let Ok(result) = con.hgetall(key) {
-            articles.push(ArticleHash::from_redis(&result))
+            articles.push(Article::from_redis(&result))
         }
     }
 
-    articles.sort_by_key(|a| -a.timestamp);
+    articles.sort_by_key(|a| -a.timestamp_millis);
 
     Ok(articles)
 }
@@ -192,8 +187,7 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
         for article in articles {
             if let Ok(slug) = article.slug() {
                 let key = String::from(BASE_KEY) + slug.as_str();
-                let hash = ArticleHash::from_article(&article);
-                con.hset_multiple(&key, &hash.to_kv_list())?;
+                con.hset_multiple(&key, &article.to_kv_list())?;
             }
         }
     }
@@ -202,10 +196,9 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
 
 fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
     if let Ok(articles) = gather_redis_articles() {
-        let pages: Vec<&[ArticleHash]> = articles.chunks(PAGE_SIZE).collect();
+        let pages: Vec<&[Article]> = articles.chunks(PAGE_SIZE).collect();
         let max_page = pages.len().checked_sub(1).unwrap_or(0);
         let constrained_page = cmp::min(max_page, page);
-        let display_page = page + 1;
 
         match hbs.render(
             "main",
@@ -213,7 +206,7 @@ fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
                 "title": BLOG_TITLE,
                 "prev_page": page.checked_sub(1).unwrap_or(0),
                 "current_page": page,
-                "display_page": display_page,
+                "max_page": max_page,
                 "next_page": if page < max_page { page + 1 } else { 0 },
                 "articles": &pages[constrained_page]
             })
@@ -236,7 +229,7 @@ fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
     let mut con = client.get_connection().unwrap();
 
     if let Ok(result) = con.hgetall(String::from(BASE_KEY) + &slug) {
-        let article = ArticleHash::from_redis(&result);
+        let article = Article::from_redis(&result);
         let reply = warp::reply::html(
             hbs.render(
                 "article",
@@ -276,6 +269,7 @@ fn create_handlebars() -> Handlebars<'static> {
         &index_tmpl_path
     ).expect("Failed to register index template file");
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
+    hb.register_helper("page_display", Box::new(page_display));
 
     hb
 }
