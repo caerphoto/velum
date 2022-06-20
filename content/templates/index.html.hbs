@@ -16,10 +16,10 @@
         {{/each}}
       </ul>
       <nav class="pagination">
-        {{#if (gt current_page  0)}}
+        {{#if (gt current_page 1)}}
         <a href="/page/{{prev_page}}">&larr; previous</a> |
         {{/if}}
-        {{page_display current_page max_page}}
+        <span class="current-page">Page {{current_page}} of {{max_page}}</span>
         {{#if (gt next_page 0)}}
         | <a href="/page/{{next_page}}">next &rarr;</a>
         {{/if}}

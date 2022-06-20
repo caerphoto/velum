@@ -1,15 +1,27 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>{{title}}</title>
+    <title>{{article.title}} &middot; blog.andyf.me</title>
     <link rel="stylesheet" href="/assets/style.css">
   </head>
   <body>
     <header><a href="/">&larr; article index</a></header>
     <section id="content">
-      <h1>{{title}}</h1>
-      <h2>{{date_from_timestamp timestamp}}
-      {{{content}}}
+      <h1>{{article.title}}</h1>
+      <h2>{{date_from_timestamp article.timestamp}}</h2>
+      {{{article.content}}}
+
+      <nav class="next-prev">
+        {{#if prev}}
+        <a href="{{prev.route}}">&larr; previous</a>
+        {{/if}}
+        {{#if prev}}{{#if next}}
+        |
+        {{/if}}{{/if}}
+        {{#if next}}
+        <a href="{{next.route}}">next &rarr;</a>
+        {{/if}}
+      </nav>
     </section>
   </body>
 </html>
