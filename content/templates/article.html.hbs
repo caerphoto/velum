@@ -2,26 +2,41 @@
 <html>
   <head>
     <title>{{article.title}} &middot; blog.andyf.me</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/assets/style.css">
   </head>
   <body>
-    <header><a href="/">&larr; article index</a></header>
-    <section id="content">
+    <header>
+      <div class="home-link-box">
+        <a href="/">&larr; article index</a>
+      </div>
       <h1>{{article.title}}</h1>
-      <h2>{{date_from_timestamp article.timestamp}}</h2>
-      {{{article.content}}}
+    </header>
 
-      <nav class="next-prev">
-        {{#if prev}}
-        <a href="{{prev.route}}">&larr; {{prev.title}}</a>
-        {{/if}}
-        {{#if prev}}{{#if next}}
-        &middot;
-        {{/if}}{{/if}}
-        {{#if next}}
-        <a href="{{next.route}}">{{next.title}} &rarr;</a>
-        {{/if}}
-      </nav>
+    <section id="content">
+      <h3>{{date_from_timestamp article.timestamp}}</h3>
+      {{{article.content}}}
     </section>
+
+    <nav class="next-prev">
+      <p>More articles:</p>
+      {{#if prev}}
+      <div class="nav-prev">
+        <a href="{{prev.route}}">&larr; {{prev.title}}</a>
+      </div>
+      {{else}}
+      <span class="empty"></span>
+      {{/if}}
+      <span class="nav-sep">&middot;</span>
+      {{#if next}}
+      <div class="nav-next">
+        <a href="{{next.route}}">{{next.title}} &rarr;</a>
+      </div>
+      {{else}}
+      <span class="empty"></span>
+      {{/if}}
+    </nav>
   </body>
 </html>

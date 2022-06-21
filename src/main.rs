@@ -21,18 +21,20 @@ const PAGE_SIZE: usize = 10;
 const BASE_PATH: &str = "./content";
 const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
+const ALL_ARTICLES_KEY: &str = "velum:articles:*";
 const BASE_TS_KEY: &str = "velum:timestamps:";
+const ALL_TIMESTAMPS_KEY: &str = "velum:timestamps:*";
 const BLOG_TITLE: &str = "Velum Test Blog";
 const DEFAULT_TITLE: &str = "<no title>";
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 
 fn article_keys(con: &mut redis::Connection) -> Result<Vec<String>, redis::RedisError> {
-    let keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
+    let keys: Vec<String> = con.keys(ALL_ARTICLES_KEY)?;
     Ok(keys)
 }
 
 fn timestamp_keys(con: &mut redis::Connection) -> Result<Vec<String>, redis::RedisError> {
-    let keys: Vec<String> = con.keys(String::from(BASE_TS_KEY) + "*")?;
+    let keys: Vec<String> = con.keys(ALL_TIMESTAMPS_KEY)?;
     Ok(keys)
 }
 
@@ -237,10 +239,6 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
     dt.to_rfc2822()
 });
 
-#[derive(Debug)]
-struct ArticleNotFound;
-impl warp::reject::Reject for ArticleNotFound {}
-
 fn gather_fs_articles() -> Result<Vec<Article>, io::Error> {
     let dir = PathBuf::from(BASE_PATH).join("articles");
     if !dir.is_dir() {
@@ -379,7 +377,7 @@ fn create_handlebars() -> Handlebars<'static> {
     let index_tmpl_path = tmpl_path("index");
     let article_tmpl_path = tmpl_path("article");
 
-    // hb.set_dev_mode(true);
+    hb.set_dev_mode(true);
 
     hb.register_template_file(
         "article",

@@ -2,28 +2,42 @@
 <html>
   <head>
     <title>{{title}} &middot; blog.andyf.me</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/assets/style.css">
   </head>
   <body>
-    <section id="content">
+    <header class="index">
       <h1>{{title}}</h1>
-      <ul>
+    </header>
+
+    <section id="content">
+      <ul class="article-list">
         {{#each articles}}
-        <li class="article-list_article">
+        <li class="article-list_item">
           <h2><a href="{{this.route}}">{{this.title}}</a></h2>
-          <h3>{{date_from_timestamp this.timestamp}}
+          <h3>{{date_from_timestamp this.timestamp}}</h3>
         </li>
         {{/each}}
       </ul>
-      <nav class="pagination">
-        {{#if (gt current_page 1)}}
-        <a href="/page/{{prev_page}}">&larr; previous</a> &middot;
-        {{/if}}
-        <span class="current-page">Page {{current_page}} of {{max_page}}</span>
-        {{#if (gt next_page 0)}}
-        &middot; <a href="/page/{{next_page}}">next &rarr;</a>
-        {{/if}}
-      </nav>
     </section>
+    <nav class="pagination">
+      {{#if (gt current_page 1)}}
+      <div class="nav-prev">
+        <a href="/page/{{prev_page}}">&larr; previous</a>
+      </div>
+      {{else}}
+      <span class="empty"></span>
+      {{/if}}
+      <span class="nav-sep">Page {{current_page}} of {{max_page}}</span>
+      {{#if (gt next_page 0)}}
+      <div class="nav-next">
+        <a href="/page/{{next_page}}">next &rarr;</a>
+      </div>
+      {{else}}
+      <span class="empty"></span>
+      {{/if}}
+    </nav>
   </body>
 </html>
