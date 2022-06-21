@@ -26,7 +26,7 @@ const BLOG_TITLE: &str = "Velum Test Blog";
 // TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
 handlebars_helper!(date_from_timestamp: |ts: i64| {
     let dt = Utc.timestamp_millis(ts);
-    dt.to_rfc2822()
+    dt.format("%A %e %B %Y at %H:%M").to_string()
 });
 
 fn gather_fs_articles() -> Result<Vec<Article>, io::Error> {
@@ -65,8 +65,12 @@ fn gather_redis_article_views() -> Result<Vec<ArticleView>, redis::RedisError> {
     Ok(articles)
 }
 
-fn destroy_article_keys(con: &mut redis::Connection) -> redis::RedisResult<()> {
-    let keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
+fn destroy_all_keys(con: &mut redis::Connection) -> redis::RedisResult<()> {
+    let mut keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
+    for key in keys {
+        con.del(key)?;
+    }
+    keys = con.keys(String::from(BASE_TS_KEY) + "*")?;
     for key in keys {
         con.del(key)?;
     }
@@ -78,7 +82,7 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
     let client = redis::Client::open(REDIS_HOST)?;
     let mut con = client.get_connection()?;
 
-    destroy_article_keys(&mut con)?;
+    destroy_all_keys(&mut con)?;
 
     // TODO: handle potential failure
     if let Ok(articles) = gather_fs_articles() {
@@ -206,10 +210,10 @@ async fn main() {
         index_at_offset(page, &hbs3)
     });
 
-    let article = warp::path!("articles" / String).map(move |article| {
+    let article = warp::path!("articles" / String).map(move |article_slug: String| {
         let now = time::Instant::now();
-        let res = render_article(article, &hbs);
-        println!("Rendered article in {} ms", now.elapsed().as_millis());
+        let res = render_article(article_slug.clone(), &hbs);
+        println!("Rendered article \"{}\" in {} ms", article_slug, now.elapsed().as_millis());
         res
     });
 

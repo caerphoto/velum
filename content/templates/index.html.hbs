@@ -9,7 +9,7 @@
         {{#each articles}}
         <li class="article-list_item">
           <h2><a href="{{this.route}}">{{this.title}}</a></h2>
-          <h3>{{date_from_timestamp this.timestamp}}</h3>
+          <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
         </li>
         {{/each}}
       </ul>
