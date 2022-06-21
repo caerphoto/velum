@@ -346,6 +346,7 @@ fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
             hbs.render(
                 "article",
                 &json!({
+                    "title": (article.title.clone() + " &middot ") + BLOG_TITLE,
                     "article": article,
                     "prev": prev,
                     "next": next
@@ -376,17 +377,19 @@ fn create_handlebars() -> Handlebars<'static> {
     let mut hb = Handlebars::new();
     let index_tmpl_path = tmpl_path("index");
     let article_tmpl_path = tmpl_path("article");
+    let header_tmpl_path = tmpl_path("_header");
+    let footer_tmpl_path = tmpl_path("_footer");
 
     hb.set_dev_mode(true);
 
-    hb.register_template_file(
-        "article",
-        &article_tmpl_path
-    ).expect("Failed to register article template file");
-    hb.register_template_file(
-        "main",
-        &index_tmpl_path
-    ).expect("Failed to register index template file");
+    hb.register_template_file("article", &article_tmpl_path)
+        .expect("Failed to register article template file");
+    hb.register_template_file("main", &index_tmpl_path)
+        .expect("Failed to register index template file");
+    hb.register_template_file("header", &header_tmpl_path)
+        .expect("Failed to register header template file");
+    hb.register_template_file("footer", &footer_tmpl_path)
+        .expect("Failed to register footer template file");
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
 
     hb

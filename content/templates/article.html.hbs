@@ -1,13 +1,5 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>{{article.title}} &middot; blog.andyf.me</title>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap">
-    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="/assets/style.css">
-  </head>
-  <body>
+{{> header}}
+  <body class="article">
     <header>
       <div class="home-link-box">
         <a href="/">&larr; article index</a>
@@ -38,5 +30,7 @@
       <span class="empty"></span>
       {{/if}}
     </nav>
+
+    {{> footer}}
   </body>
 </html>
