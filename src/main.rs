@@ -21,6 +21,7 @@ const PAGE_SIZE: usize = 10;
 const BASE_PATH: &str = "./content";
 const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
+const BASE_TS_KEY: &str = "velum:timestamps:";
 const BLOG_TITLE: &str = "Velum Test Blog";
 const DEFAULT_TITLE: &str = "<no title>";
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
@@ -28,6 +29,40 @@ const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 fn article_keys(con: &mut redis::Connection) -> Result<Vec<String>, redis::RedisError> {
     let keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
     Ok(keys)
+}
+
+fn timestamp_keys(con: &mut redis::Connection) -> Result<Vec<String>, redis::RedisError> {
+    let keys: Vec<String> = con.keys(String::from(BASE_TS_KEY) + "*")?;
+    Ok(keys)
+}
+
+struct TsMap {
+    timestamp: i64,
+    key: String,
+}
+
+fn get_all_timestamps(con: &mut redis::Connection) -> Result<Vec<TsMap>, redis::RedisError> {
+    let keys = timestamp_keys(con)?;
+    let mut timestamps: Vec<TsMap> = Vec::with_capacity(keys.len());
+    let ts_vals: Result<Vec<String>, redis::RedisError> =
+        redis::cmd("MGET").arg(&keys).query(con);
+
+    match ts_vals {
+        Ok(vals) => {
+            for (index, ts) in vals.iter().enumerate() {
+                if let Some(key) = keys.get(index) {
+                    timestamps.push(TsMap {
+                        key: key.clone(),
+                        timestamp: ts.parse::<i64>().unwrap_or(0),
+                    });
+                }
+            }
+        },
+        Err(e) => return Err(e)
+    }
+
+    timestamps.sort_by_key(|ts| -ts.timestamp);
+    Ok(timestamps)
 }
 
 // Struct for creating and managing article data
@@ -97,7 +132,7 @@ impl Article {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 struct ArticleView {
     title: String,
     content: String,
@@ -135,49 +170,64 @@ impl ArticleView {
         }
     }
 
-    fn surrounding(&self, con: &mut redis::Connection) -> (Option<Self>, Option<Self>) {
-        let mut articles: Vec<ArticleView> = Vec::new();
+    fn from_redis_key(
+        key: &str,
+        con: &mut redis::Connection,
+        parse_content: bool
+    ) -> Option<Self> {
+        match con.hgetall(key) {
+            Ok(result) => Some(Self::from_redis(&result, parse_content)),
+            Err(_) => None
+        }
+    }
 
-        let keys = match article_keys(con) {
-            Ok(k) => k,
-            Err(_) => return (None, None)
-        };
-        for key in keys {
-            if let Ok(result) = con.hgetall(key) {
-                articles.push(ArticleView::from_redis(&result, false))
-            }
-        };
-        articles.sort_by_key(|a| -a.timestamp);
-        for (index, article) in articles.iter().enumerate() {
-            if article.timestamp == self.timestamp {
-                let prev = if index > 0 {
-                    match articles.get(index - 1) {
-                        Some(a) => Some(a.clone()),
-                        None => None
-                    }
-                } else { None };
-                let next = if index < articles.len() - 1 {
-                    match articles.get(index + 1) {
-                        Some(a) => Some(a.clone()),
-                        None => None
-                    }
-                } else { None };
-                return (prev, next);
-            }
+    fn surrounding_keys(&self, con: &mut redis::Connection) -> (Option<String>, Option<String>) {
+
+        let timestamps = get_all_timestamps(con);
+        if let Err(e) = timestamps {
+            println!("{}", e);
+            return (None, None)
+
+        }
+        let timestamps = timestamps.unwrap();
+        if let Some(index) = timestamps.iter().position(
+            |ts| ts.timestamp == self.timestamp
+
+        ) {
+            let prev = if index > 0 {
+                match timestamps.get(index - 1) {
+                    Some(pts) => Some(pts.key.replace(BASE_TS_KEY, BASE_KEY)),
+                    None => None
+                }
+            } else { None };
+
+            let next = if index < timestamps.len() - 1 {
+                match timestamps.get(index + 1) {
+                    Some(nts) => Some(nts.key.replace(BASE_TS_KEY, BASE_KEY)),
+                    None => None
+                }
+            } else { None };
+            return (prev, next);
         }
 
         (None, None)
     }
-}
 
-impl From<Article> for ArticleView {
-    fn from(a: Article) -> Self {
-        Self {
-            title: a.title().unwrap_or(DEFAULT_TITLE.to_string()),
-            content: a.content.clone(),
-            route: a.route().unwrap_or("/".to_string()),
-            timestamp: a.timestamp,
-        }
+    fn surrounding(
+        &self,
+        con: &mut redis::Connection
+    ) -> (Option<Self>, Option<Self>) {
+        let (prev_key, next_key) = self.surrounding_keys(con);
+        (
+            match prev_key {
+                Some(key) => ArticleView::from_redis_key(&key, con, false),
+                None => None
+            },
+            match next_key {
+                Some(key) => ArticleView::from_redis_key(&key, con, false),
+                None => None
+            }
+        )
     }
 }
 
@@ -248,6 +298,8 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
             if let Ok(slug) = article.slug() {
                 let key = String::from(BASE_KEY) + slug.as_str();
                 con.hset_multiple(&key, &article.to_kv_list())?;
+                let ts_key = String::from(BASE_TS_KEY) + slug.as_str();
+                con.set(ts_key, article.timestamp)?;
             }
         }
     }
@@ -287,9 +339,9 @@ fn index_at_offset(offset: usize, hbs: &Handlebars<'_>) -> impl warp::Reply {
 fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
     let client = redis::Client::open(REDIS_HOST).unwrap();
     let mut con = client.get_connection().unwrap();
+    let key = String::from(BASE_KEY) + &slug;
 
-    if let Ok(result) = con.hgetall(String::from(BASE_KEY) + &slug) {
-        let article = ArticleView::from_redis(&result, true);
+    if let Some(article) = ArticleView::from_redis_key(&key, &mut con, true) {
         let (prev, next) = article.surrounding(&mut con);
 
         let reply = warp::reply::html(
@@ -327,7 +379,7 @@ fn create_handlebars() -> Handlebars<'static> {
     let index_tmpl_path = tmpl_path("index");
     let article_tmpl_path = tmpl_path("article");
 
-    hb.set_dev_mode(true);
+    // hb.set_dev_mode(true);
 
     hb.register_template_file(
         "article",
@@ -364,7 +416,10 @@ async fn main() {
     });
 
     let article = warp::path!("articles" / String).map(move |article| {
-        render_article(article, &hbs)
+        let now = time::Instant::now();
+        let res = render_article(article, &hbs);
+        println!("Rendered article in {} ms", now.elapsed().as_millis());
+        res
     });
 
     let images = warp::path("images").and(warp::fs::dir("content/images"));
