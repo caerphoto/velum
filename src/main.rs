@@ -6,6 +6,7 @@ use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 use std::io::{self, ErrorKind};
 use std::{fs, cmp};
+use log::{info};
 use serde_json::json;
 use warp::Filter;
 use handlebars::{Handlebars, handlebars_helper};
@@ -14,8 +15,8 @@ use redis::Commands;
 use article::Article;
 use article_view::{ArticleView, article_keys, BASE_KEY, BASE_TS_KEY};
 
-#[macro_use]
-extern crate lazy_static;
+
+#[macro_use] extern crate lazy_static;
 
 const PAGE_SIZE: usize = 10;
 const BASE_PATH: &str = "./content";
@@ -191,16 +192,16 @@ fn create_handlebars() -> Handlebars<'static> {
 
 #[tokio::main]
 async fn main() {
-    pretty_env_logger::init();
+    env_logger::init();
 
     let hbs = Arc::new(create_handlebars());
     let hbs_filter = warp::any().map(move || hbs.clone());
 
-    print!("Rebuilding Redis data from files... ");
+    info!("Rebuilding Redis data from files... ");
     if let Err(e) = rebuild_redis_data() {
         panic!("Failed to rebuild Redis data: {:?}", e);
     }
-    println!("done.");
+    info!("done.");
 
     let article_index = warp::path::end().map(|| 1 as usize)
         .and(hbs_filter.clone())
@@ -224,7 +225,6 @@ async fn main() {
         .or(assets)
         .recover(file_not_found);
 
-    println!("Listening on 3090...");
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3090))
         .await;
