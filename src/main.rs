@@ -5,14 +5,14 @@ use std::sync::Arc;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 use std::io::{self, ErrorKind};
-use std::{fs, time, cmp};
+use std::{fs, cmp};
 use serde_json::json;
 use warp::Filter;
 use handlebars::{Handlebars, handlebars_helper};
 use chrono::prelude::*;
 use redis::Commands;
-use crate::article::Article;
-use crate::article_view::{ArticleView, article_keys, BASE_KEY, BASE_TS_KEY};
+use article::Article;
+use article_view::{ArticleView, article_keys, BASE_KEY, BASE_TS_KEY};
 
 #[macro_use]
 extern crate lazy_static;
@@ -98,7 +98,7 @@ fn rebuild_redis_data() -> redis::RedisResult<()> {
     Ok(())
 }
 
-fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
+fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> String {
     if let Ok(articles) = gather_redis_article_views() {
         let pages: Vec<&[ArticleView]> = articles.chunks(PAGE_SIZE).collect();
         let max_page = pages.len();
@@ -124,11 +124,11 @@ fn render_index_page(page: usize, hbs: &Handlebars<'_>) -> String {
 
 }
 
-fn index_at_offset(offset: usize, hbs: &Handlebars<'_>) -> impl warp::Reply {
-    warp::reply::html(render_index_page(offset, hbs))
+async fn index_at_offset(offset: usize, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
+    Ok(warp::reply::html(render_index_page(offset, hbs)))
 }
 
-fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
+async fn render_article(slug: String, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
     let client = redis::Client::open(REDIS_HOST).unwrap();
     let mut con = client.get_connection().unwrap();
     let key = String::from(BASE_KEY) + &slug;
@@ -148,10 +148,10 @@ fn render_article(slug: String, hbs: &Handlebars<'_>) -> impl warp::Reply {
             ).expect("Failed to render article")
         );
 
-        warp::reply::with_status(reply, warp::http::StatusCode::OK)
+        Ok(warp::reply::with_status(reply, warp::http::StatusCode::OK))
     } else {
         let reply = warp::reply::html(String::from("Unable to read article"));
-        warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR)
+        Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
     }
 }
 
@@ -194,6 +194,7 @@ async fn main() {
     pretty_env_logger::init();
 
     let hbs = Arc::new(create_handlebars());
+    let hbs_filter = warp::any().map(move || hbs.clone());
 
     print!("Rebuilding Redis data from files... ");
     if let Err(e) = rebuild_redis_data() {
@@ -201,27 +202,23 @@ async fn main() {
     }
     println!("done.");
 
-    let hbs2 = hbs.clone();
-    let article_index = warp::path::end().map(move || {
-        index_at_offset(1, &hbs2)
-    });
-    let hbs3 = hbs.clone();
-    let article_index_offset = warp::path!("page" / usize).map(move |page| {
-        index_at_offset(page, &hbs3)
-    });
+    let article_index = warp::path::end().map(|| 1 as usize)
+        .and(hbs_filter.clone())
+        .and_then(index_at_offset);
 
-    let article = warp::path!("articles" / String).map(move |article_slug: String| {
-        let now = time::Instant::now();
-        let res = render_article(article_slug.clone(), &hbs);
-        println!("Rendered article \"{}\" in {} ms", article_slug, now.elapsed().as_millis());
-        res
-    });
+    let article_index_page = warp::path!("page" / usize)
+        .and(hbs_filter.clone())
+        .and_then(index_at_offset);
+
+    let article = warp::path!("articles" / String)
+        .and(hbs_filter.clone())
+        .and_then(render_article);
 
     let images = warp::path("images").and(warp::fs::dir("content/images"));
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
     let routes = article_index
-        .or(article_index_offset)
+        .or(article_index_page)
         .or(article)
         .or(images)
         .or(assets)

@@ -189,6 +189,21 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     color: #ddd;
 }
 
+#exif-popover {
+    position: absolute;
+    display: none;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #eee;
+    padding: 0.5em;
+    font-size: 0.8em;
+    border-radius: 0.5em;
+    text-shadow: 0 1px 0 #000;
+}
+
+#exif-popover.active {
+    display: block;
+}
+
 .pagination,
 .next-prev {
     margin: 1em 0 0;
