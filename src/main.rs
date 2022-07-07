@@ -14,6 +14,7 @@ use chrono::prelude::*;
 use redis::Commands;
 use article::Article;
 use article_view::{ArticleView, article_keys, BASE_KEY, BASE_TS_KEY};
+use ordinal::Ordinal;
 
 
 #[macro_use] extern crate lazy_static;
@@ -27,7 +28,11 @@ const BLOG_TITLE: &str = "Velum Test Blog";
 // TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
 handlebars_helper!(date_from_timestamp: |ts: i64| {
     let dt = Utc.timestamp_millis(ts);
-    dt.format("%A %e %B %Y at %H:%M").to_string()
+    format!("{} {} {}",
+        dt.format("%A"), // Day
+        Ordinal(dt.day()).to_string(), // Date
+        dt.format("%B %Y at %H:%M") // Month, year, time
+    )
 });
 
 fn gather_fs_articles() -> Result<Vec<Article>, io::Error> {
@@ -203,7 +208,7 @@ async fn main() {
     }
     info!("done.");
 
-    let article_index = warp::path::end().map(|| 1 as usize)
+    let article_index = warp::path::end().map(|| 1usize)
         .and(hbs_filter.clone())
         .and_then(index_at_offset);
 
