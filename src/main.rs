@@ -1,27 +1,22 @@
 mod article;
-mod article_view;
 
 use std::sync::Arc;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
-use std::io::{self, ErrorKind};
-use std::{fs, cmp};
+use std::{fs, cmp, time};
 use log::{info};
 use serde_json::json;
 use warp::Filter;
 use handlebars::{Handlebars, handlebars_helper};
 use chrono::prelude::*;
-use redis::Commands;
-use article::Article;
-use article_view::{ArticleView, article_keys, BASE_KEY, BASE_TS_KEY};
+use article::view::{gather_article_links, ArticleView, ArticleViewLink};
+use article::storage::rebuild_redis_data;
 use ordinal::Ordinal;
-
 
 #[macro_use] extern crate lazy_static;
 
+pub const BASE_PATH: &str = "./content";
 const PAGE_SIZE: usize = 10;
-const BASE_PATH: &str = "./content";
-const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BLOG_TITLE: &str = "Velum Test Blog";
 
 
@@ -35,78 +30,11 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
     )
 });
 
-fn gather_fs_articles() -> Result<Vec<Article>, io::Error> {
-    let dir = PathBuf::from(BASE_PATH).join("articles");
-    if !dir.is_dir() {
-        return Err(io::Error::new(ErrorKind::InvalidInput, "Article path is not a directory"));
-    }
-
-    let mut articles: Vec<Article> = Vec::new();
-
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if !path.is_dir() {
-            if let Ok(article) = Article::from_file(&path) {
-                articles.push(article);
-            }
-        }
-    }
-    Ok(articles)
-}
-
-fn gather_redis_article_views() -> Result<Vec<ArticleView>, redis::RedisError> {
-    let client = redis::Client::open(REDIS_HOST)?;
-    let mut con = client.get_connection()?;
-    let mut articles: Vec<ArticleView> = Vec::new();
-    let keys = article_keys(&mut con)?;
-    for key in keys {
-        if let Ok(result) = con.hgetall(key) {
-            articles.push(ArticleView::from_redis(&result, true))
-        }
-    }
-
-    articles.sort_by_key(|a| -a.timestamp);
-
-    Ok(articles)
-}
-
-fn destroy_all_keys(con: &mut redis::Connection) -> redis::RedisResult<()> {
-    let mut keys: Vec<String> = con.keys(String::from(BASE_KEY) + "*")?;
-    for key in keys {
-        con.del(key)?;
-    }
-    keys = con.keys(String::from(BASE_TS_KEY) + "*")?;
-    for key in keys {
-        con.del(key)?;
-    }
-
-    Ok(())
-}
-
-fn rebuild_redis_data() -> redis::RedisResult<()> {
-    let client = redis::Client::open(REDIS_HOST)?;
-    let mut con = client.get_connection()?;
-
-    destroy_all_keys(&mut con)?;
-
-    // TODO: handle potential failure
-    if let Ok(articles) = gather_fs_articles() {
-        for article in articles {
-            if let Ok(slug) = article.slug() {
-                let key = String::from(BASE_KEY) + slug.as_str();
-                con.hset_multiple(&key, &article.to_kv_list())?;
-                let ts_key = String::from(BASE_TS_KEY) + slug.as_str();
-                con.set(ts_key, article.timestamp)?;
-            }
-        }
-    }
-    Ok(())
-}
-
 fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> String {
-    if let Ok(articles) = gather_redis_article_views() {
-        let pages: Vec<&[ArticleView]> = articles.chunks(PAGE_SIZE).collect();
+    let now = time::Instant::now();
+
+    if let Ok(articles) = gather_article_links() {
+        let pages: Vec<&[ArticleViewLink]> = articles.chunks(PAGE_SIZE).collect();
         let max_page = pages.len();
         let chunk_index = cmp::min(max_page, page.checked_sub(1).unwrap_or(0));
 
@@ -121,7 +49,10 @@ fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> String {
                 "articles": &pages[chunk_index]
             })
         ) {
-            Ok(rendered_page) => rendered_page,
+            Ok(rendered_page) => {
+                info!("Rendered index page {} in {}ms", page, now.elapsed().as_millis());
+                rendered_page
+            },
             Err(e) => format!("Error rendering page {:?}", e),
         }
     } else {
@@ -135,25 +66,22 @@ async fn index_at_offset(offset: usize, hbs: Arc<Handlebars<'_>>) -> Result<impl
 }
 
 async fn render_article(slug: String, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
-    let client = redis::Client::open(REDIS_HOST).unwrap();
-    let mut con = client.get_connection().unwrap();
-    let key = String::from(BASE_KEY) + &slug;
+    let now = time::Instant::now();
 
-    if let Some(article) = ArticleView::from_redis_key(&key, &mut con, true) {
-        let (prev, next) = article.surrounding(&mut con);
-
+    if let Some(article) = ArticleView::from_slug(&slug) {
         let reply = warp::reply::html(
             hbs.render(
                 "article",
                 &json!({
                     "title": (article.title.clone() + " &middot ") + BLOG_TITLE,
                     "article": article,
-                    "prev": prev,
-                    "next": next
+                    "prev": article.prev,
+                    "next": article.next
                 })
             ).expect("Failed to render article")
         );
 
+        info!("Rendered article {} in {}ms", &slug, now.elapsed().as_millis());
         Ok(warp::reply::with_status(reply, warp::http::StatusCode::OK))
     } else {
         let reply = warp::reply::html(String::from("Unable to read article"));
@@ -180,7 +108,7 @@ fn create_handlebars() -> Handlebars<'static> {
     let header_tmpl_path = tmpl_path("_header");
     let footer_tmpl_path = tmpl_path("_footer");
 
-    hb.set_dev_mode(true);
+    // hb.set_dev_mode(true);
 
     hb.register_template_file("article", &article_tmpl_path)
         .expect("Failed to register article template file");
@@ -206,7 +134,7 @@ async fn main() {
     if let Err(e) = rebuild_redis_data() {
         panic!("Failed to rebuild Redis data: {:?}", e);
     }
-    info!("done.");
+    info!("...done.");
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(hbs_filter.clone())

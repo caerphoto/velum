@@ -1,3 +1,6 @@
+pub mod storage;
+pub mod view;
+
 use regex::Regex;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
