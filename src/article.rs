@@ -5,17 +5,18 @@ use regex::Regex;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 use std::{time, fs};
+use pulldown_cmark as cmark;
 
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 const DEFAULT_TITLE: &str = "<no title>";
 
 // Struct for creating and managing article data
-pub struct Article {
+pub struct ArticleBuilder {
     pub content: String,
     pub timestamp: i64,
 }
 
-impl Article {
+impl ArticleBuilder {
     pub fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
         let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
@@ -30,19 +31,16 @@ impl Article {
         }
     }
 
-    pub fn title(&self) -> Option<String> {
+    fn title(&self) -> Option<String> {
         lazy_static! { static ref H1: Regex = Regex::new(r"^#\s*").unwrap(); }
         // Assumes first line of content text is formatted exactly as '# Article Title'
-        if let Some(l) = self.content.lines().nth(0) {
-            Some(String::from(
-                H1.replace(l, "")
-            ))
-        } else {
-            None
-        }
+        self.content.lines().next().map(|l|
+            String::from(H1.replace(l, ""))
+        )
     }
 
-    pub fn slug(&self) -> Result<String, &'static str> {
+
+    fn slug(&self) -> Result<String, &'static str> {
         lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap(); }
         lazy_static! { static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap(); }
         if let Some(t) = self.title() {
@@ -64,12 +62,50 @@ impl Article {
         }
     }
 
+    fn tags_line(&self) -> Option<String> {
+        if let Some(line) = self.content.lines().nth(1) {
+            if line.starts_with('|') && line.ends_with('|') {
+                return Some(line.to_string())
+            }
+        }
+        None
+    }
+
+    fn tags(&self) -> Vec<String> {
+        if let Some(line) = self.tags_line() {
+            line
+                .trim_matches('|')
+                .split(',')
+                .map(|t| t.trim().to_string())
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn parsed_content(&self) -> String {
+        let skip = match self.tags_line() {
+            Some(_) => 2,
+            None => 1,
+        };
+        let mut parsed = String::new();
+        let no_title: String = self.content
+            .lines()
+            .skip(skip)
+            .collect::<Vec<&str>>()
+            .join("\n");
+        let parser = cmark::Parser::new(&no_title);
+        cmark::html::push_html(&mut parsed, parser);
+        parsed
+    }
+
+
     // For passing to Redis via hset_multiple
-    pub fn to_kv_list(&self) -> Box<[(String, String)]> {
+    fn to_kv_list(&self) -> Box<[(String, String)]> {
         Box::new([
-            ("title".to_string(), self.title().unwrap_or(DEFAULT_TITLE.to_string())),
-            ("content".to_string(), self.content.clone()),
-            ("route".to_string(), self.route().unwrap_or("/".to_string())),
+            ("title".to_string(), self.title().unwrap_or_else(|| DEFAULT_TITLE.to_string())),
+            ("content".to_string(), self.parsed_content()),
+            ("route".to_string(), self.route().unwrap_or_else(|_| "/".to_string())),
             ("timestamp".to_string(), self.timestamp.to_string()),
         ])
     }

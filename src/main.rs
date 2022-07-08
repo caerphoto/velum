@@ -25,7 +25,7 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
     let dt = Utc.timestamp_millis(ts);
     format!("{} {} {}",
         dt.format("%A"), // Day
-        Ordinal(dt.day()).to_string(), // Date
+        Ordinal(dt.day()), // Date
         dt.format("%B %Y at %H:%M") // Month, year, time
     )
 });
@@ -36,7 +36,7 @@ fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> String {
     if let Ok(articles) = gather_article_links() {
         let pages: Vec<&[ArticleViewLink]> = articles.chunks(PAGE_SIZE).collect();
         let max_page = pages.len();
-        let chunk_index = cmp::min(max_page, page.checked_sub(1).unwrap_or(0));
+        let chunk_index = cmp::min(max_page, page.saturating_sub(1));
 
         match hbs.render(
             "main",
