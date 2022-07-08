@@ -6,13 +6,14 @@ use redis::Commands;
 use crate::article::Article;
 use crate::article::view::{ArticleView, ArticleViewLink};
 use crate::BASE_PATH;
-use crate::article::view::LINK_FIELDS;
 
 const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
 const BASE_TS_KEY: &str = "velum:timestamps:";
 const ALL_ARTICLES_KEY: &str = "velum:articles:*";
 const ALL_TIMESTAMPS_KEY: &str = "velum:timestamps:*";
+const LINK_FIELDS: [&str; 3] = ["title", "route", "timestamp"];
+
 
 struct TsMap {
     timestamp: i64,

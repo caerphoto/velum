@@ -4,8 +4,6 @@ use pulldown_cmark as cmark;
 use crate::article::storage;
 pub use crate::article::storage::gather_article_links;
 
-pub const LINK_FIELDS: [&str; 3] = ["title", "route", "timestamp"];
-
 #[derive(Serialize, Clone, Debug)]
 pub struct ArticleViewLink {
     pub title: String,
