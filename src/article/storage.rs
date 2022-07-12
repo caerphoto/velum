@@ -1,7 +1,6 @@
 use std::io::{self, ErrorKind};
 use std::fs;
 use std::path::PathBuf;
-use log::info;
 use redis::{self, RedisResult, RedisError};
 use redis::Commands;
 use crate::article::ArticleBuilder;
@@ -93,14 +92,12 @@ pub fn gather_article_links() -> Result<Vec<ArticleViewLink>, RedisError> {
     let mut con = client.get_connection()?;
     let mut articles: Vec<ArticleViewLink> = Vec::new();
     let keys = article_keys(&mut con)?;
-    info!("gathering articles for {} keys...", keys.len());
 
     for key in keys {
         // Reading only the fields we need into a tuple is quicker than reading
         // all of the fields via hgetall()
         let result: (String, String, i64) = con.hget(key, &LINK_FIELDS)?;
         let tags = tags_for_slug(&result.1, &mut con);
-        info!("Added article {} with tags {:?}", result.1, tags);
         articles.push(ArticleViewLink::from_redis_result(result, tags))
     }
 

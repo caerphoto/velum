@@ -44,8 +44,6 @@ async fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> Result<impl
             let max_page = pages.len();
             let chunk_index = cmp::min(max_page, page.saturating_sub(1));
 
-            info!("{:?}", pages[0]);
-
             match hbs.render(
                 "main",
                 &json!({
@@ -90,7 +88,7 @@ async fn render_article(slug: String, hbs: Arc<Handlebars<'_>>) -> Result<impl w
             ).expect("Failed to render article with Handlebars")
         );
 
-        info!("Rendered article {} in {}ms", &slug, now.elapsed().as_millis());
+        info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
         Ok(warp::reply::with_status(reply, warp::http::StatusCode::OK))
     } else {
         let reply = warp::reply::html(String::from("Unable to read article"));

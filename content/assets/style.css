@@ -104,7 +104,6 @@ h3 {
 h3.timestamp,
 ul.tags {
     font-size: 0.8em;
-    color: rgba(0, 20, 50, 0.5);
 }
 
 h3.timestamp {
@@ -120,6 +119,7 @@ h3.timestamp {
 ul.tags {
     margin: 0.5em 0 1em;
     padding: 0;
+    color: rgba(0, 20, 50, 0.5);
 }
 
 ul.tags::before {
