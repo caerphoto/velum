@@ -6,16 +6,18 @@ pub use crate::article::storage::gather_article_links;
 #[derive(Serialize, Clone, Debug)]
 pub struct ArticleViewLink {
     pub title: String,
-    pub route: String,
+    pub slug: String,
     pub timestamp: i64,
+    pub tags: Vec<String>,
 }
 
 impl ArticleViewLink {
-    pub fn from_redis_result(a: (String, String, i64)) -> Self {
+    pub fn from_redis_result(a: (String, String, i64), tags: Vec<String>) -> Self {
         Self {
             title: a.0,
-            route: a.1,
-            timestamp: a.2
+            slug: a.1,
+            timestamp: a.2,
+            tags
         }
     }
 }
@@ -24,7 +26,7 @@ impl ArticleViewLink {
 pub struct ArticleView {
     pub title: String,
     pub content: String,
-    pub route: String,
+    pub slug: String,
     pub timestamp: i64,
     pub tags: Vec<String>,
     pub prev: Option<ArticleViewLink>,
@@ -42,7 +44,7 @@ impl ArticleView {
         Self {
             title: result.get("title").unwrap().to_string(),
             content: result.get("content").unwrap().to_string(),
-            route: result.get("route").unwrap().to_string(),
+            slug: result.get("slug").unwrap().to_string(),
             timestamp: timestamp.parse::<i64>().unwrap_or(0),
             tags,
             prev,

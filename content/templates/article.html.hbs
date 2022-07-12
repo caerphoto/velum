@@ -9,6 +9,11 @@
 
     <section id="content" class="post-content">
       <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
+      <ul class="tags">
+        {{#each article.tags}}
+        <li>{{this}}</li>
+        {{/each}}
+      </ul>
       {{{article.content}}}
     </section>
 
@@ -16,7 +21,7 @@
       <p>More articles:</p>
       {{#if prev}}
       <div class="nav-prev">
-        <a href="{{prev.route}}">&larr; {{prev.title}}</a>
+        <a href="/articles/{{prev.slug}}">&larr; {{prev.title}}</a>
       </div>
       {{else}}
       <span class="empty"></span>
@@ -24,7 +29,7 @@
       <span class="nav-sep">&middot;</span>
       {{#if next}}
       <div class="nav-next">
-        <a href="{{next.route}}">{{next.title}} &rarr;</a>
+        <a href="/articles/{{next.slug}}">{{next.title}} &rarr;</a>
       </div>
       {{else}}
       <span class="empty"></span>

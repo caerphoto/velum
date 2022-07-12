@@ -8,8 +8,13 @@
       <ul class="article-list">
         {{#each articles}}
         <li class="article-list_item">
-          <h2><a href="{{this.route}}">{{this.title}}</a></h2>
+          <h2><a href="/articles/{{this.slug}}">{{this.title}}</a></h2>
           <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
+          <ul class="tags">
+            {{#each this.tags}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
         </li>
         {{/each}}
       </ul>

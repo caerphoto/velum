@@ -26,43 +26,52 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
     format!("{} {} {}",
         dt.format("%A"), // Day
         Ordinal(dt.day()), // Date
-        dt.format("%B %Y at %H:%M") // Month, year, time
+        dt.format("%B %Y") // Month, year, time
     )
 });
 
-fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> String {
-    let now = time::Instant::now();
-
-    if let Ok(articles) = gather_article_links() {
-        let pages: Vec<&[ArticleViewLink]> = articles.chunks(PAGE_SIZE).collect();
-        let max_page = pages.len();
-        let chunk_index = cmp::min(max_page, page.saturating_sub(1));
-
-        match hbs.render(
-            "main",
-            &json!({
-                "title": BLOG_TITLE,
-                "prev_page": if page > 1 { page - 1 } else { 0 },
-                "current_page": page,
-                "next_page": if page < max_page { page + 1 } else { 0 },
-                "max_page": max_page,
-                "articles": &pages[chunk_index]
-            })
-        ) {
-            Ok(rendered_page) => {
-                info!("Rendered index page {} in {}ms", page, now.elapsed().as_millis());
-                rendered_page
-            },
-            Err(e) => format!("Error rendering page {:?}", e),
-        }
-    } else {
-        String::from("")
-    }
-
+fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
+    let reply = warp::reply::html(msg);
+    Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
 }
 
-async fn index_at_offset(offset: usize, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::html(render_index_page(offset, hbs)))
+async fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
+    let now = time::Instant::now();
+
+    match gather_article_links() {
+        Ok(articles) => {
+            let pages: Vec<&[ArticleViewLink]> = articles.chunks(PAGE_SIZE).collect();
+            let max_page = pages.len();
+            let chunk_index = cmp::min(max_page, page.saturating_sub(1));
+
+            info!("{:?}", pages[0]);
+
+            match hbs.render(
+                "main",
+                &json!({
+                    "title": BLOG_TITLE,
+                    "prev_page": if page > 1 { page - 1 } else { 0 },
+                    "current_page": page,
+                    "next_page": if page < max_page { page + 1 } else { 0 },
+                    "max_page": max_page,
+                    "articles": &pages[chunk_index]
+                })
+            ) {
+                Ok(rendered_page) => {
+                    info!("Rendered index page {} in {}ms", page, now.elapsed().as_millis());
+                    Ok(warp::reply::with_status(
+                        warp::reply::html(rendered_page),
+                        warp::http::StatusCode::OK)
+                    )
+                },
+                Err(e) => {
+                    error_response(format!("Failed to render article in index. Error: {:?}", e))
+                }
+            }
+        },
+        Err(e) => error_response(format!("Failed to fetch articles list. Error: {:?}", e))
+    }
+
 }
 
 async fn render_article(slug: String, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
@@ -78,7 +87,7 @@ async fn render_article(slug: String, hbs: Arc<Handlebars<'_>>) -> Result<impl w
                     "prev": article.prev,
                     "next": article.next
                 })
-            ).expect("Failed to render article")
+            ).expect("Failed to render article with Handlebars")
         );
 
         info!("Rendered article {} in {}ms", &slug, now.elapsed().as_millis());
@@ -108,7 +117,7 @@ fn create_handlebars() -> Handlebars<'static> {
     let header_tmpl_path = tmpl_path("_header");
     let footer_tmpl_path = tmpl_path("_footer");
 
-    // hb.set_dev_mode(true);
+    hb.set_dev_mode(true);
 
     hb.register_template_file("article", &article_tmpl_path)
         .expect("Failed to register article template file");
@@ -138,11 +147,11 @@ async fn main() {
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(hbs_filter.clone())
-        .and_then(index_at_offset);
+        .and_then(render_index_page);
 
     let article_index_page = warp::path!("page" / usize)
         .and(hbs_filter.clone())
-        .and_then(index_at_offset);
+        .and_then(render_index_page);
 
     let article = warp::path!("articles" / String)
         .and(hbs_filter.clone())

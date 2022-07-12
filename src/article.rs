@@ -54,14 +54,6 @@ impl ArticleBuilder {
         }
     }
 
-    fn route(&self) -> Result<String, &'static str> {
-        if let Ok(slug) = self.slug() {
-            Ok(String::from("/articles/") + &slug)
-        } else {
-            Err("Unable to create route due to error in slug")
-        }
-    }
-
     fn tags_line(&self) -> Option<String> {
         if let Some(line) = self.content.lines().nth(1) {
             if line.starts_with('|') && line.ends_with('|') {
@@ -105,7 +97,7 @@ impl ArticleBuilder {
         Box::new([
             ("title".to_string(), self.title().unwrap_or_else(|| DEFAULT_TITLE.to_string())),
             ("content".to_string(), self.parsed_content()),
-            ("route".to_string(), self.route().unwrap_or_else(|_| "/".to_string())),
+            ("slug".to_string(), self.slug().unwrap_or_else(|_| "-".to_string())),
             ("timestamp".to_string(), self.timestamp.to_string()),
         ])
     }

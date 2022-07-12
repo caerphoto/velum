@@ -1,6 +1,7 @@
 use std::io::{self, ErrorKind};
 use std::fs;
 use std::path::PathBuf;
+use log::info;
 use redis::{self, RedisResult, RedisError};
 use redis::Commands;
 use crate::article::ArticleBuilder;
@@ -17,7 +18,7 @@ const ALL_ARTICLES_KEY: &str = "velum:articles:*";
 const ALL_TIMESTAMPS_KEY: &str = "velum:timestamps:*";
 const ALL_TAGS_KEY: &str = "velum:tags:*";
 
-const LINK_FIELDS: [&str; 3] = ["title", "route", "timestamp"];
+const LINK_FIELDS: [&str; 3] = ["title", "slug", "timestamp"];
 
 struct TsMap {
     timestamp: i64,
@@ -92,12 +93,15 @@ pub fn gather_article_links() -> Result<Vec<ArticleViewLink>, RedisError> {
     let mut con = client.get_connection()?;
     let mut articles: Vec<ArticleViewLink> = Vec::new();
     let keys = article_keys(&mut con)?;
+    info!("gathering articles for {} keys...", keys.len());
 
     for key in keys {
         // Reading only the fields we need into a tuple is quicker than reading
         // all of the fields via hgetall()
         let result: (String, String, i64) = con.hget(key, &LINK_FIELDS)?;
-        articles.push(ArticleViewLink::from_redis_result(result))
+        let tags = tags_for_slug(&result.1, &mut con);
+        info!("Added article {} with tags {:?}", result.1, tags);
+        articles.push(ArticleViewLink::from_redis_result(result, tags))
     }
 
     articles.sort_by_key(|a| -a.timestamp);
@@ -150,11 +154,11 @@ pub fn fetch_from_slug(slug: &str) -> RedisResult<ArticleView> {
     let next_map: RedisResult<(String, String, i64)> = con.hget(next_key, &LINK_FIELDS);
 
     let prev: Option<ArticleViewLink> = match prev_map {
-        Ok(m) => Some(ArticleViewLink::from_redis_result(m)),
+        Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
         Err(_) => None
     };
     let next: Option<ArticleViewLink> = match next_map {
-        Ok(m) => Some(ArticleViewLink::from_redis_result(m)),
+        Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
         Err(_) => None
     };
 

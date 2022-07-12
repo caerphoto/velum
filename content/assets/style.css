@@ -64,8 +64,9 @@ footer {
     box-shadow: inset 0 8px 5px -5px rgba(0, 0, 0, 0.7);
 }
 
-h1, h2, h3, h4 {
+h1, h2, h3, h4, .tags {
     font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 300;
 }
 
 h1 {
@@ -97,16 +98,45 @@ h3 {
     font-size: 1em;
     font-weight: 300;
     margin: 0 0 0.7em;
-    font-style: italic;
+    font-style: normal;
+}
+
+h3.timestamp,
+ul.tags {
+    font-size: 0.8em;
+    color: rgba(0, 20, 50, 0.5);
 }
 
 h3.timestamp {
-    font-size: 0.8em;
-    font-weight: normal;
-    margin: 0 0 2em;
+    margin: 0 0;
     padding: 0;
-    color: rgba(0, 20, 50, 0.5);
     border: none;
+}
+
+.article h3.timestamp {
+    font-size: 1.2em;
+}
+
+ul.tags {
+    margin: 0.5em 0 1em;
+    padding: 0;
+}
+
+ul.tags::before {
+    content: "Tagged with: ";
+}
+
+ul.tags li {
+    list-style: none;
+    display: inline-block;
+}
+
+ul.tags li::after {
+    content: ", ";
+}
+
+ul.tags li:last-child::after {
+    content: "";
 }
 
 a {
