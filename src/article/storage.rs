@@ -87,7 +87,7 @@ fn gather_fs_articles() -> Result<Vec<ArticleBuilder>, io::Error> {
     Ok(articles)
 }
 
-pub fn gather_article_links() -> Result<Vec<ArticleViewLink>, RedisError> {
+pub fn fetch_article_links() -> Result<Vec<ArticleViewLink>, RedisError> {
     let client = redis::Client::open(REDIS_HOST)?;
     let mut con = client.get_connection()?;
     let mut articles: Vec<ArticleViewLink> = Vec::new();
@@ -135,7 +135,10 @@ fn tags_for_slug(slug: &str, con: &mut redis::Connection) -> Vec<String> {
     let result: RedisResult<Vec<String>> = con.smembers(tags_key);
 
     match result {
-        Ok(tags) => tags,
+        Ok(mut tags) => {
+            tags.sort();
+            tags
+        },
         Err(_) => Vec::new() // don't really care that tag fetch failed
     }
 }
@@ -163,7 +166,6 @@ pub fn fetch_from_slug(slug: &str) -> RedisResult<ArticleView> {
     let article = ArticleView::from_redis_result(&article_map, tags, prev, next);
     Ok(article)
 }
-
 
 fn destroy_keys(keys: Vec<String>, con: &mut redis::Connection) -> redis::RedisResult<()> {
     for key in keys {

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use serde::Serialize;
 use crate::article::storage;
-pub use crate::article::storage::gather_article_links;
+pub use crate::article::storage::fetch_article_links;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct ArticleViewLink {

@@ -9,7 +9,7 @@ use serde_json::json;
 use warp::Filter;
 use handlebars::{Handlebars, handlebars_helper};
 use chrono::prelude::*;
-use article::view::{gather_article_links, ArticleView, ArticleViewLink};
+use article::view::{fetch_article_links, ArticleView, ArticleViewLink};
 use article::storage::rebuild_redis_data;
 use ordinal::Ordinal;
 
@@ -38,7 +38,7 @@ fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Ht
 async fn render_index_page(page: usize, hbs: Arc<Handlebars<'_>>) -> Result<impl warp::Reply, Infallible> {
     let now = time::Instant::now();
 
-    match gather_article_links() {
+    match fetch_article_links() {
         Ok(articles) => {
             let pages: Vec<&[ArticleViewLink]> = articles.chunks(PAGE_SIZE).collect();
             let max_page = pages.len();

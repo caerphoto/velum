@@ -12,7 +12,8 @@ body {
     font-size: 18px;
     line-height: 1.4;
     color: #16425b;
-    background-color: #f8f7f4;
+    background-color: rgb(248, 247, 244);
+    background-image: url("/assets/bg.svg");
 }
 
 body.dimmed {
@@ -24,6 +25,12 @@ body.dimmed {
 #content {
     margin: 1em auto;
     max-width: 35em;
+    padding: 0 4em;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    background-color: rgba(247, 247, 244, 0.7);
+    box-shadow: 0 0 100px 80px rgba(247, 247, 244, 0.8);
+    z-index: 0;
 }
 
 .article-list {
@@ -39,6 +46,13 @@ body.dimmed {
 
 .pagination {
     text-align: center;
+}
+
+nav,
+header,
+footer {
+    z-index: 1;
+    position: relative; /* so it appears on top of content shadow */
 }
 
 header,
