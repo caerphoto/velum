@@ -1,17 +1,21 @@
 use std::io::{self, ErrorKind};
-use std::fs;
+use std::{fs, time};
 use std::path::PathBuf;
+use std::convert::TryInto;
+use log::{info};
 use redis::{self, RedisResult, RedisError};
 use redis::Commands;
 use crate::article::ArticleBuilder;
 use crate::article::view::{ArticleView, ArticleViewLink};
 use crate::BASE_PATH;
 
-const REDIS_HOST: &str = "redis://127.0.0.1/";
+pub const REDIS_HOST: &str = "redis://127.0.0.1/";
 
 const BASE_KEY: &str = "velum:articles:";
 const BASE_TIMESTAMPS_KEY: &str = "velum:timestamps:";
 const BASE_TAGS_KEY: &str = "velum:tags:";
+
+const TIMESTAMP_KEY: &str = "velum:slug_timestamps";
 
 const ALL_ARTICLES_KEY: &str = "velum:articles:*";
 const ALL_TIMESTAMPS_KEY: &str = "velum:timestamps:*";
@@ -87,22 +91,37 @@ fn gather_fs_articles() -> Result<Vec<ArticleBuilder>, io::Error> {
     Ok(articles)
 }
 
-pub fn fetch_article_links() -> Result<Vec<ArticleViewLink>, RedisError> {
-    let client = redis::Client::open(REDIS_HOST)?;
-    let mut con = client.get_connection()?;
+pub fn fetch_article_links(
+    page: usize,
+    per_page: usize,
+    con: &mut redis::Connection
+) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
+    // let client = redis::Client::open(REDIS_HOST)?;
+    // let mut con = client.get_connection()?;
+    let now = time::Instant::now();
     let mut articles: Vec<ArticleViewLink> = Vec::new();
-    let keys = article_keys(&mut con)?;
+    let all_count = con.zcard(TIMESTAMP_KEY)?;
 
-    for key in keys {
+    // We'll assume these values fall within isize range, and just use unwrap
+    let start_index: isize = (page.saturating_sub(1) * per_page).try_into().unwrap();
+    let per_page: isize =  per_page.try_into().unwrap();
+    let end_index = start_index + per_page - 1;
+
+    let slugs: Vec<String> = con.zrevrange(TIMESTAMP_KEY, start_index, end_index)?;
+
+    for slug in slugs {
         // Reading only the fields we need into a tuple is quicker than reading
         // all of the fields via hgetall()
+        let key = String::from(BASE_KEY) + &slug;
         let result: (String, String, i64) = con.hget(key, &LINK_FIELDS)?;
-        let tags = tags_for_slug(&result.1, &mut con);
+        let tags = tags_for_slug(&result.1, con);
         articles.push(ArticleViewLink::from_redis_result(result, tags))
     }
 
+    info!("Fetched articles in {}ms", now.elapsed().as_millis());
+
     articles.sort_by_key(|a| -a.timestamp);
-    Ok(articles)
+    Ok((articles, all_count))
 }
 
 fn surrounding_keys(timestamp: i64, con: &mut redis::Connection) -> (Option<String>, Option<String>) {
@@ -143,13 +162,16 @@ fn tags_for_slug(slug: &str, con: &mut redis::Connection) -> Vec<String> {
     }
 }
 
-pub fn fetch_from_slug(slug: &str) -> RedisResult<ArticleView> {
-    let client = redis::Client::open(REDIS_HOST)?;
-    let mut con = client.get_connection()?;
+pub fn fetch_by_tag(tag: &str, con: &mut redis::Connection) -> Result<Vec<ArticleViewLink>, RedisError> {
+    let mut articles: Vec<ArticleViewLink> = Vec::new();
+    Ok(articles)
+}
+
+pub fn fetch_from_slug(slug: &str, con: &mut redis::Connection) -> RedisResult<ArticleView> {
     let key = String::from(BASE_KEY) + slug;
-    let tags = tags_for_slug(slug, &mut con);
+    let tags = tags_for_slug(slug, con);
     let timestamp: i64 = con.hget(&key, "timestamp")?;
-    let (prev_key, next_key) = surrounding_keys(timestamp, &mut con);
+    let (prev_key, next_key) = surrounding_keys(timestamp, con);
     let prev_map: RedisResult<(String, String, i64)> = con.hget(prev_key, &LINK_FIELDS);
     let next_map: RedisResult<(String, String, i64)> = con.hget(next_key, &LINK_FIELDS);
 
@@ -201,11 +223,14 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
                 for tag in article.tags() {
                     con.sadd(&tag_key, tag)?;
                 }
+
+                con.zadd(String::from(TIMESTAMP_KEY), slug, article.timestamp)?;
             }
         }
     }
-
     redis::cmd("EXEC").query(&mut con)?;
+
+
     Ok(())
 }
 

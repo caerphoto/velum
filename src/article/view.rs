@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use serde::Serialize;
 use crate::article::storage;
-pub use crate::article::storage::fetch_article_links;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct ArticleViewLink {
@@ -52,8 +51,8 @@ impl ArticleView {
         }
     }
 
-    pub fn from_slug(slug: &str) -> Option<ArticleView> {
-        match storage::fetch_from_slug(slug) {
+    pub fn from_slug(slug: &str, con: &mut redis::Connection) -> Option<ArticleView> {
+        match storage::fetch_from_slug(slug, con) {
             Ok(result) => {
                 Some(result)
             },
