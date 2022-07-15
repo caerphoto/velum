@@ -108,6 +108,12 @@ h2 {
     line-height: 1.2;
 }
 
+header h2 {
+    margin: 0.2em 0 0;
+    line-height: 1;
+    text-align: center;
+}
+
 h3 {
     font-size: 1em;
     font-weight: 300;
@@ -177,6 +183,20 @@ a:hover {
     background-color: #4b7b97;
     border-color: transparent;
     border-radius: 1px;
+}
+
+ul.tags a {
+    box-shadow: none;
+    color: rgba(0, 20, 50, 0.5);
+    border-bottom: 1px solid rgba(0, 20, 50, 0.3);
+}
+
+ul.tags a:hover {
+    color: #eee;
+}
+
+ul.tags .current-tag {
+    color: rgba(0, 20, 50, 0.9);
 }
 
 header .home-link-box {

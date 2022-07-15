@@ -1,0 +1,12 @@
+<ul class="tags">
+  {{#each this.tags}}
+  <li>
+  {{#if (is_current_tag this ../../tag)}}
+    <span class="current-tag">{{this}}</span>
+  {{else}}
+    <a href="/tag/{{this}}">{{this}}</a>
+  {{/if}}
+  </li>
+  {{/each}}
+</ul>
+

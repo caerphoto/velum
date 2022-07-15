@@ -1,8 +1,8 @@
 use std::io::{self, ErrorKind};
-use std::{fs, time};
+use std::fs;
 use std::path::PathBuf;
 use std::convert::TryInto;
-use log::{info};
+use std::collections::{HashMap};
 use redis::{self, RedisResult, RedisError};
 use redis::Commands;
 use crate::article::ArticleBuilder;
@@ -14,6 +14,7 @@ pub const REDIS_HOST: &str = "redis://127.0.0.1/";
 const BASE_KEY: &str = "velum:articles:";
 const BASE_TIMESTAMPS_KEY: &str = "velum:timestamps:";
 const BASE_TAGS_KEY: &str = "velum:tags:";
+const BASE_TAGMAP_KEY: &str ="velum_tagmap:";
 
 const TIMESTAMP_KEY: &str = "velum:slug_timestamps";
 
@@ -26,6 +27,20 @@ const LINK_FIELDS: [&str; 3] = ["title", "slug", "timestamp"];
 struct TsMap {
     timestamp: i64,
     key: String,
+}
+
+impl redis::FromRedisValue for TsMap {
+    fn from_redis_value(v: &redis::Value) -> RedisResult<Self> {
+        let result: RedisResult<(String, i64)> = redis::FromRedisValue::from_redis_value(v);
+        if let Ok(tup) = result {
+            let timestamp = tup.1;
+            let key = tup.0;
+
+            Ok(Self { timestamp, key })
+        } else {
+            Err(result.unwrap_err())
+        }
+    }
 }
 
 fn get_all_timestamps(con: &mut redis::Connection) -> Result<Vec<TsMap>, RedisError> {
@@ -91,37 +106,51 @@ fn gather_fs_articles() -> Result<Vec<ArticleBuilder>, io::Error> {
     Ok(articles)
 }
 
+fn indices_from_page(page: usize, per_page: usize) -> (isize, isize) {
+    // We'll assume these values fall within isize range, and just use unwrap
+    let start_index: isize = (page.saturating_sub(1) * per_page).try_into().unwrap();
+    let per_page: isize =  per_page.try_into().unwrap();
+    let end_index = start_index + per_page - 1;
+    (start_index, end_index)
+}
+
+fn paginated_views_from_key(
+    key: &str,
+    page: usize,
+    per_page: usize,
+    con: &mut redis::Connection
+) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
+    let all_count = con.zcard(key)?;
+    let (start_index, end_index) = indices_from_page(page, per_page);
+    let slugs: Vec<String> = con.zrevrange(key, start_index, end_index)?;
+    let mut articles: Vec<ArticleViewLink> = Vec::new();
+
+    for slug in slugs {
+        let key = String::from(BASE_KEY) + &slug;
+        let result: (String, String, i64) = con.hget(key, &LINK_FIELDS)?;
+        let tags = tags_for_slug(&result.1, con);
+        articles.push(ArticleViewLink::from_redis_result(result, tags));
+    }
+
+    Ok((articles, all_count))
+}
+
 pub fn fetch_article_links(
     page: usize,
     per_page: usize,
     con: &mut redis::Connection
 ) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
-    // let client = redis::Client::open(REDIS_HOST)?;
-    // let mut con = client.get_connection()?;
-    let now = time::Instant::now();
-    let mut articles: Vec<ArticleViewLink> = Vec::new();
-    let all_count = con.zcard(TIMESTAMP_KEY)?;
+    paginated_views_from_key(TIMESTAMP_KEY, page, per_page, con)
+}
 
-    // We'll assume these values fall within isize range, and just use unwrap
-    let start_index: isize = (page.saturating_sub(1) * per_page).try_into().unwrap();
-    let per_page: isize =  per_page.try_into().unwrap();
-    let end_index = start_index + per_page - 1;
-
-    let slugs: Vec<String> = con.zrevrange(TIMESTAMP_KEY, start_index, end_index)?;
-
-    for slug in slugs {
-        // Reading only the fields we need into a tuple is quicker than reading
-        // all of the fields via hgetall()
-        let key = String::from(BASE_KEY) + &slug;
-        let result: (String, String, i64) = con.hget(key, &LINK_FIELDS)?;
-        let tags = tags_for_slug(&result.1, con);
-        articles.push(ArticleViewLink::from_redis_result(result, tags))
-    }
-
-    info!("Fetched articles in {}ms", now.elapsed().as_millis());
-
-    articles.sort_by_key(|a| -a.timestamp);
-    Ok((articles, all_count))
+pub fn fetch_by_tag(
+    tag: &str,
+    page: usize,
+    per_page: usize,
+    con: &mut redis::Connection
+) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
+    let key = String::from(BASE_TAGMAP_KEY) + tag;
+    paginated_views_from_key(&key, page, per_page, con)
 }
 
 fn surrounding_keys(timestamp: i64, con: &mut redis::Connection) -> (Option<String>, Option<String>) {
@@ -162,11 +191,6 @@ fn tags_for_slug(slug: &str, con: &mut redis::Connection) -> Vec<String> {
     }
 }
 
-pub fn fetch_by_tag(tag: &str, con: &mut redis::Connection) -> Result<Vec<ArticleViewLink>, RedisError> {
-    let mut articles: Vec<ArticleViewLink> = Vec::new();
-    Ok(articles)
-}
-
 pub fn fetch_from_slug(slug: &str, con: &mut redis::Connection) -> RedisResult<ArticleView> {
     let key = String::from(BASE_KEY) + slug;
     let tags = tags_for_slug(slug, con);
@@ -203,6 +227,7 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
     // Need to fetch keys before beginning transaction, as reads from within a
     // transaction will just return "QUEUED".
     let keys = all_keys(&mut con)?;
+    let mut tag_map: HashMap<String, Vec<TsMap>> = HashMap::new();
 
     // Rebuild everything atomically within a transaction
     redis::cmd("MULTI").query(&mut con)?;
@@ -221,15 +246,29 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
 
                 let tag_key = String::from(BASE_TAGS_KEY) + slug.as_str();
                 for tag in article.tags() {
-                    con.sadd(&tag_key, tag)?;
+                    con.sadd(&tag_key, tag.clone())?;
+                    let tsmap = TsMap { key: slug.clone(), timestamp: article.timestamp };
+                    if let Some(slugs) = tag_map.get_mut(&tag) {
+                        slugs.push(tsmap);
+                    } else {
+                        tag_map.insert(tag, vec![tsmap]);
+                    }
                 }
 
                 con.zadd(String::from(TIMESTAMP_KEY), slug, article.timestamp)?;
             }
         }
     }
-    redis::cmd("EXEC").query(&mut con)?;
 
+    // Tag-to-slugs mapping
+    for (tag, tsmaps) in tag_map.iter() {
+        let key = String::from(BASE_TAGMAP_KEY) + tag;
+        for tsmap in tsmaps {
+            con.zadd(&key, &tsmap.key, tsmap.timestamp)?;
+        }
+    }
+
+    redis::cmd("EXEC").query(&mut con)?;
 
     Ok(())
 }

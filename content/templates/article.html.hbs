@@ -9,11 +9,9 @@
 
     <section id="content" class="post-content">
       <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
-      <ul class="tags">
-        {{#each article.tags}}
-        <li>{{this}}</li>
-        {{/each}}
-      </ul>
+      {{#with article}}
+        {{> tag_list}}
+      {{/with}}
       {{{article.content}}}
     </section>
 

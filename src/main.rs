@@ -40,24 +40,43 @@ fn tmpl_path(tmpl_name: &str) -> PathBuf {
     path.join(filename)
 }
 
+// TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
+handlebars_helper!(date_from_timestamp: |ts: i64| {
+    let dt = Utc.timestamp_millis(ts);
+    format!("{} {} {}",
+        dt.format("%A"), // Day
+        Ordinal(dt.day()), // Date
+        dt.format("%B %Y") // Month, year, time
+    )
+});
+
+handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
+    this_tag == search_tag
+});
+
 fn create_handlebars() -> Handlebars<'static> {
     let mut hb = Handlebars::new();
     let index_tmpl_path = tmpl_path("index");
     let article_tmpl_path = tmpl_path("article");
+    let tag_list_tmpl_path = tmpl_path("_tag_list");
     let header_tmpl_path = tmpl_path("_header");
     let footer_tmpl_path = tmpl_path("_footer");
 
     hb.set_dev_mode(true);
 
-    hb.register_template_file("article", &article_tmpl_path)
-        .expect("Failed to register article template file");
     hb.register_template_file("main", &index_tmpl_path)
         .expect("Failed to register index template file");
+    hb.register_template_file("article", &article_tmpl_path)
+        .expect("Failed to register article template file");
+    hb.register_template_file("tag_list", &tag_list_tmpl_path)
+        .expect("Failed to register tag_list template file");
     hb.register_template_file("header", &header_tmpl_path)
         .expect("Failed to register header template file");
     hb.register_template_file("footer", &footer_tmpl_path)
         .expect("Failed to register footer template file");
+
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
+    hb.register_helper("is_current_tag", Box::new(is_current_tag));
 
     hb
 }
@@ -78,86 +97,69 @@ fn div_ceil(lhs: usize, rhs: usize) -> usize {
     }
 }
 
-
-// TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
-handlebars_helper!(date_from_timestamp: |ts: i64| {
-    let dt = Utc.timestamp_millis(ts);
-    format!("{} {} {}",
-        dt.format("%A"), // Day
-        Ordinal(dt.day()), // Date
-        dt.format("%B %Y") // Month, year, time
-    )
-});
-
 fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
     let reply = warp::reply::html(msg);
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
 }
 
 fn render_article_list(
-    articles: Vec<ArticleViewLink>,
+    article_result: redis::RedisResult<(Vec<ArticleViewLink>, usize)>,
     page: usize,
-    max_page: usize,
-    hbs: &Handlebars
-) -> Result<String, impl std::error::Error> {
-    hbs.render(
-        "main",
-        &json!({
-            "title": BLOG_TITLE,
-            "prev_page": if page > 1 { page - 1 } else { 0 },
-            "current_page": page,
-            "next_page": if page < max_page { page + 1 } else { 0 },
-            "max_page": max_page,
-            "articles": &articles
-        })
-    )
+    hbs: &Handlebars,
+    tag: Option<&str>,
+) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
+
+    match article_result {
+        Ok((articles, all_count)) => {
+            let max_page = div_ceil(all_count, PAGE_SIZE);
+            match hbs.render(
+                "main",
+                &json!({
+                    "title": BLOG_TITLE,
+                    "prev_page": if page > 1 { page - 1 } else { 0 },
+                    "current_page": page,
+                    "next_page": if page < max_page { page + 1 } else { 0 },
+                    "max_page": max_page,
+                    "tag": tag,
+                    "article_count": all_count,
+                    "articles": &articles
+                })
+            ) {
+                Ok(rendered_page) => {
+                    Ok(warp::reply::with_status(
+                        warp::reply::html(rendered_page),
+                        warp::http::StatusCode::OK)
+                    )
+                },
+                Err(e) => {
+                    error_response(format!("Failed to render article in index. Error: {:?}", e))
+                }
+            }
+        },
+        Err(e) => error_response(format!("Unable to fetch artile links. Error: {:?}", e))
+    }
 }
 
 async fn index_page_route(page: usize, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
     let now = time::Instant::now();
     let mut con = data.con.lock().unwrap();
-
-    match fetch_article_links(page, PAGE_SIZE, &mut con) {
-        Ok((articles, all_count)) => {
-            let max_page = div_ceil(all_count, PAGE_SIZE);
-            match render_article_list(articles, page, max_page, &data.hbs) {
-                Ok(rendered_page) => {
-                    info!("Rendered index page {} in {}ms", page, now.elapsed().as_millis());
-                    Ok(warp::reply::with_status(
-                        warp::reply::html(rendered_page),
-                        warp::http::StatusCode::OK)
-                    )
-                },
-                Err(e) => {
-                    error_response(format!("Failed to render article in index. Error: {:?}", e))
-                }
-            }
-        },
-        Err(e) => error_response(format!("Unable to fetch artile links. Error: {:?}", e))
+    let article_result = fetch_article_links(page, PAGE_SIZE, &mut con);
+    let response = render_article_list(article_result, page, &data.hbs, None);
+    if response.is_ok() {
+        info!("Rendered article index page {} in {}ms", page, now.elapsed().as_millis());
     }
+    response
 }
 
 async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
     let now = time::Instant::now();
     let mut con = data.con.lock().unwrap();
-
-    match fetch_by_tag(&tag, &mut con) {
-        Ok(articles) => {
-            match render_article_list(articles, page, 0, &data.hbs) {
-                Ok(rendered_page) => {
-                    info!("Rendered index page {} in {}ms", page, now.elapsed().as_millis());
-                    Ok(warp::reply::with_status(
-                        warp::reply::html(rendered_page),
-                        warp::http::StatusCode::OK)
-                    )
-                },
-                Err(e) => {
-                    error_response(format!("Failed to render article in index. Error: {:?}", e))
-                }
-            }
-        },
-        Err(e) => error_response(format!("Unable to fetch artile links. Error: {:?}", e))
+    let article_result = fetch_by_tag(&tag, page, PAGE_SIZE, &mut con);
+    let response = render_article_list(article_result, page, &data.hbs, Some(&tag));
+    if response.is_ok() {
+        info!("Rendered tag index page {} in {}ms", page, now.elapsed().as_millis());
     }
+    response
 }
 
 async fn article_route(slug: String, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
@@ -209,11 +211,17 @@ async fn main() {
         .and(codata_filter.clone())
         .and_then(index_page_route);
 
-    let article_index_at_page = warp::path!("page" / usize)
+    let article_index_at_page = warp::path!("index" / usize)
         .and(codata_filter.clone())
         .and_then(index_page_route);
 
-    let articles_with_tag = warp::path!("tag" / String / "page" / usize)
+    let articles_with_tag = warp::path!("tag" / String)
+        .map(|tag: String| (tag, 1) )
+        .untuple_one()
+        .and(codata_filter.clone())
+        .and_then(tag_search_route);
+
+    let articles_with_tag_at_page = warp::path!("tag" / String / usize)
         .and(codata_filter.clone())
         .and_then(tag_search_route);
 
@@ -228,6 +236,7 @@ async fn main() {
         .or(article_index_at_page)
         .or(article)
         .or(articles_with_tag)
+        .or(articles_with_tag_at_page)
         .or(images)
         .or(assets)
         .recover(file_not_found_route);
