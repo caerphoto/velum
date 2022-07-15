@@ -10,7 +10,7 @@
     <section id="content" class="post-content">
       <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
       {{#with article}}
-        {{> tag_list}}
+        {{> tag_list search_tag="" }}
       {{/with}}
       {{{article.content}}}
     </section>

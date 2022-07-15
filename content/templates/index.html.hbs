@@ -18,11 +18,13 @@
         <li class="article-list_item">
           <h2><a href="/articles/{{this.slug}}">{{this.title}}</a></h2>
           <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
-          {{> tag_list}}
+
+          {{> tag_list search_tag=../search_tag}}
         </li>
         {{/each}}
       </ul>
     </section>
+
     <nav class="pagination">
       {{#if (gt current_page 1)}}
       <div class="nav-prev">

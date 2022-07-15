@@ -120,7 +120,7 @@ fn render_article_list(
                     "current_page": page,
                     "next_page": if page < max_page { page + 1 } else { 0 },
                     "max_page": max_page,
-                    "tag": tag.unwrap_or(""),
+                    "search_tag": tag.unwrap_or(""),
                     "article_count": all_count,
                     "articles": &articles
                 })
