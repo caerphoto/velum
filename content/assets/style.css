@@ -90,17 +90,16 @@ h1 {
     padding: 0;
     text-align: center;
     line-height: 1;
-    text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+    text-shadow:
+        0 0 6px rgba(255, 255, 255, 0.5),
+        0 1px 0 rgba(0, 0, 0, 0.9);
 
-}
-
-h1.with-tag {
-    font-weight: 400;
 }
 
 .subdued {
     opacity: 0.7;
     font-weight: 300;
+    text-shadow: none;
 }
 
 
