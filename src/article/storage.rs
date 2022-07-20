@@ -1,20 +1,20 @@
-use std::io::{self, ErrorKind};
-use std::fs;
-use std::path::PathBuf;
-use std::convert::TryInto;
-use std::collections::{HashMap};
-use redis::{self, RedisResult, RedisError};
-use redis::Commands;
-use crate::article::ArticleBuilder;
 use crate::article::view::{ArticleView, ArticleViewLink};
+use crate::article::ArticleBuilder;
 use crate::BASE_PATH;
+use redis::Commands;
+use redis::{self, RedisError, RedisResult};
+use std::collections::HashMap;
+use std::convert::TryInto;
+use std::fs;
+use std::io::{self, ErrorKind};
+use std::path::PathBuf;
 
 pub const REDIS_HOST: &str = "redis://127.0.0.1/";
 
 const BASE_KEY: &str = "velum:articles:";
 const BASE_TIMESTAMPS_KEY: &str = "velum:timestamps:";
 const BASE_TAGS_KEY: &str = "velum:tags:";
-const BASE_TAGMAP_KEY: &str ="velum_tagmap:";
+const BASE_TAGMAP_KEY: &str = "velum_tagmap:";
 
 const TIMESTAMP_KEY: &str = "velum:slug_timestamps";
 
@@ -89,7 +89,10 @@ fn all_keys(con: &mut redis::Connection) -> Result<Vec<String>, RedisError> {
 fn gather_fs_articles() -> Result<Vec<ArticleBuilder>, io::Error> {
     let dir = PathBuf::from(BASE_PATH).join("articles");
     if !dir.is_dir() {
-        return Err(io::Error::new(ErrorKind::InvalidInput, "Article path is not a directory"));
+        return Err(io::Error::new(
+            ErrorKind::InvalidInput,
+            "Article path is not a directory",
+        ));
     }
 
     let mut articles: Vec<ArticleBuilder> = Vec::new();
@@ -109,7 +112,7 @@ fn gather_fs_articles() -> Result<Vec<ArticleBuilder>, io::Error> {
 fn indices_from_page(page: usize, per_page: usize) -> (isize, isize) {
     // We'll assume these values fall within isize range, and just use unwrap
     let start_index: isize = (page.saturating_sub(1) * per_page).try_into().unwrap();
-    let per_page: isize =  per_page.try_into().unwrap();
+    let per_page: isize = per_page.try_into().unwrap();
     let end_index = start_index + per_page - 1;
     (start_index, end_index)
 }
@@ -118,7 +121,7 @@ fn paginated_views_from_key(
     key: &str,
     page: usize,
     per_page: usize,
-    con: &mut redis::Connection
+    con: &mut redis::Connection,
 ) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
     let all_count = con.zcard(key)?;
     let (start_index, end_index) = indices_from_page(page, per_page);
@@ -138,7 +141,7 @@ fn paginated_views_from_key(
 pub fn fetch_article_links(
     page: usize,
     per_page: usize,
-    con: &mut redis::Connection
+    con: &mut redis::Connection,
 ) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
     paginated_views_from_key(TIMESTAMP_KEY, page, per_page, con)
 }
@@ -147,31 +150,38 @@ pub fn fetch_by_tag(
     tag: &str,
     page: usize,
     per_page: usize,
-    con: &mut redis::Connection
+    con: &mut redis::Connection,
 ) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
     let key = String::from(BASE_TAGMAP_KEY) + tag;
     paginated_views_from_key(&key, page, per_page, con)
 }
 
-fn surrounding_keys(timestamp: i64, con: &mut redis::Connection) -> (Option<String>, Option<String>) {
+fn surrounding_keys(
+    timestamp: i64,
+    con: &mut redis::Connection,
+) -> (Option<String>, Option<String>) {
     let timestamps = get_all_timestamps(con);
     if let Err(e) = timestamps {
         println!("{}", e);
-        return (None, None)
-
+        return (None, None);
     }
     let timestamps = timestamps.unwrap();
-    if let Some(index) = timestamps.iter().position(
-        |ts| ts.timestamp == timestamp
-
-    ) {
+    if let Some(index) = timestamps.iter().position(|ts| ts.timestamp == timestamp) {
         let prev = if index > 0 {
-            timestamps.get(index - 1).map(|pts| pts.key.replace(BASE_TIMESTAMPS_KEY, BASE_KEY))
-        } else { None };
+            timestamps
+                .get(index - 1)
+                .map(|pts| pts.key.replace(BASE_TIMESTAMPS_KEY, BASE_KEY))
+        } else {
+            None
+        };
 
         let next = if index < timestamps.len() - 1 {
-            timestamps.get(index + 1).map(|nts| nts.key.replace(BASE_TIMESTAMPS_KEY, BASE_KEY))
-        } else { None };
+            timestamps
+                .get(index + 1)
+                .map(|nts| nts.key.replace(BASE_TIMESTAMPS_KEY, BASE_KEY))
+        } else {
+            None
+        };
         return (prev, next);
     }
 
@@ -186,8 +196,8 @@ fn tags_for_slug(slug: &str, con: &mut redis::Connection) -> Vec<String> {
         Ok(mut tags) => {
             tags.sort();
             tags
-        },
-        Err(_) => Vec::new() // don't really care that tag fetch failed
+        }
+        Err(_) => Vec::new(), // don't really care that tag fetch failed
     }
 }
 
@@ -201,11 +211,11 @@ pub fn fetch_from_slug(slug: &str, con: &mut redis::Connection) -> RedisResult<A
 
     let prev: Option<ArticleViewLink> = match prev_map {
         Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
-        Err(_) => None
+        Err(_) => None,
     };
     let next: Option<ArticleViewLink> = match next_map {
         Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
-        Err(_) => None
+        Err(_) => None,
     };
 
     let article_map = con.hgetall(&key)?;
@@ -247,7 +257,10 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
                 let tag_key = String::from(BASE_TAGS_KEY) + slug.as_str();
                 for tag in article.tags() {
                     con.sadd(&tag_key, tag.clone())?;
-                    let tsmap = TsMap { key: slug.clone(), timestamp: article.timestamp };
+                    let tsmap = TsMap {
+                        key: slug.clone(),
+                        timestamp: article.timestamp,
+                    };
                     if let Some(slugs) = tag_map.get_mut(&tag) {
                         slugs.push(tsmap);
                     } else {
@@ -272,4 +285,3 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
 
     Ok(())
 }
-
