@@ -43,6 +43,12 @@ impl redis::FromRedisValue for TsMap {
     }
 }
 
+pub fn get_redis_connection() -> redis::Connection {
+    let client = redis::Client::open(REDIS_HOST).unwrap();
+    let con = client.get_connection().unwrap();
+    con
+}
+
 fn get_all_timestamps(con: &mut redis::Connection) -> Result<Vec<TsMap>, RedisError> {
     let keys = timestamp_keys(con)?;
     let mut timestamps: Vec<TsMap> = Vec::with_capacity(keys.len());

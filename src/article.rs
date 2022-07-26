@@ -39,7 +39,6 @@ impl ArticleBuilder {
         )
     }
 
-
     fn slug(&self) -> Result<String, &'static str> {
         lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap(); }
         lazy_static! { static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap(); }
@@ -90,7 +89,6 @@ impl ArticleBuilder {
         cmark::html::push_html(&mut parsed, parser);
         parsed
     }
-
 
     // For passing to Redis via hset_multiple
     fn to_kv_list(&self) -> Box<[(String, String)]> {
