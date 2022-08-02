@@ -2,6 +2,7 @@ mod article;
 mod hb;
 
 use std::sync::{Arc, Mutex};
+use std::error::Error;
 use std::convert::Infallible;
 use std::{fs, time};
 use log::info;
@@ -9,7 +10,13 @@ use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
 use article::view::{ArticleView, ArticleViewLink};
-use article::storage::{get_redis_connection, rebuild_redis_data, fetch_article_links, fetch_by_tag};
+use article::storage::{
+    ConPool,
+    get_connection_pool,
+    rebuild_data,
+    fetch_article_links,
+    fetch_by_tag
+};
 use hb::create_handlebars;
 
 #[macro_use] extern crate lazy_static;
@@ -21,19 +28,19 @@ const BLOG_TITLE: &str = "Velum Test Blog";
 #[derive(Clone)]
 struct CommonData {
     hbs: Handlebars<'static>,
-    con: Arc<Mutex<redis::Connection>>
+    pool: Arc<Mutex<ConPool>>
 }
 
 impl CommonData {
     fn new() -> Self {
         Self {
             hbs: create_handlebars(),
-            con: Arc::new(Mutex::new(get_redis_connection())),
+            pool: Arc::new(Mutex::new(get_connection_pool())),
         }
     }
 }
 
-// Integer division rounding up
+// Integer division rounding up, for calculating page count
 fn div_ceil(lhs: usize, rhs: usize) -> usize {
     let d = lhs / rhs;
     let r = lhs % rhs;
@@ -49,8 +56,8 @@ fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Ht
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
 }
 
-fn render_article_list(
-    article_result: redis::RedisResult<(Vec<ArticleViewLink>, usize)>,
+fn render_article_list<E: Error>(
+    article_result: Result<(Vec<ArticleViewLink>, usize), E>,
     page: usize,
     hbs: &Handlebars,
     tag: Option<&str>,
@@ -89,8 +96,8 @@ fn render_article_list(
 
 async fn index_page_route(page: usize, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
     let now = time::Instant::now();
-    let mut con = data.con.lock().unwrap();
-    let article_result = fetch_article_links(page, PAGE_SIZE, &mut con);
+    let pool = data.pool.lock().unwrap();
+    let article_result = fetch_article_links(page, PAGE_SIZE, &pool);
     let response = render_article_list(article_result, page, &data.hbs, None);
     if response.is_ok() {
         info!("Rendered article index page {} in {}ms", page, now.elapsed().as_millis());
@@ -101,8 +108,8 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> Result<impl war
 
 async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
     let now = time::Instant::now();
-    let mut con = data.con.lock().unwrap();
-    let article_result = fetch_by_tag(&tag, page, PAGE_SIZE, &mut con);
+    let pool = data.pool.lock().unwrap();
+    let article_result = fetch_by_tag(&tag, page, PAGE_SIZE, &pool);
     let response = render_article_list(article_result, page, &data.hbs, Some(&tag));
     if response.is_ok() {
         info!("Rendered tag index page {} in {}ms", page, now.elapsed().as_millis());
@@ -112,9 +119,9 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> Re
 
 async fn article_route(slug: String, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
     let now = time::Instant::now();
-    let mut con = data.con.lock().unwrap();
+    let pool = data.pool.lock().unwrap();
 
-    if let Some(article) = ArticleView::from_slug(&slug, &mut con) {
+    if let Some(article) = ArticleView::from_slug(&slug, &pool) {
         let reply = warp::reply::html(
             data.hbs.render(
                 "article",
@@ -147,13 +154,15 @@ async fn main() {
     env_logger::init();
 
     let codata = Arc::new(CommonData::new());
-    let codata_filter = warp::any().map(move || codata.clone());
 
     info!("Rebuilding Redis data from files... ");
-    if let Err(e) = rebuild_redis_data() {
+    if let Err(e) = rebuild_data(&codata.pool.lock().unwrap()) {
         panic!("Failed to rebuild Redis data: {:?}", e);
     }
     info!("...done.");
+
+    // This needs to be assined after rebuild, so we can transfer ownership into the lambda
+    let codata_filter = warp::any().map(move || codata.clone());
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())

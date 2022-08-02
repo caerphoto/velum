@@ -1,8 +1,11 @@
 use crate::article::view::{ArticleView, ArticleViewLink};
 use crate::article::ArticleBuilder;
 use crate::BASE_PATH;
-use redis::Commands;
-use redis::{self, RedisError, RedisResult};
+// use redis::Commands;
+// use self::redis::{RedisError, RedisResult};
+use r2d2_redis::{ self, redis::{self, RedisError, RedisResult}, r2d2, RedisConnectionManager};
+use r2d2_redis::redis::Commands as R2Commands;
+use std::ops::DerefMut;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fs;
@@ -24,6 +27,9 @@ const ALL_TAGS_KEY: &str = "velum:tags:*";
 
 const LINK_FIELDS: [&str; 3] = ["title", "slug", "timestamp"];
 
+pub type ConPool = r2d2::Pool<RedisConnectionManager>;
+type Con = r2d2::PooledConnection<RedisConnectionManager>;
+
 struct TsMap {
     timestamp: i64,
     key: String,
@@ -43,16 +49,19 @@ impl redis::FromRedisValue for TsMap {
     }
 }
 
-pub fn get_redis_connection() -> redis::Connection {
-    let client = redis::Client::open(REDIS_HOST).unwrap();
-    let con = client.get_connection().unwrap();
-    con
+pub fn get_connection_pool() -> ConPool {
+    let mgr = RedisConnectionManager::new(REDIS_HOST).expect("Failed to create Redis con mgr");
+    let pool = r2d2::Pool::builder()
+        .build(mgr)
+        .expect("Failed to build pool");
+    pool
 }
 
-fn get_all_timestamps(con: &mut redis::Connection) -> Result<Vec<TsMap>, RedisError> {
+fn get_all_timestamps(con: &mut Con) -> Result<Vec<TsMap>, RedisError> {
     let keys = timestamp_keys(con)?;
     let mut timestamps: Vec<TsMap> = Vec::with_capacity(keys.len());
-    let ts_vals: Vec<i64> = redis::cmd("MGET").arg(&keys).query(con)?;
+    let ts_vals: Vec<i64> = redis::cmd("MGET")
+        .arg(keys.clone()).query(con.deref_mut())?;
 
     for (index, ts) in ts_vals.iter().enumerate() {
         if let Some(key) = keys.get(index) {
@@ -67,22 +76,22 @@ fn get_all_timestamps(con: &mut redis::Connection) -> Result<Vec<TsMap>, RedisEr
     Ok(timestamps)
 }
 
-fn article_keys(con: &mut redis::Connection) -> Result<Vec<String>, RedisError> {
+fn article_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
     let keys: Vec<String> = con.keys(ALL_ARTICLES_KEY)?;
     Ok(keys)
 }
 
-fn timestamp_keys(con: &mut redis::Connection) -> Result<Vec<String>, RedisError> {
+fn timestamp_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
     let keys: Vec<String> = con.keys(ALL_TIMESTAMPS_KEY)?;
     Ok(keys)
 }
 
-fn tag_keys(con: &mut redis::Connection) -> Result<Vec<String>, RedisError> {
+fn tag_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
     let keys: Vec<String> = con.keys(ALL_TAGS_KEY)?;
     Ok(keys)
 }
 
-fn all_keys(con: &mut redis::Connection) -> Result<Vec<String>, RedisError> {
+fn all_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
     let mut keys = article_keys(con)?;
     let mut ts_keys = timestamp_keys(con)?;
     let mut tag_keys = tag_keys(con)?;
@@ -127,7 +136,7 @@ fn paginated_views_from_key(
     key: &str,
     page: usize,
     per_page: usize,
-    con: &mut redis::Connection,
+    con: &mut Con,
 ) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
     let all_count = con.zcard(key)?;
     let (start_index, end_index) = indices_from_page(page, per_page);
@@ -147,24 +156,26 @@ fn paginated_views_from_key(
 pub fn fetch_article_links(
     page: usize,
     per_page: usize,
-    con: &mut redis::Connection,
+    pool: &ConPool,
 ) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
-    paginated_views_from_key(TIMESTAMP_KEY, page, per_page, con)
+    let mut con = pool.get().unwrap();
+    paginated_views_from_key(TIMESTAMP_KEY, page, per_page, &mut con)
 }
 
 pub fn fetch_by_tag(
     tag: &str,
     page: usize,
     per_page: usize,
-    con: &mut redis::Connection,
+    pool: &ConPool,
 ) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
     let key = String::from(BASE_TAGMAP_KEY) + tag;
-    paginated_views_from_key(&key, page, per_page, con)
+    let mut con = pool.get().unwrap();
+    paginated_views_from_key(&key, page, per_page, &mut con)
 }
 
 fn surrounding_keys(
     timestamp: i64,
-    con: &mut redis::Connection,
+    con: &mut Con
 ) -> (Option<String>, Option<String>) {
     let timestamps = get_all_timestamps(con);
     if let Err(e) = timestamps {
@@ -194,7 +205,7 @@ fn surrounding_keys(
     (None, None)
 }
 
-fn tags_for_slug(slug: &str, con: &mut redis::Connection) -> Vec<String> {
+fn tags_for_slug(slug: &str, con: &mut Con) -> Vec<String> {
     let tags_key = String::from(BASE_TAGS_KEY) + slug;
     let result: RedisResult<Vec<String>> = con.smembers(tags_key);
 
@@ -207,11 +218,15 @@ fn tags_for_slug(slug: &str, con: &mut redis::Connection) -> Vec<String> {
     }
 }
 
-pub fn fetch_from_slug(slug: &str, con: &mut redis::Connection) -> RedisResult<ArticleView> {
+pub fn fetch_from_slug(
+    slug: &str,
+    pool: &ConPool
+) -> RedisResult<ArticleView> {
+    let mut con = pool.get().unwrap();
     let key = String::from(BASE_KEY) + slug;
-    let tags = tags_for_slug(slug, con);
+    let tags = tags_for_slug(slug, &mut con);
     let timestamp: i64 = con.hget(&key, "timestamp")?;
-    let (prev_key, next_key) = surrounding_keys(timestamp, con);
+    let (prev_key, next_key) = surrounding_keys(timestamp, &mut con);
     let prev_map: RedisResult<(String, String, i64)> = con.hget(prev_key, &LINK_FIELDS);
     let next_map: RedisResult<(String, String, i64)> = con.hget(next_key, &LINK_FIELDS);
 
@@ -229,16 +244,15 @@ pub fn fetch_from_slug(slug: &str, con: &mut redis::Connection) -> RedisResult<A
     Ok(article)
 }
 
-fn destroy_keys(keys: Vec<String>, con: &mut redis::Connection) -> redis::RedisResult<()> {
+fn destroy_keys(keys: Vec<String>, con: &mut Con) -> redis::RedisResult<()> {
     for key in keys {
         con.del(key)?;
     }
     Ok(())
 }
 
-pub fn rebuild_redis_data() -> redis::RedisResult<()> {
-    let client = redis::Client::open(REDIS_HOST)?;
-    let mut con = client.get_connection()?;
+pub fn rebuild_data(pool: &ConPool) -> redis::RedisResult<()> {
+    let mut con = pool.get().unwrap();
 
     // Need to fetch keys before beginning transaction, as reads from within a
     // transaction will just return "QUEUED".
@@ -246,7 +260,7 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
     let mut tag_map: HashMap<String, Vec<TsMap>> = HashMap::new();
 
     // Rebuild everything atomically within a transaction
-    redis::cmd("MULTI").query(&mut con)?;
+    redis::cmd("MULTI").query(con.deref_mut())?;
 
     destroy_keys(keys, &mut con)?;
 
@@ -287,7 +301,7 @@ pub fn rebuild_redis_data() -> redis::RedisResult<()> {
         }
     }
 
-    redis::cmd("EXEC").query(&mut con)?;
+    redis::cmd("EXEC").query(con.deref_mut())?;
 
     Ok(())
 }
