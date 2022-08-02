@@ -25,6 +25,8 @@ pub const BASE_PATH: &str = "./content";
 const PAGE_SIZE: usize = 10;
 const BLOG_TITLE: &str = "Velum Test Blog";
 
+type InfResult<T> = Result<T, Infallible>;
+
 #[derive(Clone)]
 struct CommonData {
     hbs: Handlebars<'static>,
@@ -61,7 +63,7 @@ fn render_article_list<E: Error>(
     page: usize,
     hbs: &Handlebars,
     tag: Option<&str>,
-) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
+) -> InfResult<warp::reply::WithStatus<warp::reply::Html<String>>> {
 
     match article_result {
         Ok((articles, all_count)) => {
@@ -94,7 +96,7 @@ fn render_article_list<E: Error>(
     }
 }
 
-async fn index_page_route(page: usize, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
+async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let pool = data.pool.lock().unwrap();
     let article_result = fetch_article_links(page, PAGE_SIZE, &pool);
@@ -106,7 +108,7 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> Result<impl war
     response
 }
 
-async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
+async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let pool = data.pool.lock().unwrap();
     let article_result = fetch_by_tag(&tag, page, PAGE_SIZE, &pool);
@@ -117,7 +119,7 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> Re
     response
 }
 
-async fn article_route(slug: String, data: Arc<CommonData>) -> Result<impl warp::Reply, Infallible> {
+async fn article_route(slug: String, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let pool = data.pool.lock().unwrap();
 
