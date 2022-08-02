@@ -1,10 +1,17 @@
 use crate::article::view::{ArticleView, ArticleViewLink};
 use crate::article::ArticleBuilder;
 use crate::BASE_PATH;
-// use redis::Commands;
-// use self::redis::{RedisError, RedisResult};
-use r2d2_redis::{ self, redis::{self, RedisError, RedisResult}, r2d2, RedisConnectionManager};
-use r2d2_redis::redis::Commands as R2Commands;
+use r2d2_redis::{
+    self,
+    redis::{
+        self,
+        RedisError,
+        RedisResult
+    },
+    r2d2,
+    RedisConnectionManager
+};
+use r2d2_redis::redis::Commands;
 use std::ops::DerefMut;
 use std::collections::HashMap;
 use std::convert::TryInto;

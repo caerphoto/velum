@@ -46,12 +46,7 @@ future there may be options for running daemonised, or as a system service.
    as the third-party options like Disqus, while easy to add, do not really
    integrate well into the styling of the page, being iframes and all.
 
-3. Connection pooling: currently every thread shares the same Redis connection,
-   which is fine for low volume use (although having multiple threads is also
-   a bit pointless there), but under heavier load this will likely become an
-   issue.
-
-4. Rebuilding the article database: adding a new article currently means
+3. Rebuilding the article database: adding a new article currently means
    restarting the server is necessary in order for it to be included in the
    article list, but  this obviously means downtime, and is not great from a UX
    perspective. A better option would be a way to send a special HTTP request
@@ -59,7 +54,7 @@ future there may be options for running daemonised, or as a system service.
    kind. Rebuilding the Redis data is already done as an atomic action using
    a Redis transaction, so I am hopeful it won't cause any service interruption.
 
-5. Finally there's the question of an editor: does Velum even need one? If not,
+4. Finally there's the question of an editor: does Velum even need one? If not,
    what about a simplified way to upload content, that means users don't have
    to manually copy files (including images) to their server? As with the
    server restart issue, this is about UX for the blog maintainer, obviating
