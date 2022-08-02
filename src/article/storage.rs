@@ -42,10 +42,9 @@ struct TsMap {
 
 pub fn get_connection_pool() -> ConPool {
     let mgr = RedisConnectionManager::new(REDIS_HOST).expect("Failed to create Redis con mgr");
-    let pool = r2d2::Pool::builder()
+    r2d2::Pool::builder()
         .build(mgr)
-        .expect("Failed to build pool");
-    pool
+        .expect("Failed to build pool")
 }
 
 fn get_all_timestamps(con: &mut Con) -> RedisResult<Vec<TsMap>> {
