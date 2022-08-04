@@ -9,9 +9,9 @@ use log::info;
 use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
+use config::Config;
 use article::view::{ArticleView, ArticleViewLink};
 use article::storage::{
-    ConPool,
     get_connection_pool,
     rebuild_data,
     fetch_article_links,
@@ -21,24 +21,40 @@ use hb::create_handlebars;
 
 #[macro_use] extern crate lazy_static;
 
-pub const BASE_PATH: &str = "./content";
-const PAGE_SIZE: usize = 10;
-const BLOG_TITLE: &str = "Velum Test Blog";
+const CONFIG_FILE: &str = "Settings"; // .toml is implied
+const DEFAULT_PAGE_SIZE: usize = 5;
+const DEFAULT_TITLE: &str = "Velum Blog";
+
+fn load_config() -> Config {
+    Config::builder()
+        .add_source(config::File::with_name(CONFIG_FILE))
+        .build()
+        .expect("Failed to build config")
+}
 
 type InfResult<T> = Result<T, Infallible>;
 
 #[derive(Clone)]
-struct CommonData {
+pub struct CommonData {
     hbs: Handlebars<'static>,
-    pool: Arc<Mutex<ConPool>>
+    pool: Arc<Mutex<article::storage::ConPool>>,
+    config: Config,
 }
 
 impl CommonData {
     fn new() -> Self {
+        let config = load_config();
         Self {
-            hbs: create_handlebars(),
-            pool: Arc::new(Mutex::new(get_connection_pool())),
+            hbs: create_handlebars(&config),
+            pool: Arc::new(Mutex::new(get_connection_pool(&config))),
+            config,
         }
+    }
+
+    fn page_size(&self) -> usize {
+        self.config
+            .get_int("page_size")
+            .unwrap_or(DEFAULT_PAGE_SIZE as i64) as usize
     }
 }
 
@@ -61,17 +77,21 @@ fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Ht
 fn render_article_list<E: Error>(
     article_result: Result<(Vec<ArticleViewLink>, usize), E>,
     page: usize,
-    hbs: &Handlebars,
+    page_size: usize,
+    data: &CommonData,
     tag: Option<&str>,
 ) -> InfResult<warp::reply::WithStatus<warp::reply::Html<String>>> {
+    let title = data.config
+        .get_string("blog_title")
+        .unwrap_or(DEFAULT_TITLE.to_owned());
 
     match article_result {
         Ok((articles, all_count)) => {
-            let max_page = div_ceil(all_count, PAGE_SIZE);
-            match hbs.render(
+            let max_page = div_ceil(all_count, page_size);
+            match data.hbs.render(
                 "main",
                 &json!({
-                    "title": BLOG_TITLE,
+                    "title": title,
                     "prev_page": if page > 1 { page - 1 } else { 0 },
                     "current_page": page,
                     "next_page": if page < max_page { page + 1 } else { 0 },
@@ -99,8 +119,9 @@ fn render_article_list<E: Error>(
 async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let pool = data.pool.lock().unwrap();
-    let article_result = fetch_article_links(page, PAGE_SIZE, &pool);
-    let response = render_article_list(article_result, page, &data.hbs, None);
+    let page_size = data.page_size();
+    let article_result = fetch_article_links(page, page_size, &pool);
+    let response = render_article_list(article_result, page, page_size, &data, None);
     if response.is_ok() {
         info!("Rendered article index page {} in {}ms", page, now.elapsed().as_millis());
     }
@@ -111,8 +132,9 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl 
 async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let pool = data.pool.lock().unwrap();
-    let article_result = fetch_by_tag(&tag, page, PAGE_SIZE, &pool);
-    let response = render_article_list(article_result, page, &data.hbs, Some(&tag));
+    let page_size = data.page_size();
+    let article_result = fetch_by_tag(&tag, page, page_size, &pool);
+    let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
     if response.is_ok() {
         info!("Rendered tag index page {} in {}ms", page, now.elapsed().as_millis());
     }
@@ -122,13 +144,16 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
 async fn article_route(slug: String, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let pool = data.pool.lock().unwrap();
+    let title = data.config
+        .get_string("blog_title")
+        .unwrap_or(DEFAULT_TITLE.to_owned());
 
     if let Some(article) = ArticleView::from_slug(&slug, &pool) {
         let reply = warp::reply::html(
             data.hbs.render(
                 "article",
                 &json!({
-                    "title": (article.title.clone() + " &middot ") + BLOG_TITLE,
+                    "title": (article.title.clone() + " &middot ") + &title,
                     "article": article,
                     "prev": article.prev,
                     "next": article.next
@@ -158,7 +183,7 @@ async fn main() {
     let codata = Arc::new(CommonData::new());
 
     info!("Rebuilding Redis data from files... ");
-    if let Err(e) = rebuild_data(&codata.pool.lock().unwrap()) {
+    if let Err(e) = rebuild_data(&codata) {
         panic!("Failed to rebuild Redis data: {:?}", e);
     }
     info!("...done.");

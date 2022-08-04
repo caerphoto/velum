@@ -1,12 +1,13 @@
 use std::path::{Path, PathBuf};
+use crate::article::storage::DEFAULT_CONTENT_DIR;
 use chrono::prelude::*;
 use ordinal::Ordinal;
 use handlebars::{Handlebars, handlebars_helper};
-use crate::BASE_PATH;
 
-fn tmpl_path(tmpl_name: &str) -> PathBuf {
+fn tmpl_path(tmpl_name: &str, config: &config::Config) -> PathBuf {
+    let base_path = config.get_string("content_path").unwrap_or(DEFAULT_CONTENT_DIR.to_string());
     let filename = [tmpl_name, "html.hbs"].join(".");
-    let path = Path::new(BASE_PATH).join("templates");
+    let path = Path::new(&base_path).join("templates");
     path.join(filename)
 }
 
@@ -24,13 +25,13 @@ handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
     this_tag == search_tag
 });
 
-pub fn create_handlebars() -> Handlebars<'static> {
+pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
     let mut hb = Handlebars::new();
-    let index_tmpl_path = tmpl_path("index");
-    let article_tmpl_path = tmpl_path("article");
-    let tag_list_tmpl_path = tmpl_path("_tag_list");
-    let header_tmpl_path = tmpl_path("_header");
-    let footer_tmpl_path = tmpl_path("_footer");
+    let index_tmpl_path = tmpl_path("index", config);
+    let article_tmpl_path = tmpl_path("article", config);
+    let tag_list_tmpl_path = tmpl_path("_tag_list", config);
+    let header_tmpl_path = tmpl_path("_header", config);
+    let footer_tmpl_path = tmpl_path("_footer", config);
 
     hb.set_dev_mode(true);
 
