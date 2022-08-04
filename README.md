@@ -37,16 +37,11 @@ future there may be options for running daemonised, or as a system service.
 
 ## To Do
 
-1. Configuration: at present a lot of stuff is hard-coded, when it really
-   should be configurable. Based on the brief research I've done on this,
-   implementing this shouldn't be too difficult, but should provide significant
-   benefits.
-
-2. Comments: not every blog wants or needs them, but they should be included,
+1. Comments: not every blog wants or needs them, but they should be included,
    as the third-party options like Disqus, while easy to add, do not really
    integrate well into the styling of the page, being iframes and all.
 
-3. Rebuilding the article database: adding a new article currently means
+2. Rebuilding the article database: adding a new article currently means
    restarting the server is necessary in order for it to be included in the
    article list, but  this obviously means downtime, and is not great from a UX
    perspective. A better option would be a way to send a special HTTP request
@@ -54,7 +49,7 @@ future there may be options for running daemonised, or as a system service.
    kind. Rebuilding the Redis data is already done as an atomic action using
    a Redis transaction, so I am hopeful it won't cause any service interruption.
 
-4. Finally there's the question of an editor: does Velum even need one? If not,
+3. Finally there's the question of an editor: does Velum even need one? If not,
    what about a simplified way to upload content, that means users don't have
    to manually copy files (including images) to their server? As with the
    server restart issue, this is about UX for the blog maintainer, obviating
