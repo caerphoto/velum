@@ -1,0 +1,4 @@
+content_dir = "./content"
+page_size = 10
+blog_title = "Velum Test Blog"
+redis_host = "redis://127.0.0.1"

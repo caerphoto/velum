@@ -1,17 +1,14 @@
 use crate::article::view::{ArticleView, ArticleViewLink};
 use crate::article::ArticleBuilder;
-use crate::BASE_PATH;
 use r2d2_redis::{
-    self,
     redis::{
         self,
-        RedisError,
-        RedisResult
+        RedisResult,
+        Commands,
     },
     r2d2,
     RedisConnectionManager
 };
-use r2d2_redis::redis::Commands;
 use std::ops::DerefMut;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -19,7 +16,8 @@ use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 
-pub const REDIS_HOST: &str = "redis://127.0.0.1/";
+pub const DEFAULT_CONTENT_DIR: &str = "./content";
+const DEFAULT_REDIS_HOST: &str = "redis://127.0.0.1/";
 
 const BASE_KEY: &str = "velum:articles:";
 const BASE_TIMESTAMPS_KEY: &str = "velum:timestamps:";
@@ -42,29 +40,15 @@ struct TsMap {
     key: String,
 }
 
-impl redis::FromRedisValue for TsMap {
-    fn from_redis_value(v: &redis::Value) -> RedisResult<Self> {
-        let result: RedisResult<(String, i64)> = redis::FromRedisValue::from_redis_value(v);
-        if let Ok(tup) = result {
-            let timestamp = tup.1;
-            let key = tup.0;
-
-            Ok(Self { timestamp, key })
-        } else {
-            Err(result.unwrap_err())
-        }
-    }
-}
-
-pub fn get_connection_pool() -> ConPool {
-    let mgr = RedisConnectionManager::new(REDIS_HOST).expect("Failed to create Redis con mgr");
-    let pool = r2d2::Pool::builder()
+pub fn get_connection_pool(config: &config::Config) -> ConPool {
+    let host = config.get_string("redist_host").unwrap_or(DEFAULT_REDIS_HOST.to_string());
+    let mgr = RedisConnectionManager::new(host).expect("Failed to create Redis con mgr");
+    r2d2::Pool::builder()
         .build(mgr)
-        .expect("Failed to build pool");
-    pool
+        .expect("Failed to build pool")
 }
 
-fn get_all_timestamps(con: &mut Con) -> Result<Vec<TsMap>, RedisError> {
+fn get_all_timestamps(con: &mut Con) -> RedisResult<Vec<TsMap>> {
     let keys = timestamp_keys(con)?;
     let mut timestamps: Vec<TsMap> = Vec::with_capacity(keys.len());
     let ts_vals: Vec<i64> = redis::cmd("MGET")
@@ -83,22 +67,22 @@ fn get_all_timestamps(con: &mut Con) -> Result<Vec<TsMap>, RedisError> {
     Ok(timestamps)
 }
 
-fn article_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
+fn article_keys(con: &mut Con) -> RedisResult<Vec<String>> {
     let keys: Vec<String> = con.keys(ALL_ARTICLES_KEY)?;
     Ok(keys)
 }
 
-fn timestamp_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
+fn timestamp_keys(con: &mut Con) -> RedisResult<Vec<String>> {
     let keys: Vec<String> = con.keys(ALL_TIMESTAMPS_KEY)?;
     Ok(keys)
 }
 
-fn tag_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
+fn tag_keys(con: &mut Con) -> RedisResult<Vec<String>> {
     let keys: Vec<String> = con.keys(ALL_TAGS_KEY)?;
     Ok(keys)
 }
 
-fn all_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
+fn all_keys(con: &mut Con) -> RedisResult<Vec<String>> {
     let mut keys = article_keys(con)?;
     let mut ts_keys = timestamp_keys(con)?;
     let mut tag_keys = tag_keys(con)?;
@@ -108,29 +92,6 @@ fn all_keys(con: &mut Con) -> Result<Vec<String>, RedisError> {
 
     Ok(keys)
 }
-fn gather_fs_articles() -> Result<Vec<ArticleBuilder>, io::Error> {
-    let dir = PathBuf::from(BASE_PATH).join("articles");
-    if !dir.is_dir() {
-        return Err(io::Error::new(
-            ErrorKind::InvalidInput,
-            "Article path is not a directory",
-        ));
-    }
-
-    let mut articles: Vec<ArticleBuilder> = Vec::new();
-
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if !path.is_dir() {
-            if let Ok(article) = ArticleBuilder::from_file(&path) {
-                articles.push(article);
-            }
-        }
-    }
-    Ok(articles)
-}
-
 fn indices_from_page(page: usize, per_page: usize) -> (isize, isize) {
     // We'll assume these values fall within isize range, and just use unwrap
     let start_index: isize = (page.saturating_sub(1) * per_page).try_into().unwrap();
@@ -164,7 +125,7 @@ pub fn fetch_article_links(
     page: usize,
     per_page: usize,
     pool: &ConPool,
-) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
+) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
     let mut con = pool.get().unwrap();
     paginated_views_from_key(TIMESTAMP_KEY, page, per_page, &mut con)
 }
@@ -174,7 +135,7 @@ pub fn fetch_by_tag(
     page: usize,
     per_page: usize,
     pool: &ConPool,
-) -> Result<(Vec<ArticleViewLink>, usize), RedisError> {
+) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
     let key = String::from(BASE_TAGMAP_KEY) + tag;
     let mut con = pool.get().unwrap();
     paginated_views_from_key(&key, page, per_page, &mut con)
@@ -251,14 +212,41 @@ pub fn fetch_from_slug(
     Ok(article)
 }
 
-fn destroy_keys(keys: Vec<String>, con: &mut Con) -> redis::RedisResult<()> {
+fn gather_fs_articles(config: &config::Config) -> Result<Vec<ArticleBuilder>, io::Error> {
+    let content_dir = config
+        .get_string("content_dir")
+        .unwrap_or(DEFAULT_CONTENT_DIR.to_owned());
+    let path = PathBuf::from(content_dir).join("articles");
+    if !path.is_dir() {
+        return Err(io::Error::new(
+            ErrorKind::InvalidInput,
+            "Article path is not a directory",
+        ));
+    }
+
+    let mut articles: Vec<ArticleBuilder> = Vec::new();
+
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_dir() {
+            if let Ok(article) = ArticleBuilder::from_file(&path) {
+                articles.push(article);
+            }
+        }
+    }
+    Ok(articles)
+}
+
+fn destroy_keys(keys: Vec<String>, con: &mut Con) -> RedisResult<()> {
     for key in keys {
         con.del(key)?;
     }
     Ok(())
 }
 
-pub fn rebuild_data(pool: &ConPool) -> redis::RedisResult<()> {
+pub fn rebuild_data(data: &crate::CommonData) -> RedisResult<()> {
+    let pool = data.pool.lock().unwrap();
     let mut con = pool.get().unwrap();
 
     // Need to fetch keys before beginning transaction, as reads from within a
@@ -272,7 +260,7 @@ pub fn rebuild_data(pool: &ConPool) -> redis::RedisResult<()> {
     destroy_keys(keys, &mut con)?;
 
     // TODO: handle potential failure
-    if let Ok(articles) = gather_fs_articles() {
+    if let Ok(articles) = gather_fs_articles(&data.config) {
         for article in articles {
             if let Ok(slug) = article.slug() {
                 let key = String::from(BASE_KEY) + slug.as_str();
