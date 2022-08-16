@@ -22,3 +22,9 @@ r2d2 = "0.8.10"
 r2d2_redis = "0.14.0"
 chrono = "0.4"
 ordinal = "0.3.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
