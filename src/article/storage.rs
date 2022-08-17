@@ -3,6 +3,7 @@ use crate::article::builder::{Builder, ParseResult, ParseError};
 use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;
+use log::debug;
 
 pub const DEFAULT_CONTENT_DIR: &str = "./content";
 
@@ -33,13 +34,13 @@ pub fn fetch_index_links(
             .map(ContentView::to_index_view)
             .collect();
 
-        end = min(end, index_views.len() - 1);
+        end = min(end, index_views.len());
         LinkList {
             index_views: index_views[start..end].into(),
             total_articles: index_views.len(),
         }
     } else {
-        end = min(end, articles.len() - 1);
+        end = min(end, articles.len());
         LinkList {
             index_views: articles[start..end]
                 .iter()
@@ -101,11 +102,16 @@ pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentVie
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() { continue }
+        let ext = path.extension().map(|e| e.to_ascii_lowercase());
+        if ext.is_none() || ext.unwrap() != "md" { continue }
+
+        debug!("Building article from {}", path.to_string_lossy());
         let builder = Builder::from_file(&path)?;
         let view = builder_to_content_view(builder)?;
         articles.push(view);
     }
     articles.sort_by_key(|k| k.timestamp);
+    articles.reverse();
     set_prev_next(&mut articles);
     Ok(articles)
 }

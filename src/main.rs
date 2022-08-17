@@ -9,7 +9,7 @@ use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
 use config::Config;
-use article::view::{ContentView, IndexView};
+use article::view::ContentView;
 use article::builder::ParseError;
 use article::storage::{
     LinkList,
@@ -138,7 +138,7 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
     let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
     let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
     if response.is_ok() {
-        info!("Rendered tag index page {} in {}ms", page, now.elapsed().as_millis());
+        info!("Rendered tag '{}' index page {} in {}ms", &tag, page, now.elapsed().as_millis());
     }
     response
 }
