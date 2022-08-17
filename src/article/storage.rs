@@ -1,302 +1,117 @@
-use crate::article::view::{ArticleView, ArticleViewLink};
-use crate::article::ArticleBuilder;
-use r2d2_redis::{
-    redis::{
-        self,
-        RedisResult,
-        Commands,
-    },
-    r2d2,
-    RedisConnectionManager
-};
-use std::ops::DerefMut;
-use std::collections::HashMap;
-use std::convert::TryInto;
+use crate::article::view::{ContentView, IndexView};
+use crate::article::builder::{Builder, ParseResult, ParseError};
 use std::fs;
-use std::io::{self, ErrorKind};
+use std::cmp::min;
 use std::path::PathBuf;
+use log::debug;
 
 pub const DEFAULT_CONTENT_DIR: &str = "./content";
-const DEFAULT_REDIS_HOST: &str = "redis://127.0.0.1/";
 
-const BASE_KEY: &str = "velum:articles:";
-const BASE_TIMESTAMPS_KEY: &str = "velum:timestamps:";
-const BASE_TAGS_KEY: &str = "velum:tags:";
-const BASE_TAGMAP_KEY: &str = "velum_tagmap:";
-
-const TIMESTAMP_KEY: &str = "velum:slug_timestamps";
-
-const ALL_ARTICLES_KEY: &str = "velum:articles:*";
-const ALL_TIMESTAMPS_KEY: &str = "velum:timestamps:*";
-const ALL_TAGS_KEY: &str = "velum:tags:*";
-
-const LINK_FIELDS: [&str; 3] = ["title", "slug", "timestamp"];
-
-pub type ConPool = r2d2::Pool<RedisConnectionManager>;
-type Con = r2d2::PooledConnection<RedisConnectionManager>;
-
-struct TsMap {
-    timestamp: i64,
-    key: String,
+pub struct LinkList {
+    pub index_views: Vec<IndexView>,
+    pub total_articles: usize,
 }
 
-pub fn get_connection_pool(config: &config::Config) -> ConPool {
-    let host = config.get_string("redist_host").unwrap_or(DEFAULT_REDIS_HOST.to_string());
-    let mgr = RedisConnectionManager::new(host).expect("Failed to create Redis con mgr");
-    r2d2::Pool::builder()
-        .build(mgr)
-        .expect("Failed to build pool")
-}
-
-fn get_all_timestamps(con: &mut Con) -> RedisResult<Vec<TsMap>> {
-    let keys = timestamp_keys(con)?;
-    let mut timestamps: Vec<TsMap> = Vec::with_capacity(keys.len());
-    let ts_vals: Vec<i64> = redis::cmd("MGET")
-        .arg(keys.clone()).query(con.deref_mut())?;
-
-    for (index, ts) in ts_vals.iter().enumerate() {
-        if let Some(key) = keys.get(index) {
-            timestamps.push(TsMap {
-                key: key.clone(),
-                timestamp: *ts,
-            });
-        }
-    }
-
-    timestamps.sort_by_key(|ts| -ts.timestamp);
-    Ok(timestamps)
-}
-
-fn article_keys(con: &mut Con) -> RedisResult<Vec<String>> {
-    let keys: Vec<String> = con.keys(ALL_ARTICLES_KEY)?;
-    Ok(keys)
-}
-
-fn timestamp_keys(con: &mut Con) -> RedisResult<Vec<String>> {
-    let keys: Vec<String> = con.keys(ALL_TIMESTAMPS_KEY)?;
-    Ok(keys)
-}
-
-fn tag_keys(con: &mut Con) -> RedisResult<Vec<String>> {
-    let keys: Vec<String> = con.keys(ALL_TAGS_KEY)?;
-    Ok(keys)
-}
-
-fn all_keys(con: &mut Con) -> RedisResult<Vec<String>> {
-    let mut keys = article_keys(con)?;
-    let mut ts_keys = timestamp_keys(con)?;
-    let mut tag_keys = tag_keys(con)?;
-
-    keys.append(&mut ts_keys);
-    keys.append(&mut tag_keys);
-
-    Ok(keys)
-}
-fn indices_from_page(page: usize, per_page: usize) -> (isize, isize) {
-    // We'll assume these values fall within isize range, and just use unwrap
-    let start_index: isize = (page.saturating_sub(1) * per_page).try_into().unwrap();
-    let per_page: isize = per_page.try_into().unwrap();
+fn indices_from_page(page: usize, per_page: usize) -> (usize, usize) {
+    let start_index = page.saturating_sub(1) * per_page;
     let end_index = start_index + per_page - 1;
     (start_index, end_index)
 }
 
-fn paginated_views_from_key(
-    key: &str,
+pub fn fetch_index_links(
     page: usize,
     per_page: usize,
-    con: &mut Con,
-) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
-    let all_count = con.zcard(key)?;
-    let (start_index, end_index) = indices_from_page(page, per_page);
-    let slugs: Vec<String> = con.zrevrange(key, start_index, end_index)?;
-    let mut articles: Vec<ArticleViewLink> = Vec::new();
+    tag: Option<&str>,
+    articles: &Vec<ContentView>,
+) -> LinkList {
+    let (start, mut end) = indices_from_page(page, per_page);
 
-    for slug in slugs {
-        let key = String::from(BASE_KEY) + &slug;
-        let result: (String, String, i64) = con.hget(key, &LINK_FIELDS)?;
-        let tags = tags_for_slug(&result.1, con);
-        articles.push(ArticleViewLink::from_redis_result(result, tags));
-    }
+    if tag.is_some() {
+        let tag = &tag.unwrap().to_string();
+        let index_views: Vec<IndexView> = articles
+            .iter()
+            .filter(|cv| cv.tags.contains(tag))
+            .map(ContentView::to_index_view)
+            .collect();
 
-    Ok((articles, all_count))
-}
-
-pub fn fetch_article_links(
-    page: usize,
-    per_page: usize,
-    pool: &ConPool,
-) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
-    let mut con = pool.get().unwrap();
-    paginated_views_from_key(TIMESTAMP_KEY, page, per_page, &mut con)
-}
-
-pub fn fetch_by_tag(
-    tag: &str,
-    page: usize,
-    per_page: usize,
-    pool: &ConPool,
-) -> RedisResult<(Vec<ArticleViewLink>, usize)> {
-    let key = String::from(BASE_TAGMAP_KEY) + tag;
-    let mut con = pool.get().unwrap();
-    paginated_views_from_key(&key, page, per_page, &mut con)
-}
-
-fn surrounding_keys(
-    timestamp: i64,
-    con: &mut Con
-) -> (Option<String>, Option<String>) {
-    let timestamps = get_all_timestamps(con);
-    if let Err(e) = timestamps {
-        println!("{}", e);
-        return (None, None);
-    }
-    let timestamps = timestamps.unwrap();
-    if let Some(index) = timestamps.iter().position(|ts| ts.timestamp == timestamp) {
-        let prev = if index > 0 {
-            timestamps
-                .get(index - 1)
-                .map(|pts| pts.key.replace(BASE_TIMESTAMPS_KEY, BASE_KEY))
-        } else {
-            None
-        };
-
-        let next = if index < timestamps.len() - 1 {
-            timestamps
-                .get(index + 1)
-                .map(|nts| nts.key.replace(BASE_TIMESTAMPS_KEY, BASE_KEY))
-        } else {
-            None
-        };
-        return (prev, next);
-    }
-
-    (None, None)
-}
-
-fn tags_for_slug(slug: &str, con: &mut Con) -> Vec<String> {
-    let tags_key = String::from(BASE_TAGS_KEY) + slug;
-    let result: RedisResult<Vec<String>> = con.smembers(tags_key);
-
-    match result {
-        Ok(mut tags) => {
-            tags.sort();
-            tags
+        end = min(end, index_views.len());
+        LinkList {
+            index_views: index_views[start..end].into(),
+            total_articles: index_views.len(),
         }
-        Err(_) => Vec::new(), // don't really care that tag fetch failed
+    } else {
+        end = min(end, articles.len());
+        LinkList {
+            index_views: articles[start..end]
+                .iter()
+                .map(ContentView::to_index_view)
+                .collect(),
+            total_articles: articles.len(),
+        }
     }
 }
 
-pub fn fetch_from_slug(
-    slug: &str,
-    pool: &ConPool
-) -> RedisResult<ArticleView> {
-    let mut con = pool.get().unwrap();
-    let key = String::from(BASE_KEY) + slug;
-    let tags = tags_for_slug(slug, &mut con);
-    let timestamp: i64 = con.hget(&key, "timestamp")?;
-    let (prev_key, next_key) = surrounding_keys(timestamp, &mut con);
-    let prev_map: RedisResult<(String, String, i64)> = con.hget(prev_key, &LINK_FIELDS);
-    let next_map: RedisResult<(String, String, i64)> = con.hget(next_key, &LINK_FIELDS);
+pub fn fetch_by_slug<'a >(slug: &str, articles: &'a Vec<ContentView>) -> Option<&'a ContentView> {
+    for a in articles {
+        if a.slug == slug { return Some(&a) }
+    }
 
-    let prev: Option<ArticleViewLink> = match prev_map {
-        Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
-        Err(_) => None,
-    };
-    let next: Option<ArticleViewLink> = match next_map {
-        Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
-        Err(_) => None,
-    };
-
-    let article_map = con.hgetall(&key)?;
-    let article = ArticleView::from_redis_result(&article_map, tags, prev, next);
-    Ok(article)
+    None
 }
 
-fn gather_fs_articles(config: &config::Config) -> Result<Vec<ArticleBuilder>, io::Error> {
+fn set_prev_next(articles: &mut Vec<ContentView>) {
+    for i in 0..articles.len() {
+        let prev = if i > 0 {
+            articles.get(i - 1).map(|v| v.to_prev_next_view())
+        } else {
+            None
+        };
+        let next = articles.get(i + 1).map(|v| v.to_prev_next_view());
+        let mut a = &mut articles[i];
+        a.prev = prev;
+        a.next = next;
+    }
+}
+
+fn builder_to_content_view(builder: Builder) -> ParseResult<ContentView> {
+        let title = builder.title()?;
+        Ok(ContentView {
+            slug: builder.slug(&title)?, // borrow here before
+            title,                       // move here
+            content: builder.parsed_content(),
+            timestamp: builder.timestamp,
+            tags: builder.tags(),
+            prev: None,
+            next: None,
+        })
+}
+
+pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentView>> {
     let content_dir = config
         .get_string("content_dir")
         .unwrap_or(DEFAULT_CONTENT_DIR.to_owned());
     let path = PathBuf::from(content_dir).join("articles");
     if !path.is_dir() {
-        return Err(io::Error::new(
-            ErrorKind::InvalidInput,
-            "Article path is not a directory",
-        ));
+        let path = path.to_string_lossy();
+        return Err(ParseError { cause: format!("article path `{}` is not a directory", &path) });
     }
 
-    let mut articles: Vec<ArticleBuilder> = Vec::new();
+    let mut articles: Vec<ContentView> = Vec::new();
 
     for entry in fs::read_dir(path)? {
         let entry = entry?;
         let path = entry.path();
-        if !path.is_dir() {
-            if let Ok(article) = ArticleBuilder::from_file(&path) {
-                articles.push(article);
-            }
-        }
+        if path.is_dir() { continue }
+        let ext = path.extension().map(|e| e.to_ascii_lowercase());
+        if ext.is_none() || ext.unwrap() != "md" { continue }
+
+        debug!("Building article from {}", path.to_string_lossy());
+        let builder = Builder::from_file(&path)?;
+        let view = builder_to_content_view(builder)?;
+        articles.push(view);
     }
+    articles.sort_by_key(|k| k.timestamp);
+    articles.reverse();
+    set_prev_next(&mut articles);
     Ok(articles)
-}
-
-fn destroy_keys(keys: Vec<String>, con: &mut Con) -> RedisResult<()> {
-    for key in keys {
-        con.del(key)?;
-    }
-    Ok(())
-}
-
-pub fn rebuild_data(data: &crate::CommonData) -> RedisResult<()> {
-    let pool = data.pool.lock().unwrap();
-    let mut con = pool.get().unwrap();
-
-    // Need to fetch keys before beginning transaction, as reads from within a
-    // transaction will just return "QUEUED".
-    let keys = all_keys(&mut con)?;
-    let mut tag_map: HashMap<String, Vec<TsMap>> = HashMap::new();
-
-    // Rebuild everything atomically within a transaction
-    redis::cmd("MULTI").query(con.deref_mut())?;
-
-    destroy_keys(keys, &mut con)?;
-
-    // TODO: handle potential failure
-    if let Ok(articles) = gather_fs_articles(&data.config) {
-        for article in articles {
-            if let Ok(slug) = article.slug() {
-                let key = String::from(BASE_KEY) + slug.as_str();
-                con.hset_multiple(&key, &article.to_kv_list())?;
-
-                let ts_key = String::from(BASE_TIMESTAMPS_KEY) + slug.as_str();
-                con.set(ts_key, article.timestamp)?;
-
-                let tag_key = String::from(BASE_TAGS_KEY) + slug.as_str();
-                for tag in article.tags() {
-                    con.sadd(&tag_key, tag.clone())?;
-                    let tsmap = TsMap {
-                        key: slug.clone(),
-                        timestamp: article.timestamp,
-                    };
-                    if let Some(slugs) = tag_map.get_mut(&tag) {
-                        slugs.push(tsmap);
-                    } else {
-                        tag_map.insert(tag, vec![tsmap]);
-                    }
-                }
-
-                con.zadd(String::from(TIMESTAMP_KEY), slug, article.timestamp)?;
-            }
-        }
-    }
-
-    // Tag-to-slugs mapping
-    for (tag, tsmaps) in tag_map.iter() {
-        let key = String::from(BASE_TAGMAP_KEY) + tag;
-        for tsmap in tsmaps {
-            con.zadd(&key, &tsmap.key, tsmap.timestamp)?;
-        }
-    }
-
-    redis::cmd("EXEC").query(con.deref_mut())?;
-
-    Ok(())
 }
