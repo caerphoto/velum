@@ -10,7 +10,7 @@ use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
 use config::Config;
-use article::view::{ArticleView, ArticleViewLink};
+use article::view::{ContentView, IndexView};
 use article::storage::{
     get_connection_pool,
     rebuild_data,
@@ -37,7 +37,7 @@ type InfResult<T> = Result<T, Infallible>;
 #[derive(Clone)]
 pub struct CommonData {
     hbs: Handlebars<'static>,
-    pool: Arc<Mutex<article::storage::ConPool>>,
+    articles: Vec<ContentView>,
     config: Config,
 }
 
@@ -46,7 +46,7 @@ impl CommonData {
         let config = load_config();
         Self {
             hbs: create_handlebars(&config),
-            pool: Arc::new(Mutex::new(get_connection_pool(&config))),
+            articles: rebuild_data(&config),
             config,
         }
     }

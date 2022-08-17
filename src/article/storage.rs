@@ -1,5 +1,5 @@
-use crate::article::view::{ArticleView, ArticleViewLink};
-use crate::article::ArticleBuilder;
+use crate::article::view::{ContentView, IndexView};
+use crate::article::builder::{Builder, ParseResult, ParseError};
 use r2d2_redis::{
     redis::{
         self,
@@ -186,117 +186,59 @@ fn tags_for_slug(slug: &str, con: &mut Con) -> Vec<String> {
     }
 }
 
-pub fn fetch_from_slug(
-    slug: &str,
-    pool: &ConPool
-) -> RedisResult<ArticleView> {
-    let mut con = pool.get().unwrap();
-    let key = String::from(BASE_KEY) + slug;
-    let tags = tags_for_slug(slug, &mut con);
-    let timestamp: i64 = con.hget(&key, "timestamp")?;
-    let (prev_key, next_key) = surrounding_keys(timestamp, &mut con);
-    let prev_map: RedisResult<(String, String, i64)> = con.hget(prev_key, &LINK_FIELDS);
-    let next_map: RedisResult<(String, String, i64)> = con.hget(next_key, &LINK_FIELDS);
+pub fn fetch_from_slug<'a >(slug: &str, articles: &'a Vec<ContentView>) -> Option<&'a ContentView> {
+    for a in articles {
+        if a.slug == slug { return Some(&a) }
+    }
 
-    let prev: Option<ArticleViewLink> = match prev_map {
-        Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
-        Err(_) => None,
-    };
-    let next: Option<ArticleViewLink> = match next_map {
-        Ok(m) => Some(ArticleViewLink::from_redis_result(m, Vec::new())),
-        Err(_) => None,
-    };
-
-    let article_map = con.hgetall(&key)?;
-    let article = ArticleView::from_redis_result(&article_map, tags, prev, next);
-    Ok(article)
+    None
 }
 
-fn gather_fs_articles(config: &config::Config) -> Result<Vec<ArticleBuilder>, io::Error> {
+fn set_prev_next(articles: &mut Vec<ContentView>) {
+    let iter = articles.iter();
+    let len = articles.len();
+    for (i, a) in iter.enumerate() {
+        let prev = if i > 0 { iter.nth(i - 1) } else { None };
+        let next = iter.nth(i + 1);
+        a.prev = prev.map(|v| v.to_prev_next_view());
+        a.next = next.map(|v| v.to_prev_next_view());
+    }
+}
+
+fn builder_to_content_view(builder: Builder) -> ParseResult<ContentView> {
+        let title = builder.title()?;
+        Ok(ContentView {
+            title,
+            content: builder.parsed_content(),
+            slug: builder.slug(title)?,
+            timestamp: builder.timestamp,
+            tags: builder.tags(),
+            prev: None,
+            next: None,
+        })
+}
+
+pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentView>> {
     let content_dir = config
         .get_string("content_dir")
         .unwrap_or(DEFAULT_CONTENT_DIR.to_owned());
     let path = PathBuf::from(content_dir).join("articles");
     if !path.is_dir() {
-        return Err(io::Error::new(
-            ErrorKind::InvalidInput,
-            "Article path is not a directory",
-        ));
+        let path = path.to_string_lossy();
+        return Err(ParseError { cause: format!("article path `{}` is not a directory", &path) });
     }
 
-    let mut articles: Vec<ArticleBuilder> = Vec::new();
+    let mut articles: Vec<ContentView> = Vec::new();
 
     for entry in fs::read_dir(path)? {
         let entry = entry?;
         let path = entry.path();
-        if !path.is_dir() {
-            if let Ok(article) = ArticleBuilder::from_file(&path) {
-                articles.push(article);
-            }
-        }
+        if path.is_dir() { continue }
+        let builder = Builder::from_file(&path)?;
+        let view = builder_to_content_view(builder)?;
+        articles.push(view);
     }
+    articles.sort_by_key(|k| k.timestamp);
+    set_prev_next(&mut articles);
     Ok(articles)
-}
-
-fn destroy_keys(keys: Vec<String>, con: &mut Con) -> RedisResult<()> {
-    for key in keys {
-        con.del(key)?;
-    }
-    Ok(())
-}
-
-pub fn rebuild_data(data: &crate::CommonData) -> RedisResult<()> {
-    let pool = data.pool.lock().unwrap();
-    let mut con = pool.get().unwrap();
-
-    // Need to fetch keys before beginning transaction, as reads from within a
-    // transaction will just return "QUEUED".
-    let keys = all_keys(&mut con)?;
-    let mut tag_map: HashMap<String, Vec<TsMap>> = HashMap::new();
-
-    // Rebuild everything atomically within a transaction
-    redis::cmd("MULTI").query(con.deref_mut())?;
-
-    destroy_keys(keys, &mut con)?;
-
-    // TODO: handle potential failure
-    if let Ok(articles) = gather_fs_articles(&data.config) {
-        for article in articles {
-            if let Ok(slug) = article.slug() {
-                let key = String::from(BASE_KEY) + slug.as_str();
-                con.hset_multiple(&key, &article.to_kv_list())?;
-
-                let ts_key = String::from(BASE_TIMESTAMPS_KEY) + slug.as_str();
-                con.set(ts_key, article.timestamp)?;
-
-                let tag_key = String::from(BASE_TAGS_KEY) + slug.as_str();
-                for tag in article.tags() {
-                    con.sadd(&tag_key, tag.clone())?;
-                    let tsmap = TsMap {
-                        key: slug.clone(),
-                        timestamp: article.timestamp,
-                    };
-                    if let Some(slugs) = tag_map.get_mut(&tag) {
-                        slugs.push(tsmap);
-                    } else {
-                        tag_map.insert(tag, vec![tsmap]);
-                    }
-                }
-
-                con.zadd(String::from(TIMESTAMP_KEY), slug, article.timestamp)?;
-            }
-        }
-    }
-
-    // Tag-to-slugs mapping
-    for (tag, tsmaps) in tag_map.iter() {
-        let key = String::from(BASE_TAGMAP_KEY) + tag;
-        for tsmap in tsmaps {
-            con.zadd(&key, &tsmap.key, tsmap.timestamp)?;
-        }
-    }
-
-    redis::cmd("EXEC").query(con.deref_mut())?;
-
-    Ok(())
 }
