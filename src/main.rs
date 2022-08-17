@@ -11,9 +11,9 @@ use warp::Filter;
 use handlebars::Handlebars;
 use config::Config;
 use article::view::{ContentView, IndexView};
+use article::builder::ParseError;
 use article::storage::{
-    get_connection_pool,
-    rebuild_data,
+    gather_fs_articles,
     fetch_article_links,
     fetch_by_tag
 };
@@ -44,11 +44,20 @@ pub struct CommonData {
 impl CommonData {
     fn new() -> Self {
         let config = load_config();
+        let articles = gather_fs_articles(&config).unwrap();
         Self {
             hbs: create_handlebars(&config),
-            articles: rebuild_data(&config),
+            articles,
             config,
         }
+    }
+
+    fn rebuild(&mut self) -> Result<(), ParseError> {
+        gather_fs_articles(&self.config)
+            .and_then(|articles| {
+                self.articles = articles;
+                Ok(())
+            })
     }
 
     fn page_size(&self) -> usize {

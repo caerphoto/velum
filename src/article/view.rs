@@ -28,4 +28,13 @@ impl ContentView {
     pub fn to_prev_next_view(&self) -> PrevNextView {
         PrevNextView { title: self.title.clone(), slug: self.slug.clone() }
     }
+
+    pub fn to_index_view(&self) -> IndexView {
+        IndexView {
+            title: self.title.clone(),
+            slug: self.slug.clone(),
+            timestamp: self.timestamp,
+            tags: self.tags.clone(),
+        }
+    }
 }
