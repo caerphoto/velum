@@ -37,11 +37,16 @@ future there may be options for running daemonised, or as a system service.
 
 ## To Do
 
-1. Comments: not every blog wants or needs them, but they should be included,
+1. Since removing the reliance on Redis, it's become clear that there's no
+   proper handling of duplicate slugs/titles. While this shouldn't really be
+   a problem, and nothing will *break*, exactly, it's obviously not ideal, and
+   a solution needs to be found.
+
+2. Comments: not every blog wants or needs them, but they should be included,
    as the third-party options like Disqus, while easy to add, do not really
    integrate well into the styling of the page, being iframes and all.
 
-2. Rebuilding the article database: adding a new article currently means
+3. Rebuilding the article database: adding a new article currently means
    restarting the server is necessary in order for it to be included in the
    article list, but  this obviously means downtime, and is not great from a UX
    perspective. A better option would be a way to send a special HTTP request
@@ -49,7 +54,7 @@ future there may be options for running daemonised, or as a system service.
    kind. There is already code in place to rebuild the article cache, so it's
    mostly a matter of wiring it up to a UI.
 
-3. Finally there's the question of an editor: does Velum even need one? If not,
+4. Finally there's the question of an editor: does Velum even need one? If not,
    what about a simplified way to upload content, that means users don't have
    to manually copy files (including images) to their server? As with the
    server restart issue, this is about UX for the blog maintainer, obviating
