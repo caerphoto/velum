@@ -27,8 +27,8 @@ source code, but in future it will be controllable using a command-line
 argument (see To Do, below).
 
 Once the server has started, visit <http://localhost:3090/> in your browser to
-see the index page, showing a list of articles. Currently it's fixed at 10 per
-page, but eventually this will be a configurable setting.
+see the index page, showing a list of articles. The default is 10 per page,
+adjustable via `Settings.toml` along with a couple of other things.
 
 ## Running in production
 
