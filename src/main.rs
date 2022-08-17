@@ -1,8 +1,7 @@
 mod article;
 mod hb;
 
-use std::sync::{Arc, Mutex};
-use std::error::Error;
+use std::sync::Arc;
 use std::convert::Infallible;
 use std::{fs, time};
 use log::info;
@@ -13,9 +12,10 @@ use config::Config;
 use article::view::{ContentView, IndexView};
 use article::builder::ParseError;
 use article::storage::{
+    LinkList,
     gather_fs_articles,
-    fetch_article_links,
-    fetch_by_tag
+    fetch_by_slug,
+    fetch_index_links,
 };
 use hb::create_handlebars;
 
@@ -44,7 +44,7 @@ pub struct CommonData {
 impl CommonData {
     fn new() -> Self {
         let config = load_config();
-        let articles = gather_fs_articles(&config).unwrap();
+        let articles = gather_fs_articles(&config).expect("gather FS articles");
         Self {
             hbs: create_handlebars(&config),
             articles,
@@ -83,8 +83,8 @@ fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Ht
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
 }
 
-fn render_article_list<E: Error>(
-    article_result: Result<(Vec<ArticleViewLink>, usize), E>,
+fn render_article_list(
+    article_list: LinkList,
     page: usize,
     page_size: usize,
     data: &CommonData,
@@ -94,43 +94,37 @@ fn render_article_list<E: Error>(
         .get_string("blog_title")
         .unwrap_or(DEFAULT_TITLE.to_owned());
 
-    match article_result {
-        Ok((articles, all_count)) => {
-            let max_page = div_ceil(all_count, page_size);
-            match data.hbs.render(
-                "main",
-                &json!({
-                    "title": title,
-                    "prev_page": if page > 1 { page - 1 } else { 0 },
-                    "current_page": page,
-                    "next_page": if page < max_page { page + 1 } else { 0 },
-                    "max_page": max_page,
-                    "search_tag": tag.unwrap_or(""),
-                    "article_count": all_count,
-                    "articles": &articles
-                })
-            ) {
-                Ok(rendered_page) => {
-                    Ok(warp::reply::with_status(
-                        warp::reply::html(rendered_page),
-                        warp::http::StatusCode::OK)
-                    )
-                },
-                Err(e) => {
-                    error_response(format!("Failed to render article in index. Error: {:?}", e))
-                }
-            }
+    let max_page = div_ceil(article_list.total_articles, page_size);
+    match data.hbs.render(
+        "main",
+        &json!({
+            "title": title,
+            "prev_page": if page > 1 { page - 1 } else { 0 },
+            "current_page": page,
+            "next_page": if page < max_page { page + 1 } else { 0 },
+            "max_page": max_page,
+            "search_tag": tag.unwrap_or(""),
+            "article_count": article_list.total_articles,
+            "articles": &article_list.index_views
+        })
+    ) {
+        Ok(rendered_page) => {
+            Ok(warp::reply::with_status(
+                warp::reply::html(rendered_page),
+                warp::http::StatusCode::OK)
+            )
         },
-        Err(e) => error_response(format!("Unable to fetch artile links. Error: {:?}", e))
+        Err(e) => {
+            error_response(format!("Failed to render article in index. Error: {:?}", e))
+        }
     }
 }
 
 async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
-    let pool = data.pool.lock().unwrap();
     let page_size = data.page_size();
-    let article_result = fetch_article_links(page, page_size, &pool);
-    let response = render_article_list(article_result, page, page_size, &data, None);
+    let article_list = fetch_index_links(page, page_size, None, &data.articles);
+    let response = render_article_list(article_list, page, page_size, &data, None);
     if response.is_ok() {
         info!("Rendered article index page {} in {}ms", page, now.elapsed().as_millis());
     }
@@ -140,9 +134,8 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl 
 
 async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
-    let pool = data.pool.lock().unwrap();
     let page_size = data.page_size();
-    let article_result = fetch_by_tag(&tag, page, page_size, &pool);
+    let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
     let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
     if response.is_ok() {
         info!("Rendered tag index page {} in {}ms", page, now.elapsed().as_millis());
@@ -152,12 +145,11 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
 
 async fn article_route(slug: String, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
-    let pool = data.pool.lock().unwrap();
     let title = data.config
         .get_string("blog_title")
         .unwrap_or(DEFAULT_TITLE.to_owned());
 
-    if let Some(article) = ArticleView::from_slug(&slug, &pool) {
+    if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         let reply = warp::reply::html(
             data.hbs.render(
                 "article",
@@ -189,12 +181,8 @@ async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, In
 async fn main() {
     env_logger::init();
 
-    let codata = Arc::new(CommonData::new());
-
     info!("Rebuilding Redis data from files... ");
-    if let Err(e) = rebuild_data(&codata) {
-        panic!("Failed to rebuild Redis data: {:?}", e);
-    }
+    let codata = Arc::new(CommonData::new());
     info!("...done.");
 
     // This needs to be assined after rebuild, so we can transfer ownership into the lambda
