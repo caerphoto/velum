@@ -24,7 +24,7 @@ pub fn fetch_index_links(
     tag: Option<&str>,
     articles: &Vec<ContentView>,
 ) -> LinkList {
-    let (start, mut end) = indices_from_page(page, per_page);
+    let (mut start, mut end) = indices_from_page(page, per_page);
 
     if tag.is_some() {
         let tag = &tag.unwrap().to_string();
@@ -35,12 +35,14 @@ pub fn fetch_index_links(
             .collect();
 
         end = min(end, index_views.len());
+        start = min(start, end);
         LinkList {
             index_views: index_views[start..end].into(),
             total_articles: index_views.len(),
         }
     } else {
         end = min(end, articles.len());
+        start = min(start, end);
         LinkList {
             index_views: articles[start..end]
                 .iter()
