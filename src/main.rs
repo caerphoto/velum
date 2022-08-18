@@ -2,6 +2,7 @@ mod article;
 mod hb;
 
 use std::sync::Arc;
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::{fs, time};
 use log::info;
@@ -83,6 +84,22 @@ fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Ht
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
 }
 
+fn build_return_path(page: usize, tag: Option<&str>) -> String {
+    if tag.is_some() {
+        if page <= 1 {
+            format!("/tag/{}", tag.unwrap())
+        } else {
+            format!("/tag/{}/{}", tag.unwrap(), page)
+        }
+    } else {
+        if page <= 1 {
+            "/".to_string()
+        } else {
+            format!("/index/{}", page)
+        }
+    }
+}
+
 fn render_article_list(
     article_list: LinkList,
     page: usize,
@@ -95,6 +112,8 @@ fn render_article_list(
         .unwrap_or(DEFAULT_TITLE.to_owned());
 
     let max_page = div_ceil(article_list.total_articles, page_size);
+    let return_to = build_return_path(page, tag);
+    info!("Return to = {}", &return_to);
     match data.hbs.render(
         "main",
         &json!({
@@ -105,7 +124,8 @@ fn render_article_list(
             "max_page": max_page,
             "search_tag": tag.unwrap_or(""),
             "article_count": article_list.total_articles,
-            "articles": &article_list.index_views
+            "articles": &article_list.index_views,
+            "return_to": return_to,
         })
     ) {
         Ok(rendered_page) => {
@@ -143,11 +163,14 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
     response
 }
 
-async fn article_route(slug: String, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let title = data.config
         .get_string("blog_title")
         .unwrap_or(DEFAULT_TITLE.to_owned());
+
+    let default_path = "/".to_string();
+    let return_path = query.get("return_to").unwrap_or(&default_path);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         let reply = warp::reply::html(
@@ -157,7 +180,8 @@ async fn article_route(slug: String, data: Arc<CommonData>) -> InfResult<impl wa
                     "title": (article.title.clone() + " &middot ") + &title,
                     "article": article,
                     "prev": article.prev,
-                    "next": article.next
+                    "next": article.next,
+                    "return_path": return_path,
                 })
             ).expect("Failed to render article with Handlebars")
         );
@@ -208,6 +232,7 @@ async fn main() {
         .and_then(tag_search_route);
 
     let article = warp::path!("articles" / String)
+        .and(warp::query::<HashMap<String, String>>())
         .and(codata_filter.clone())
         .and_then(article_route);
 

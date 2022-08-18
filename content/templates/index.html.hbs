@@ -16,7 +16,7 @@
       <ul class="article-list">
         {{#each articles}}
         <li class="article-list_item">
-          <h2><a href="/articles/{{this.slug}}">{{this.title}}</a></h2>
+          <h2><a href="/articles/{{this.slug}}?return_to={{../return_to}}">{{this.title}}</a></h2>
           <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
 
           {{> tag_list search_tag=../search_tag}}
@@ -28,7 +28,11 @@
     <nav class="pagination">
       {{#if (gt current_page 1)}}
       <div class="nav-prev">
-        <a href="/index/{{prev_page}}">&larr; previous</a>
+        {{#if search_tag}}
+          <a href="/tag/{{search_tag}}/{{prev_page}}">&larr; previous</a>
+        {{else}}
+          <a href="/index/{{prev_page}}">&larr; previous</a>
+        {{/if}}
       </div>
       {{else}}
       <span class="empty"></span>
@@ -36,7 +40,11 @@
       <span class="nav-sep">Page {{current_page}} of {{max_page}}</span>
       {{#if (gt next_page 0)}}
       <div class="nav-next">
-        <a href="/index/{{next_page}}">next &rarr;</a>
+        {{#if search_tag}}
+          <a href="/tag/{{search_tag}}/{{next_page}}">next &rarr;</a>
+        {{else}}
+          <a href="/index/{{next_page}}">next &rarr;</a>
+        {{/if}}
       </div>
       {{else}}
       <span class="empty"></span>
