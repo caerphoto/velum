@@ -181,9 +181,10 @@ async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, In
 async fn main() {
     env_logger::init();
 
-    info!("Rebuilding Redis data from files... ");
+    let now = time::Instant::now();
+    info!("Building article data from files... ");
     let codata = Arc::new(CommonData::new());
-    info!("...done.");
+    info!("...done in {}ms.", now.elapsed().as_millis());
 
     // This needs to be assined after rebuild, so we can transfer ownership into the lambda
     let codata_filter = warp::any().map(move || codata.clone());
