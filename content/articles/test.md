@@ -1,4 +1,5 @@
 # Test Post
+|test, blog, rust, software|
 
 This is a *test*, so hopefully it renders properly!
 

@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::{fs, time};
-use log::info;
 use serde_json::json;
 use warp::Filter;
 use handlebars::Handlebars;
@@ -113,7 +112,6 @@ fn render_article_list(
 
     let max_page = div_ceil(article_list.total_articles, page_size);
     let return_to = build_return_path(page, tag);
-    info!("Return to = {}", &return_to);
     match data.hbs.render(
         "main",
         &json!({
@@ -146,7 +144,7 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl 
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
     let response = render_article_list(article_list, page, page_size, &data, None);
     if response.is_ok() {
-        info!("Rendered article index page {} in {}ms", page, now.elapsed().as_millis());
+        log::info!("Rendered article index page {} in {}ms", page, now.elapsed().as_millis());
     }
 
     response
@@ -158,7 +156,7 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
     let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
     let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
     if response.is_ok() {
-        info!("Rendered tag '{}' index page {} in {}ms", &tag, page, now.elapsed().as_millis());
+        log::info!("Rendered tag '{}' index page {} in {}ms", &tag, page, now.elapsed().as_millis());
     }
     response
 }
@@ -186,7 +184,7 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<C
             ).expect("Failed to render article with Handlebars")
         );
 
-        info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
+        log::info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
         Ok(warp::reply::with_status(reply, warp::http::StatusCode::OK))
     } else {
         let reply = warp::reply::html(String::from("Unable to read article"));
@@ -206,9 +204,9 @@ async fn main() {
     env_logger::init();
 
     let now = time::Instant::now();
-    info!("Building article data from files... ");
+    log::info!("Building article data from files... ");
     let codata = Arc::new(CommonData::new());
-    info!("...done in {}ms.", now.elapsed().as_millis());
+    log::info!("...done in {}ms.", now.elapsed().as_millis());
 
     // This needs to be assined after rebuild, so we can transfer ownership into the lambda
     let codata_filter = warp::any().map(move || codata.clone());

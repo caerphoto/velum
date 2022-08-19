@@ -71,15 +71,18 @@ impl Builder {
             .ok_or(ParseError { cause: "unable to parse title".to_string() })
     }
 
-    pub fn slug(&self, title: &str) -> ParseResult<String> {
+    /// Converts the given string to a URL-safe, lowercase version
+    fn slug_from(text: &str) -> String {
         lazy_static! { static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap(); }
         lazy_static! { static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap(); }
 
-        let lowercase_title = title.to_lowercase();
-        let simplified_key = INVALID_CHARS.replace_all(&lowercase_title, "-");
-        Ok(String::from(
-            SEQUENTIAL_HYPEHNS.replace_all(&simplified_key, "-")
-        ))
+        let lowercase_text = text.to_lowercase();
+        let simplified_text = INVALID_CHARS.replace_all(&lowercase_text, "-");
+        String::from(SEQUENTIAL_HYPEHNS.replace_all(&simplified_text, "-"))
+    }
+
+    pub fn slug(&self) -> ParseResult<String> {
+        Ok(Builder::slug_from(&self.title()?))
     }
 
     fn tags_line(&self) -> Option<String> {
@@ -96,7 +99,7 @@ impl Builder {
             line
                 .trim_matches('|')
                 .split(',')
-                .map(|t| t.trim().to_string())
+                .map(|t| Builder::slug_from(&t.trim().to_string()))
                 .collect()
         } else {
             Vec::new()

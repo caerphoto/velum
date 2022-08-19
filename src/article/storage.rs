@@ -77,7 +77,7 @@ fn set_prev_next(articles: &mut Vec<ContentView>) {
 fn builder_to_content_view(builder: Builder) -> ParseResult<ContentView> {
         let title = builder.title()?;
         Ok(ContentView {
-            slug: builder.slug(&title)?, // borrow here before
+            slug: builder.slug()?, // borrow here before
             title,                       // move here
             content: builder.parsed_content(),
             timestamp: builder.timestamp,
