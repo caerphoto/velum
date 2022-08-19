@@ -3,7 +3,6 @@ use crate::article::builder::{Builder, ParseResult, ParseError};
 use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;
-use log::debug;
 
 pub const DEFAULT_CONTENT_DIR: &str = "./content";
 
@@ -107,10 +106,16 @@ pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentVie
         let ext = path.extension().map(|e| e.to_ascii_lowercase());
         if ext.is_none() || ext.unwrap() != "md" { continue }
 
-        debug!("Building article from {}", path.to_string_lossy());
-        let builder = Builder::from_file(&path)?;
-        let view = builder_to_content_view(builder)?;
-        articles.push(view);
+        log::debug!("Building article from {}", path.to_string_lossy());
+        if let Ok(builder) = Builder::from_file(&path) {
+            let view = builder_to_content_view(builder)?;
+            articles.push(view);
+        } else {
+            // Build can fail if, for example, the file contains invalid UTF-8
+            // byte sequences, but we don't really need to panic or return an
+            // error, just log the problem and carry on with the next file.
+            log::error!("Failed to build article from {}", path.to_string_lossy());
+        }
     }
     articles.sort_by_key(|k| k.timestamp);
     articles.reverse();
