@@ -1,5 +1,7 @@
 mod article;
 mod hb;
+mod comments;
+mod errors;
 
 use std::sync::Arc;
 use std::collections::HashMap;
@@ -10,7 +12,7 @@ use warp::Filter;
 use handlebars::Handlebars;
 use config::Config;
 use article::view::ContentView;
-use article::builder::ParseError;
+use errors::ParseError;
 use article::storage::{
     LinkList,
     gather_fs_articles,
@@ -236,6 +238,7 @@ async fn main() {
 
     let images = warp::path("images").and(warp::fs::dir("content/images"));
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
+
 
     let routes = article_index
         .or(article_index_at_page)
