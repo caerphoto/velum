@@ -1,3 +1,7 @@
+// TODO: store comments in JSONL (JSON Lines) format, so appending is simple
+// and quick.
+// TODO: figure out how editing comments is going to work.
+
 use std::fs::File;
 use std::path::Path;
 use std::io::{self, BufRead};
