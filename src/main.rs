@@ -19,6 +19,7 @@ use article::storage::{
     fetch_by_slug,
     fetch_index_links,
 };
+use comments::{Comment, load_comments};
 use hb::create_handlebars;
 
 #[macro_use] extern crate lazy_static;
@@ -40,6 +41,7 @@ type InfResult<T> = Result<T, Infallible>;
 pub struct CommonData {
     hbs: Handlebars<'static>,
     articles: Vec<ContentView>,
+    comments: HashMap<String, Vec<Comment>>,
     config: Config,
 }
 
@@ -47,9 +49,11 @@ impl CommonData {
     fn new() -> Self {
         let config = load_config();
         let articles = gather_fs_articles(&config).expect("gather FS articles");
+        let comments = load_comments(&config);
         Self {
             hbs: create_handlebars(&config),
             articles,
+            comments,
             config,
         }
     }
@@ -173,12 +177,15 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<C
     let return_path = query.get("return_to").unwrap_or(&default_path);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
+        let empty_comments: Vec<Comment> = Vec::new();
+        let comments = data.comments.get(&slug).unwrap_or(&empty_comments);
         let reply = warp::reply::html(
             data.hbs.render(
                 "article",
                 &json!({
                     "title": (article.title.clone() + " &middot ") + &title,
                     "article": article,
+                    "comments": comments,
                     "prev": article.prev,
                     "next": article.next,
                     "return_path": return_path,
