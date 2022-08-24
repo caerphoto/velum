@@ -3,12 +3,13 @@ mod hb;
 mod comments;
 mod errors;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::{fs, time};
 use serde_json::json;
 use warp::Filter;
+use warp::http::StatusCode;
 use handlebars::Handlebars;
 use config::Config;
 use article::view::ContentView;
@@ -70,6 +71,16 @@ impl CommonData {
         self.config
             .get_int("page_size")
             .unwrap_or(DEFAULT_PAGE_SIZE as i64) as usize
+    }
+
+    fn save_comment(&mut self, slug: &str, comment: Comment) -> Result<Comment, ()> {
+        let comments = self.comments.get_mut(slug);
+        if comments.is_none() { return Err(()) }
+
+        let comments = comments.unwrap();
+        comments.push(comment.clone());
+
+        Ok(comment)
     }
 }
 
@@ -144,8 +155,9 @@ fn render_article_list(
     }
 }
 
-async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn index_page_route(page: usize, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
+    let data = data.lock().unwrap();
     let page_size = data.page_size();
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
     let response = render_article_list(article_list, page, page_size, &data, None);
@@ -156,8 +168,9 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl 
     response
 }
 
-async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
+    let data = data.lock().unwrap();
     let page_size = data.page_size();
     let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
     let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
@@ -167,8 +180,9 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
     response
 }
 
-async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
+    let data = data.lock().unwrap();
     let title = data.config
         .get_string("blog_title")
         .unwrap_or(DEFAULT_TITLE.to_owned());
@@ -194,11 +208,18 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<C
         );
 
         log::info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
-        Ok(warp::reply::with_status(reply, warp::http::StatusCode::OK))
+        Ok(warp::reply::with_status(reply, StatusCode::OK))
     } else {
         let reply = warp::reply::html(String::from("Unable to read article"));
-        Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
+        Ok(warp::reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR))
     }
+}
+
+async fn comment_route(slug: String, comment: Comment, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
+    let saved = data.lock().unwrap().save_comment(&slug, comment);
+
+    let reply = warp::reply::json(&saved);
+    Ok(warp::reply::with_status(reply, StatusCode::OK))
 }
 
 async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
@@ -214,11 +235,12 @@ async fn main() {
 
     let now = time::Instant::now();
     log::info!("Building article data from files... ");
-    let codata = Arc::new(CommonData::new());
+    let codata = Arc::new(Mutex::new(CommonData::new()));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
     // This needs to be assined after rebuild, so we can transfer ownership into the lambda
-    let codata_filter = warp::any().map(move || codata.clone());
+    let codata_filter = warp::any()
+        .map(move || codata.clone());
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())
