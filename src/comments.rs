@@ -141,7 +141,6 @@ impl Comments {
 
         if let Some(article_comments) = self.comments.get_mut(&slug.to_string()) {
             article_comments.push(comment.clone());
-            log::info!("article_comments: {:?}", &article_comments);
         } else {
             self.comments.insert(slug.to_string(), vec![comment.clone()]);
         }
