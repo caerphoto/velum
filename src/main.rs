@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::{fs, time};
+use std::net::SocketAddr;
 use serde_json::json;
 use warp::Filter;
 use warp::http::StatusCode;
@@ -20,7 +21,7 @@ use article::storage::{
     fetch_by_slug,
     fetch_index_links,
 };
-use comments::{Comment, load_comments};
+use comments::{Comment, Comments};
 use hb::create_handlebars;
 
 #[macro_use] extern crate lazy_static;
@@ -38,11 +39,10 @@ fn load_config() -> Config {
 
 type InfResult<T> = Result<T, Infallible>;
 
-#[derive(Clone)]
 pub struct CommonData {
     hbs: Handlebars<'static>,
     articles: Vec<ContentView>,
-    comments: HashMap<String, Vec<Comment>>,
+    comments: Comments,
     config: Config,
 }
 
@@ -50,7 +50,7 @@ impl CommonData {
     fn new() -> Self {
         let config = load_config();
         let articles = gather_fs_articles(&config).expect("gather FS articles");
-        let comments = load_comments(&config);
+        let comments = Comments::new(&config);
         Self {
             hbs: create_handlebars(&config),
             articles,
@@ -71,16 +71,6 @@ impl CommonData {
         self.config
             .get_int("page_size")
             .unwrap_or(DEFAULT_PAGE_SIZE as i64) as usize
-    }
-
-    fn save_comment(&mut self, slug: &str, comment: Comment) -> Result<Comment, ()> {
-        let comments = self.comments.get_mut(slug);
-        if comments.is_none() { return Err(()) }
-
-        let comments = comments.unwrap();
-        comments.push(comment.clone());
-
-        Ok(comment)
     }
 }
 
@@ -191,8 +181,7 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<M
     let return_path = query.get("return_to").unwrap_or(&default_path);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
-        let empty_comments: Vec<Comment> = Vec::new();
-        let comments = data.comments.get(&slug).unwrap_or(&empty_comments);
+        let comments = data.comments.get(&slug);
         let reply = warp::reply::html(
             data.hbs.render(
                 "article",
@@ -215,8 +204,13 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<M
     }
 }
 
-async fn comment_route(slug: String, comment: Comment, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
-    let saved = data.lock().unwrap().save_comment(&slug, comment);
+async fn comment_route(
+    slug: String,
+    comment: Comment,
+    addr: Option<SocketAddr>,
+    data: Arc<Mutex<CommonData>>
+) -> InfResult<impl warp::Reply> {
+    let saved = data.lock().unwrap().comments.add(&slug, comment, addr);
 
     let reply = warp::reply::json(&saved);
     Ok(warp::reply::with_status(reply, StatusCode::OK))
@@ -234,7 +228,7 @@ async fn main() {
     env_logger::init();
 
     let now = time::Instant::now();
-    log::info!("Building article data from files... ");
+    log::info!("Building article and comment data from files... ");
     let codata = Arc::new(Mutex::new(CommonData::new()));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
@@ -265,6 +259,13 @@ async fn main() {
         .and(codata_filter.clone())
         .and_then(article_route);
 
+    let comment = warp::path!("comment" / String)
+        .and(warp::filters::body::json())
+        .and(warp::filters::addr::remote())
+        .and(codata_filter.clone())
+        .and(warp::post())
+        .and_then(comment_route);
+
     let images = warp::path("images").and(warp::fs::dir("content/images"));
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
@@ -274,6 +275,7 @@ async fn main() {
         .or(article)
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
+        .or(comment)
         .or(images)
         .or(assets)
         .recover(file_not_found_route);
