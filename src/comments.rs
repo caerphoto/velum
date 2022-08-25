@@ -14,7 +14,7 @@ use crate::article::storage::DEFAULT_CONTENT_DIR;
 
 const COMMENT_RATE_LIMIT: Duration = Duration::from_millis(2000);
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Comment {
     pub text: String,
     pub author: String,
@@ -22,8 +22,8 @@ pub struct Comment {
     pub timestamp: i64,
 }
 
-impl From<CommentLine> for Comment {
-    fn from(cline: CommentLine) -> Self {
+impl From<&CommentLine> for Comment {
+    fn from(cline: &CommentLine) -> Self {
         Self {
             text: cline.text.clone(),
             author: cline.author.clone(),
@@ -60,6 +60,7 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
+#[derive(Debug)]
 pub struct Comments {
     comments: HashMap<String, Vec<Comment>>,
     prev_instants: HashMap<String, Instant>,
@@ -85,10 +86,14 @@ impl Comments {
             if line.is_err() { continue; }
             let cl: Result<CommentLine, _> = serde_json::from_str(&line.unwrap());
             if cl.is_err() { continue; }
-            let cl: CommentLine = cl.unwrap();
-            let comments_list: Option<&mut Vec<Comment>> = comments.get_mut(&cl.slug);
-            if let Some(comments_list) = comments_list {
-                comments_list.push(Comment::from(cl))
+            let cl = cl.unwrap();
+            let comment: Comment = Comment::from(&cl);
+            let article_comments: Option<&mut Vec<Comment>> = comments.get_mut(&cl.slug);
+
+            if let Some(article_comments) = article_comments {
+                article_comments.push(comment)
+            } else {
+                comments.insert(cl.slug.to_string(), vec![comment]);
             }
         }
 
@@ -117,29 +122,30 @@ impl Comments {
         let now = Instant::now();
         if let Some(prev_instant) = self.prev_instants.get(key) {
             if now.duration_since(*prev_instant) < COMMENT_RATE_LIMIT {
-                return false;
+                return true;
             }
         }
-        true
+        false
     }
 
-    pub fn add(&mut self, slug: &str, comment: Comment, addr: Option<SocketAddr>) -> Result<Comment, ()> {
+    pub fn add(&mut self, slug: &str, comment: Comment, addr: Option<SocketAddr>) -> Result<Comment, String> {
         if addr.is_none() {
             log::error!("Attempt to comment with no supplied IP");
-            return Err(());
+            return Err("No IP supplied".into());
         }
 
         let ip = addr.unwrap().ip();
-        let key = ip.to_string() + slug;
+        let instants_key = ip.to_string() + slug;
         let now = Instant::now();
-        if self.is_limited(&key) { return Err(()) }
+        if self.is_limited(&instants_key) { return Err("IP is rate limited".into()) }
 
-        if let Some(article_comments) = self.comments.get_mut(&key) {
+        if let Some(article_comments) = self.comments.get_mut(&slug.to_string()) {
             article_comments.push(comment.clone());
+            log::info!("article_comments: {:?}", &article_comments);
         } else {
-            self.comments.insert(key.clone(), vec![comment.clone()]);
+            self.comments.insert(slug.to_string(), vec![comment.clone()]);
         }
-        self.prev_instants.insert(key, now);
+        self.prev_instants.insert(instants_key, now);
 
         self.save_comment(&slug, &comment);
 

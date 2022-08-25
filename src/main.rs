@@ -209,7 +209,7 @@ async fn comment_route(
     mut form_data: HashMap<String, String>,
     addr: Option<SocketAddr>,
     data: Arc<Mutex<CommonData>>
-) -> InfResult<impl warp::Reply> {
+) -> warp::reply::WithStatus<warp::reply::Html<String>> {
     log::info!("Processing comment: {:?}\nfrom: {:?}", form_data, addr);
     let (text, author, author_url) = (
         form_data.remove("text"),
@@ -218,16 +218,24 @@ async fn comment_route(
     );
 
     if let (Some(text), Some(author), Some(author_url)) = (text, author, author_url) {
+        let mut data = data.lock().unwrap();
         let comment = Comment {
             text, author, author_url,
             timestamp: create_timestamp(),
         };
-        let saved = data.lock().unwrap().comments.add(&slug, comment, addr);
-        let reply = warp::reply::json(&saved);
-        Ok(warp::reply::with_status(reply, StatusCode::OK))
+        if let Ok(saved) = data.comments.add(&slug, comment.clone(), addr) {
+            let reply = warp::reply::html(
+                data.hbs.render("comment", &saved).expect("Render comment")
+            );
+            warp::reply::with_status(reply, StatusCode::OK)
+        } else {
+            let reply = warp::reply::html("failed to save comment".to_string());
+            warp::reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR)
+        }
+
     } else {
-        let reply = warp::reply::json(&String::from("invalid comment"));
-        Ok(warp::reply::with_status(reply, StatusCode::BAD_REQUEST))
+        let reply = warp::reply::html("invalid comment".to_string());
+        warp::reply::with_status(reply, StatusCode::BAD_REQUEST)
     }
 
 
@@ -290,7 +298,7 @@ async fn main() {
         .and(warp::filters::addr::remote())
         .and(codata_filter.clone())
         .and(warp::post())
-        .and_then(comment_route);
+        .then(comment_route);
 
     let images = warp::path("images").and(warp::fs::dir("content/images"));
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));

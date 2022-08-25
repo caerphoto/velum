@@ -1,11 +1,17 @@
 <section id="comments" class="content comments">
   {{#if comments}}
+    <h2>Comments:</h2>
+    <ul id="comments-list">
+      {{#each comments}}
+        {{> comment this}}
+      {{/each}}
+    </ul>
   {{else}}
   <h2>No comments</h2>
   {{/if}}
 
   <h2>Write a comment:</h2>
-  <form id="comment" action="/comment/{{article.slug}}" method="POST">
+  <form id="comment-form" action="/comment/{{article.slug}}" method="POST">
     <label for="author">Name</label>
     <input name="author" type="text" maxlength="50" required spellcheck="false" autocorrect="off">
 
