@@ -22,7 +22,7 @@ body.dimmed {
     color: #333;
 }
 
-#content {
+article {
     margin: 1em auto;
     max-width: 35em;
     padding: 0 4em;
@@ -289,6 +289,56 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     display: block;
 }
 
+#comments label,
+#comments input,
+#comments textarea {
+    display: block;
+    font-size: 0.9em;
+}
+
+#comments input,
+#comments textarea,
+#comments button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-bottom: 1em;
+}
+
+#comments button,
+#comments input,
+#comments textarea {
+    font: inherit;
+    padding: 0.2em 0.5em;
+    border: 1px solid #16425b;
+    border-radius: 2px;
+}
+
+#comments input[type="url"],
+#comments textarea {
+    width: 30em;
+}
+
+#comments textarea {
+    height: 8em;
+}
+
+#comments button {
+    color: #16425b;
+}
+
+#comments button:hover {
+    cursor: pointer;
+    border-color: #176694;
+    color: #176694;
+}
+
+#comments,
+.next-prev {
+    border-top-width: 1px 0 0 0;
+    border-top-style: dotted;
+    border-top-color: rgba(0, 0, 0, 0.1);
+}
+
 .pagination,
 .next-prev {
     margin: 1em 0 0;
@@ -298,12 +348,6 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     grid-template-columns: 1fr auto 1fr;
 
     border-bottom: 2px solid #81c3d7;
-}
-
-.next-prev {
-    border-top-width: 1px 0 0 0;
-    border-top-style: dotted;
-    border-top-color: rgba(0, 0, 0, 0.1);
 }
 
 .nav-sep {
