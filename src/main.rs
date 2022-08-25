@@ -6,7 +6,7 @@ mod errors;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::{fs, time};
+use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
 use std::net::SocketAddr;
 use serde_json::json;
 use warp::Filter;
@@ -206,14 +206,31 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<M
 
 async fn comment_route(
     slug: String,
-    comment: Comment,
+    mut form_data: HashMap<String, String>,
     addr: Option<SocketAddr>,
     data: Arc<Mutex<CommonData>>
 ) -> InfResult<impl warp::Reply> {
-    let saved = data.lock().unwrap().comments.add(&slug, comment, addr);
+    log::info!("Processing comment: {:?}\nfrom: {:?}", form_data, addr);
+    let (text, author, author_url) = (
+        form_data.remove("text"),
+        form_data.remove("author"),
+        form_data.remove("author_url")
+    );
 
-    let reply = warp::reply::json(&saved);
-    Ok(warp::reply::with_status(reply, StatusCode::OK))
+    if let (Some(text), Some(author), Some(author_url)) = (text, author, author_url) {
+        let comment = Comment {
+            text, author, author_url,
+            timestamp: create_timestamp(),
+        };
+        let saved = data.lock().unwrap().comments.add(&slug, comment, addr);
+        let reply = warp::reply::json(&saved);
+        Ok(warp::reply::with_status(reply, StatusCode::OK))
+    } else {
+        let reply = warp::reply::json(&String::from("invalid comment"));
+        Ok(warp::reply::with_status(reply, StatusCode::BAD_REQUEST))
+    }
+
+
 }
 
 async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
@@ -222,6 +239,14 @@ async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, In
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::NOT_FOUND))
 }
 
+fn create_timestamp() -> i64 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        // i64 is enough milliseconds for 292 million years,so coercing it like
+        // this is probably fine.
+        Ok(d) => d.as_millis() as i64,
+        Err(e) => -(e.duration().as_millis() as i64)
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -260,7 +285,8 @@ async fn main() {
         .and_then(article_route);
 
     let comment = warp::path!("comment" / String)
-        .and(warp::filters::body::json())
+        .and(warp::body::content_length_limit(4000))
+        .and(warp::filters::body::form())
         .and(warp::filters::addr::remote())
         .and(codata_filter.clone())
         .and(warp::post())

@@ -30,6 +30,7 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
     let index_tmpl_path = tmpl_path("index", config);
     let article_tmpl_path = tmpl_path("article", config);
     let tag_list_tmpl_path = tmpl_path("_tag_list", config);
+    let comments_tmpl_path = tmpl_path("_comments", config);
     let header_tmpl_path = tmpl_path("_header", config);
     let footer_tmpl_path = tmpl_path("_footer", config);
 
@@ -43,6 +44,8 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
         .expect("Failed to register tag_list template file");
     hb.register_template_file("header", &header_tmpl_path)
         .expect("Failed to register header template file");
+    hb.register_template_file("comments", &comments_tmpl_path)
+        .expect("Failed to register comments template file");
     hb.register_template_file("footer", &footer_tmpl_path)
         .expect("Failed to register footer template file");
 

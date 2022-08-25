@@ -2,23 +2,24 @@
 // and quick.
 // TODO: figure out how editing comments is going to work.
 
-use std::fs::File;
-use std::path::Path;
+use std::fs::{File, OpenOptions};
+use std::path::{Path, PathBuf};
 use std::time::{Instant, Duration};
 use std::net::SocketAddr;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, prelude::*};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
+use serde_json::json;
 use crate::article::storage::DEFAULT_CONTENT_DIR;
 
 const COMMENT_RATE_LIMIT: Duration = Duration::from_millis(2000);
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Comment {
-    text: String,
-    author: String,
-    author_url: String,
-    timestamp: i64,
+    pub text: String,
+    pub author: String,
+    pub author_url: String,
+    pub timestamp: i64,
 }
 
 impl From<CommentLine> for Comment {
@@ -41,6 +42,18 @@ pub struct CommentLine {
     timestamp: i64,
 }
 
+impl CommentLine {
+    fn from_comment(c: &Comment, slug: &str) -> Self {
+        Self {
+            slug: slug.to_string(),
+            text: c.text.clone(),
+            author: c.author.clone(),
+            author_url: c.author_url.clone(),
+            timestamp: c.timestamp,
+        }
+    }
+}
+
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where P: AsRef<Path>, {
     let file = File::open(filename)?;
@@ -49,7 +62,8 @@ where P: AsRef<Path>, {
 
 pub struct Comments {
     comments: HashMap<String, Vec<Comment>>,
-    prev_instants: HashMap<String, Instant>
+    prev_instants: HashMap<String, Instant>,
+    filename: PathBuf,
 }
 
 impl Comments {
@@ -62,7 +76,7 @@ impl Comments {
         let mut comments = HashMap::new();
         let prev_instants = HashMap::new();
 
-        let lines = read_lines(filename);
+        let lines = read_lines(&filename);
         if lines.is_err() {
             panic!("Failed to read comments file");
         }
@@ -81,6 +95,20 @@ impl Comments {
         Self {
             comments,
             prev_instants,
+            filename,
+        }
+    }
+
+    fn save_comment(&self, slug: &str, comment: &Comment) {
+        let cl = CommentLine::from_comment(&comment, slug);
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open(&self.filename)
+            .unwrap();
+
+        let line = json!(cl);
+        if let Err(e) = writeln!(file, "{}", &line) {
+            log::error!("Failed to save comment:\n{}\nError: {}", &line, e);
         }
     }
 
@@ -112,6 +140,8 @@ impl Comments {
             self.comments.insert(key.clone(), vec![comment.clone()]);
         }
         self.prev_instants.insert(key, now);
+
+        self.save_comment(&slug, &comment);
 
         Ok(comment)
     }
