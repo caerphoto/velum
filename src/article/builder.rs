@@ -7,6 +7,8 @@ use std::{fs, time};
 
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 
+// See https://stackoverflow.com/questions/38461429/how-can-i-truncate-a-string-to-have-at-most-n-characters
+// String::truncate can panic if the split is not on a char boundary
 fn safe_truncate(s: &str, max_chars: usize) -> &str {
     match s.char_indices().nth(max_chars) {
         None => s,
