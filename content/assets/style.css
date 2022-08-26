@@ -96,6 +96,14 @@ h1 {
 
 }
 
+.post-content h1 {
+    text-align: left;
+    font-size: 2em;
+    text-shadow: none;
+    padding-bottom: 0.2em;
+    margin-bottom: 0.4em;
+}
+
 .subdued {
     opacity: 0.7;
     font-weight: 300;
@@ -103,6 +111,7 @@ h1 {
 }
 
 
+.post-content h1,
 .post-content h2,
 .post-content h3,
 .post-content h4 {
@@ -129,6 +138,7 @@ h3 {
     font-weight: 300;
     margin: 0 0 0.7em;
     font-style: normal;
+    color: #68b;
 }
 
 h3.timestamp,
