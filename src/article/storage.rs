@@ -6,6 +6,7 @@ use std::cmp::min;
 use std::path::PathBuf;
 
 pub const DEFAULT_CONTENT_DIR: &str = "./content";
+const DEFAULT_MAX_PREVIEW_LENGTH: usize = 200;
 
 pub struct LinkList {
     pub index_views: Vec<IndexView>,
@@ -75,12 +76,17 @@ fn set_prev_next(articles: &mut Vec<ContentView>) {
     }
 }
 
-fn builder_to_content_view(builder: Builder) -> ParseResult<ContentView> {
+fn builder_to_content_view(builder: Builder, config: &config::Config) -> ParseResult<ContentView> {
+    let max_len: usize = config
+        .get_int("max_preview_length")
+        .unwrap_or(DEFAULT_MAX_PREVIEW_LENGTH as i64) as usize;
+
         let title = builder.title()?;
         Ok(ContentView {
             slug: builder.slug()?, // borrow here before
             title,                       // move here
             content: builder.parsed_content(),
+            preview: builder.content_preview(max_len),
             timestamp: builder.timestamp,
             tags: builder.tags(),
             prev: None,
@@ -109,7 +115,7 @@ pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentVie
 
         log::debug!("Building article from {}", path.to_string_lossy());
         if let Ok(builder) = Builder::from_file(&path) {
-            let view = builder_to_content_view(builder)?;
+            let view = builder_to_content_view(builder, &config)?;
             articles.push(view);
         } else {
             // Build can fail if, for example, the file contains invalid UTF-8

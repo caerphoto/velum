@@ -19,7 +19,7 @@
           <li class="article-list_item">
             <h2><a href="/articles/{{this.slug}}?return_to={{../return_to}}">{{this.title}}</a></h2>
             <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
-
+            <p class="content-preview">{{this.preview}}</p>
             {{> tag_list search_tag=../search_tag}}
           </li>
           {{/each}}
