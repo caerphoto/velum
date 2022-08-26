@@ -1,0 +1,9 @@
+<li class="comment-item">
+  {{#if author_url}}
+    <h3 class="comment-author"><a href="{{author_url}}">{{author}}</a> wrote:</h3>
+  {{else}}
+    <h3 class="comment-author">{{author}} said:</h3>
+  {{/if}}
+  <p class="comment-text">{{text}}</p>
+</li>
+

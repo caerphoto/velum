@@ -1,5 +1,6 @@
 use crate::article::view::{ContentView, IndexView};
-use crate::article::builder::{Builder, ParseResult, ParseError};
+use crate::article::builder::Builder;
+use crate::errors::{ParseResult, ParseError};
 use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;

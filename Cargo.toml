@@ -17,9 +17,6 @@ tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 regex = "1"
 lazy_static = "1.4.0"
-redis = { version = "0.21", features = ["r2d2"] }
-r2d2 = "0.8.10"
-r2d2_redis = "0.14.0"
 chrono = "0.4"
 ordinal = "0.3.0"
 

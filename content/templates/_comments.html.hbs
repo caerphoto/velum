@@ -1,0 +1,28 @@
+<section id="comments" class="content comments">
+  {{#if comments}}
+    <h2>Comments:</h2>
+    <ul id="comments-list">
+      {{#each comments}}
+        {{> comment this}}
+      {{/each}}
+    </ul>
+  {{else}}
+    <h2>No comments</h2>
+    <ul id="comments-list">
+    </ul>
+  {{/if}}
+
+  <h2>Write a comment:</h2>
+  <form id="comment-form" data-action="/comment/{{article.slug}}">
+    <label for="author">Name</label>
+    <input name="author" type="text" maxlength="50" required spellcheck="false" autocorrect="off">
+
+    <label for="author_url">Website (optional)</label>
+    <input name="author_url" type="url" maxlength="250">
+
+    <label for="text">What do you want to say?</label>
+    <textarea name="text" maxlength="3000" required></textarea>
+
+    <button type="submit">Post comment</button>
+  </form>
+</section>

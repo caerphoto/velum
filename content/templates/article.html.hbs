@@ -7,13 +7,18 @@
       <h1>{{article.title}}</h1>
     </header>
 
-    <section id="content" class="post-content">
-      <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
-      {{#with article}}
-        {{> tag_list search_tag="" }}
-      {{/with}}
-      {{{article.content}}}
-    </section>
+    <article>
+      <section id="article-body" class="post-content">
+        <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
+        {{#with article}}
+          {{> tag_list search_tag="" }}
+        {{/with}}
+        {{{article.content}}}
+      </section>
+
+      {{> comments}}
+
+    </article>
 
     <nav class="next-prev">
       <p>More articles:</p>
@@ -35,5 +40,6 @@
     </nav>
 
     {{> footer}}
+    <script src="/assets/comments.js"></script>
   </body>
 </html>

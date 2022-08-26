@@ -16,6 +16,28 @@ some, tags|`. A 'slug', i.e. a simplified version of the title, is also
 generated, for use in URL routing, along with a timestamp, and all of these are
 stored with the title-less content.
 
+## Comments
+
+There is a fairly basic commenting system in place that simply stores comment
+author name, their URL (optional), and a plain-text comment limited to 3000
+characters (not configurable yet).
+
+While comments are also stored in memory while the server is running, they are
+also backed up to a file (`content/comments.jsonl` by default) so they can be
+restored if the server needs to be restarted. The format, JSONL, is
+a line-based variant of JSON – each line is its own independent JSON object
+representing a single comment.
+
+Comments are rate-limited by IP address, to prevent some potential abuse. The
+limit is 2 seconds, and not currently configurable. There are some other
+options I want to explore in this area, including possible cookie-based
+'authentication', and more.
+
+Comments are also write-only, and I'm not sure whether this is something I want
+to expand on. Making comments editable means implementing a whole system of
+user accounts, login, etc., and I'm just not sure it's worth the extra
+complication for what's supposed to be a lightweight blog engine.
+
 ## Getting started
 
 Assuming you have a functional Rust environment, you can compile and run the
@@ -42,11 +64,7 @@ future there may be options for running daemonised, or as a system service.
    a problem, and nothing will *break*, exactly, it's obviously not ideal, and
    a solution needs to be found.
 
-2. Comments: not every blog wants or needs them, but they should be included,
-   as the third-party options like Disqus, while easy to add, do not really
-   integrate well into the styling of the page, being iframes and all.
-
-3. Rebuilding the article database: adding a new article currently means
+2. Rebuilding the article database: adding a new article currently means
    restarting the server is necessary in order for it to be included in the
    article list, but  this obviously means downtime, and is not great from a UX
    perspective. A better option would be a way to send a special HTTP request
@@ -54,7 +72,7 @@ future there may be options for running daemonised, or as a system service.
    kind. There is already code in place to rebuild the article cache, so it's
    mostly a matter of wiring it up to a UI.
 
-4. Finally there's the question of an editor: does Velum even need one? If not,
+3. Finally there's the question of an editor: does Velum even need one? If not,
    what about a simplified way to upload content, that means users don't have
    to manually copy files (including images) to their server? As with the
    server restart issue, this is about UX for the blog maintainer, obviating

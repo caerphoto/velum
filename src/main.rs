@@ -1,22 +1,27 @@
 mod article;
 mod hb;
+mod comments;
+mod errors;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::{fs, time};
+use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
+use std::net::SocketAddr;
 use serde_json::json;
 use warp::Filter;
+use warp::http::StatusCode;
 use handlebars::Handlebars;
 use config::Config;
 use article::view::ContentView;
-use article::builder::ParseError;
+use errors::ParseError;
 use article::storage::{
     LinkList,
     gather_fs_articles,
     fetch_by_slug,
     fetch_index_links,
 };
+use comments::{Comment, Comments};
 use hb::create_handlebars;
 
 #[macro_use] extern crate lazy_static;
@@ -34,10 +39,10 @@ fn load_config() -> Config {
 
 type InfResult<T> = Result<T, Infallible>;
 
-#[derive(Clone)]
 pub struct CommonData {
     hbs: Handlebars<'static>,
     articles: Vec<ContentView>,
+    comments: Comments,
     config: Config,
 }
 
@@ -45,9 +50,11 @@ impl CommonData {
     fn new() -> Self {
         let config = load_config();
         let articles = gather_fs_articles(&config).expect("gather FS articles");
+        let comments = Comments::new(&config);
         Self {
             hbs: create_handlebars(&config),
             articles,
+            comments,
             config,
         }
     }
@@ -138,8 +145,9 @@ fn render_article_list(
     }
 }
 
-async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn index_page_route(page: usize, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
+    let data = data.lock().unwrap();
     let page_size = data.page_size();
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
     let response = render_article_list(article_list, page, page_size, &data, None);
@@ -150,8 +158,9 @@ async fn index_page_route(page: usize, data: Arc<CommonData>) -> InfResult<impl 
     response
 }
 
-async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
+    let data = data.lock().unwrap();
     let page_size = data.page_size();
     let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
     let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
@@ -161,8 +170,9 @@ async fn tag_search_route(tag: String, page: usize, data: Arc<CommonData>) -> In
     response
 }
 
-async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<CommonData>) -> InfResult<impl warp::Reply> {
+async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
+    let data = data.lock().unwrap();
     let title = data.config
         .get_string("blog_title")
         .unwrap_or(DEFAULT_TITLE.to_owned());
@@ -171,12 +181,14 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<C
     let return_path = query.get("return_to").unwrap_or(&default_path);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
+        let comments = data.comments.get(&slug);
         let reply = warp::reply::html(
             data.hbs.render(
                 "article",
                 &json!({
                     "title": (article.title.clone() + " &middot ") + &title,
                     "article": article,
+                    "comments": comments,
                     "prev": article.prev,
                     "next": article.next,
                     "return_path": return_path,
@@ -185,11 +197,47 @@ async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<C
         );
 
         log::info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
-        Ok(warp::reply::with_status(reply, warp::http::StatusCode::OK))
+        Ok(warp::reply::with_status(reply, StatusCode::OK))
     } else {
         let reply = warp::reply::html(String::from("Unable to read article"));
-        Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
+        Ok(warp::reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR))
     }
+}
+
+async fn comment_route(
+    slug: String,
+    mut form_data: HashMap<String, String>,
+    addr: Option<SocketAddr>,
+    data: Arc<Mutex<CommonData>>
+) -> warp::reply::WithStatus<warp::reply::Html<String>> {
+    let (text, author, author_url) = (
+        form_data.remove("text"),
+        form_data.remove("author"),
+        form_data.remove("author_url")
+    );
+
+    if let (Some(text), Some(author), Some(author_url)) = (text, author, author_url) {
+        let mut data = data.lock().unwrap();
+        let comment = Comment {
+            text, author, author_url,
+            timestamp: create_timestamp(),
+        };
+        if let Ok(saved) = data.comments.add(&slug, comment.clone(), addr) {
+            let reply = warp::reply::html(
+                data.hbs.render("comment", &saved).expect("Render comment")
+            );
+            warp::reply::with_status(reply, StatusCode::OK)
+        } else {
+            let reply = warp::reply::html("failed to save comment".to_string());
+            warp::reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR)
+        }
+
+    } else {
+        let reply = warp::reply::html("invalid comment".to_string());
+        warp::reply::with_status(reply, StatusCode::BAD_REQUEST)
+    }
+
+
 }
 
 async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
@@ -198,18 +246,27 @@ async fn file_not_found_route(_: warp::Rejection) -> Result<impl warp::Reply, In
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::NOT_FOUND))
 }
 
+fn create_timestamp() -> i64 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        // i64 is enough milliseconds for 292 million years,so coercing it like
+        // this is probably fine.
+        Ok(d) => d.as_millis() as i64,
+        Err(e) => -(e.duration().as_millis() as i64)
+    }
+}
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
 
     let now = time::Instant::now();
-    log::info!("Building article data from files... ");
-    let codata = Arc::new(CommonData::new());
+    log::info!("Building article and comment data from files... ");
+    let codata = Arc::new(Mutex::new(CommonData::new()));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
     // This needs to be assined after rebuild, so we can transfer ownership into the lambda
-    let codata_filter = warp::any().map(move || codata.clone());
+    let codata_filter = warp::any()
+        .map(move || codata.clone());
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())
@@ -234,14 +291,24 @@ async fn main() {
         .and(codata_filter.clone())
         .and_then(article_route);
 
+    let comment = warp::path!("comment" / String)
+        .and(warp::body::content_length_limit(4000))
+        .and(warp::filters::body::form())
+        .and(warp::filters::addr::remote())
+        .and(codata_filter.clone())
+        .and(warp::post())
+        .then(comment_route);
+
     let images = warp::path("images").and(warp::fs::dir("content/images"));
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
+
 
     let routes = article_index
         .or(article_index_at_page)
         .or(article)
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
+        .or(comment)
         .or(images)
         .or(assets)
         .recover(file_not_found_route);
