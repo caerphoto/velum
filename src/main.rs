@@ -210,7 +210,6 @@ async fn comment_route(
     addr: Option<SocketAddr>,
     data: Arc<Mutex<CommonData>>
 ) -> warp::reply::WithStatus<warp::reply::Html<String>> {
-    log::info!("Processing comment: {:?}\nfrom: {:?}", form_data, addr);
     let (text, author, author_url) = (
         form_data.remove("text"),
         form_data.remove("author"),

@@ -2,9 +2,11 @@
     const commentList = D.querySelector('#comments-list');
     const form = D.querySelector('#comment-form');
 
-    function commentPosted(html) {
+    function appendComment(html) {
         const tpl = D.createElement('template');
-        tpl.innerHTML = html
+        tpl.innerHTML = html;
+        const li = tpl.content.querySelector('li');
+        if (li) { li.classList.add('new'); }
         commentList.appendChild(tpl.content);
 
         form.reset();
@@ -17,7 +19,7 @@
 
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
-            commentPosted(xhr.responseText);
+            appendComment(xhr.responseText);
         });
         xhr.open('POST', form.action);
         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
