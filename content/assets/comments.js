@@ -15,7 +15,7 @@
     form.addEventListener('submit', event => {
         event.preventDefault();
 
-        let formData = new URLSearchParams(new FormData(form));
+        const formData = new URLSearchParams(new FormData(form));
 
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
