@@ -21,7 +21,7 @@
         xhr.addEventListener('load', () => {
             appendComment(xhr.responseText);
         });
-        xhr.open('POST', form.action);
+        xhr.open('POST', form.getAttribute('data-action'));
         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
         xhr.send(formData.toString());
     });

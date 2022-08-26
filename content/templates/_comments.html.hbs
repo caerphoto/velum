@@ -13,7 +13,7 @@
   {{/if}}
 
   <h2>Write a comment:</h2>
-  <form id="comment-form" action="/comment/{{article.slug}}" method="POST">
+  <form id="comment-form" data-action="/comment/{{article.slug}}">
     <label for="author">Name</label>
     <input name="author" type="text" maxlength="50" required spellcheck="false" autocorrect="off">
 
