@@ -3,6 +3,7 @@ use serde::Serialize;
 pub struct IndexView {
     pub title: String,
     pub slug: String,
+    pub preview: String,
     pub timestamp: i64,
     pub tags: Vec<String>,
 }
@@ -17,6 +18,7 @@ pub struct PrevNextView {
 pub struct ContentView {
     pub title: String,
     pub content: String,
+    pub preview: String,
     pub slug: String,
     pub timestamp: i64,
     pub tags: Vec<String>,
@@ -32,6 +34,7 @@ impl ContentView {
     pub fn to_index_view(&self) -> IndexView {
         IndexView {
             title: self.title.clone(),
+            preview: self.preview.clone(),
             slug: self.slug.clone(),
             timestamp: self.timestamp,
             tags: self.tags.clone(),

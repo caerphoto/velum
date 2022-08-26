@@ -40,8 +40,9 @@ article {
 
 .article-list_item {
     list-style: none;
-    margin: 0;
+    margin: 0 0 0.8em;
     padding: 0;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.3);
 }
 
 .pagination {
@@ -94,6 +95,11 @@ h1 {
         0 0 6px rgba(255, 255, 255, 0.5),
         0 1px 0 rgba(0, 0, 0, 0.9);
 
+}
+
+p.content-preview {
+    font-size: 0.9em;
+    margin-bottom: 0.5em;
 }
 
 .post-content h1 {
@@ -152,12 +158,16 @@ h3.timestamp {
     border: none;
 }
 
+.article-list_item h3.timestamp {
+    margin-bottom: 0.5em;
+}
+
 .article h3.timestamp {
     font-size: 1.2em;
 }
 
 ul.tags {
-    margin: 0.5em 0 1em;
+    margin: 0.5em 0 1.3em;
     padding: 0;
     color: rgba(0, 20, 50, 0.5);
 }
@@ -208,7 +218,7 @@ a:hover {
 ul.tags a {
     box-shadow: none;
     color: rgba(0, 20, 50, 0.5);
-    border-bottom: 1px solid rgba(0, 20, 50, 0.3);
+    border-bottom: 1px solid rgba(0, 20, 50, 0.2);
 }
 
 ul.tags a:hover {

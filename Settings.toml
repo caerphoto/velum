@@ -1,3 +1,4 @@
 content_dir = "./content"
 page_size = 10
 blog_title = "Velum Test Blog"
+max_preview_length = 300
