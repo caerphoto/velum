@@ -60,6 +60,7 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
+
 #[derive(Debug)]
 pub struct Comments {
     comments: HashMap<String, Vec<Comment>>,
@@ -68,6 +69,11 @@ pub struct Comments {
 }
 
 impl Comments {
+    fn create_comments_file<P>(filename: P) -> bool
+    where P: AsRef<Path> {
+        File::create(filename).is_ok()
+    }
+
     pub fn new(config: &config::Config) -> Self {
         let base_path = config
             .get_string("content_path")
@@ -79,21 +85,23 @@ impl Comments {
 
         let lines = read_lines(&filename);
         if lines.is_err() {
-            panic!("Failed to read comments file");
-        }
+            if !Self::create_comments_file(&filename) {
+                panic!("Failed to create comments file");
+            }
+        } else {
+            for line in lines.unwrap() {
+                if line.is_err() { continue; }
+                let cl: Result<CommentLine, _> = serde_json::from_str(&line.unwrap());
+                if cl.is_err() { continue; }
+                let cl = cl.unwrap();
+                let comment: Comment = Comment::from(&cl);
+                let article_comments: Option<&mut Vec<Comment>> = comments.get_mut(&cl.slug);
 
-        for line in lines.unwrap() {
-            if line.is_err() { continue; }
-            let cl: Result<CommentLine, _> = serde_json::from_str(&line.unwrap());
-            if cl.is_err() { continue; }
-            let cl = cl.unwrap();
-            let comment: Comment = Comment::from(&cl);
-            let article_comments: Option<&mut Vec<Comment>> = comments.get_mut(&cl.slug);
-
-            if let Some(article_comments) = article_comments {
-                article_comments.push(comment)
-            } else {
-                comments.insert(cl.slug.to_string(), vec![comment]);
+                if let Some(article_comments) = article_comments {
+                    article_comments.push(comment)
+                } else {
+                    comments.insert(cl.slug.to_string(), vec![comment]);
+                }
             }
         }
 
@@ -106,14 +114,17 @@ impl Comments {
 
     fn save_comment(&self, slug: &str, comment: &Comment) {
         let cl = CommentLine::from_comment(&comment, slug);
-        let mut file = OpenOptions::new()
+        let file = OpenOptions::new()
             .append(true)
-            .open(&self.filename)
-            .unwrap();
+            .open(&self.filename);
 
-        let line = json!(cl);
-        if let Err(e) = writeln!(file, "{}", &line) {
-            log::error!("Failed to save comment:\n{}\nError: {}", &line, e);
+        if file.is_err() {
+            log::error!("Failed to open comments file for appending");
+        } else {
+            let line = json!(cl);
+            if let Err(e) = writeln!(file.unwrap(), "{}", &line) {
+                log::error!("Failed to save comment:\n{}\nError: {}", &line, e);
+            }
         }
     }
 
