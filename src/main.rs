@@ -1,3 +1,4 @@
+mod commondata;
 mod article;
 mod hb;
 mod comments;
@@ -7,12 +8,8 @@ mod routes;
 use std::sync::{Arc, Mutex};
 use std::time;
 use std::collections::HashMap;
-use article::gather_fs_articles;
 use warp::Filter;
-use config::Config;
-use errors::ParseError;
-use hb::create_handlebars;
-use article::view::ContentView;
+use commondata::CommonData;
 use routes::{
     index_page_route,
     tag_search_route,
@@ -20,55 +17,8 @@ use routes::{
     comment_route,
     file_not_found_route,
 };
-use handlebars::Handlebars;
-use comments::Comments;
 
 #[macro_use] extern crate lazy_static;
-
-const CONFIG_FILE: &str = "Settings"; // .toml is implied
-const DEFAULT_PAGE_SIZE: usize = 5;
-
-fn load_config() -> Config {
-    Config::builder()
-        .add_source(config::File::with_name(CONFIG_FILE))
-        .build()
-        .expect("Failed to build config")
-}
-
-pub struct CommonData {
-    hbs: Handlebars<'static>,
-    articles: Vec<ContentView>,
-    comments: Comments,
-    config: Config,
-}
-
-impl CommonData {
-    fn new() -> Self {
-        let config = load_config();
-        let articles = gather_fs_articles(&config).expect("gather FS articles");
-        let comments = Comments::new(&config);
-        Self {
-            hbs: create_handlebars(&config),
-            articles,
-            comments,
-            config,
-        }
-    }
-
-    fn rebuild(&mut self) -> Result<(), ParseError> {
-        gather_fs_articles(&self.config)
-            .and_then(|articles| {
-                self.articles = articles;
-                Ok(())
-            })
-    }
-
-    fn page_size(&self) -> usize {
-        self.config
-            .get_int("page_size")
-            .unwrap_or(DEFAULT_PAGE_SIZE as i64) as usize
-    }
-}
 
 #[tokio::main]
 async fn main() {
