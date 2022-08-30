@@ -82,7 +82,7 @@ impl Builder {
         if let Some(line) = self.tags_line() {
             line.trim_matches('|')
                 .split(',')
-                .map(|t| Builder::slug_from(&t.trim().to_string()))
+                .map(|t| Builder::slug_from(t.trim()))
                 .collect()
         } else {
             Vec::new()
@@ -106,10 +106,7 @@ impl Builder {
         let parser = cmark::Parser::new(&content);
         let mut parts: Vec<String> = Vec::new();
         for event in parser {
-            match event {
-                Event::Text(text) => parts.push(text.to_string()),
-                _ => (),
-            }
+            if let Event::Text(text) = event { parts.push(text.to_string()) }
         }
 
         let truncated = safe_truncate(&parts.join(" "), max_len).to_string();

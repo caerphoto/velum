@@ -38,9 +38,8 @@ impl CommonData {
 
     fn rebuild(&mut self) -> Result<(), ParseError> {
         gather_fs_articles(&self.config)
-            .and_then(|articles| {
+            .map(|articles| {
                 self.articles = articles;
-                Ok(())
             })
     }
 

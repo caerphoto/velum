@@ -40,12 +40,10 @@ fn build_return_path(page: usize, tag: Option<&str>) -> String {
         } else {
             format!("/tag/{}/{}", tag.unwrap(), page)
         }
+    } else if page <= 1 {
+        "/".to_string()
     } else {
-        if page <= 1 {
-            "/".to_string()
-        } else {
-            format!("/index/{}", page)
-        }
+        format!("/index/{}", page)
     }
 }
 
@@ -58,7 +56,7 @@ fn render_article_list(
 ) -> InfResult<warp::reply::WithStatus<warp::reply::Html<String>>> {
     let title = data.config
         .get_string("blog_title")
-        .unwrap_or(DEFAULT_TITLE.to_owned());
+        .unwrap_or_else(|_| DEFAULT_TITLE.to_owned());
 
     let max_page = div_ceil(article_list.total_articles, page_size);
     let return_to = build_return_path(page, tag);
@@ -118,7 +116,7 @@ pub async fn article_route(slug: String, query: HashMap<String, String>, data: A
     let data = data.lock().unwrap();
     let title = data.config
         .get_string("blog_title")
-        .unwrap_or(DEFAULT_TITLE.to_owned());
+        .unwrap_or_else(|_| DEFAULT_TITLE.to_owned());
 
     let default_path = "/".to_string();
     let return_path = query.get("return_to").unwrap_or(&default_path);
@@ -165,7 +163,7 @@ pub async fn comment_route(
             text, author, author_url,
             timestamp: create_timestamp(),
         };
-        if let Ok(saved) = data.comments.add(&slug, comment.clone(), addr) {
+        if let Ok(saved) = data.comments.add(&slug, comment, addr) {
             let reply = warp::reply::html(
                 data.hbs.render("comment", &saved).expect("Render comment")
             );

@@ -27,11 +27,10 @@ pub fn fetch_index_links(
 ) -> LinkList {
     let (mut start, mut end) = indices_from_page(page, per_page);
 
-    if tag.is_some() {
-        let tag = &tag.unwrap().to_string();
+    if let Some(t) = tag {
         let index_views: Vec<IndexView> = articles
             .iter()
-            .filter(|cv| cv.tags.contains(tag))
+            .filter(|cv| cv.tags.contains(&t.to_string()))
             .map(ContentView::to_index_view)
             .collect();
 
@@ -56,7 +55,7 @@ pub fn fetch_index_links(
 
 pub fn fetch_by_slug<'a >(slug: &str, articles: &'a Vec<ContentView>) -> Option<&'a ContentView> {
     for a in articles {
-        if a.slug == slug { return Some(&a) }
+        if a.slug == slug { return Some(a) }
     }
 
     None
@@ -97,7 +96,7 @@ fn builder_to_content_view(builder: Builder, config: &config::Config) -> ParseRe
 pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentView>> {
     let content_dir = config
         .get_string("content_dir")
-        .unwrap_or(DEFAULT_CONTENT_DIR.to_owned());
+        .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_owned());
     let path = PathBuf::from(content_dir).join("articles");
     if !path.is_dir() {
         let path = path.to_string_lossy();
@@ -115,7 +114,7 @@ pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentVie
 
         log::debug!("Building article from {}", path.to_string_lossy());
         if let Ok(builder) = Builder::from_file(&path) {
-            let view = builder_to_content_view(builder, &config)?;
+            let view = builder_to_content_view(builder, config)?;
             articles.push(view);
         } else {
             // Build can fail if, for example, the file contains invalid UTF-8

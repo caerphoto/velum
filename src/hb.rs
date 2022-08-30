@@ -5,7 +5,9 @@ use ordinal::Ordinal;
 use handlebars::{Handlebars, handlebars_helper};
 
 fn tmpl_path(tmpl_name: &str, config: &config::Config) -> PathBuf {
-    let base_path = config.get_string("content_path").unwrap_or(DEFAULT_CONTENT_DIR.to_string());
+    let base_path = config
+        .get_string("content_path")
+        .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_string());
     let filename = [tmpl_name, "html.hbs"].join(".");
     let path = Path::new(&base_path).join("templates");
     path.join(filename)

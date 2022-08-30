@@ -80,16 +80,12 @@ impl Comments {
 
         let base_path = config
             .get_string("content_path")
-            .unwrap_or(DEFAULT_CONTENT_DIR.to_string());
+            .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_string());
         let filename = Path::new(&base_path).join("comments.jsonl");
         let lines = read_lines(&filename);
 
-        if lines.is_err() {
-            if !Self::create_comments_file(&filename) {
-                panic!("Failed to create comments file");
-            }
-        } else {
-            for line in lines.unwrap() {
+        if let Ok(lines) = lines {
+            for line in lines {
                 if line.is_err() { continue; }
                 let cl: Result<CommentLine, _> = serde_json::from_str(&line.unwrap());
                 if cl.is_err() { continue; }
@@ -103,6 +99,8 @@ impl Comments {
                     comments.insert(cl.slug.to_string(), vec![comment]);
                 }
             }
+        } else if !Self::create_comments_file(&filename) {
+            panic!("Failed to create comments file");
         }
 
         Self {
@@ -113,7 +111,7 @@ impl Comments {
     }
 
     fn save_comment(&self, slug: &str, comment: &Comment) {
-        let cl = CommentLine::from_comment(&comment, slug);
+        let cl = CommentLine::from_comment(comment, slug);
         let file = OpenOptions::new()
             .append(true)
             .open(&self.filename);
@@ -157,7 +155,7 @@ impl Comments {
         }
         self.prev_instants.insert(instants_key, now);
 
-        self.save_comment(&slug, &comment);
+        self.save_comment(slug, &comment);
 
         Ok(comment)
     }
