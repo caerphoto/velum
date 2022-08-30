@@ -75,15 +75,15 @@ impl Comments {
     }
 
     pub fn new(config: &config::Config) -> Self {
+        let mut comments = HashMap::new();
+        let prev_instants = HashMap::new();
+
         let base_path = config
             .get_string("content_path")
             .unwrap_or(DEFAULT_CONTENT_DIR.to_string());
         let filename = Path::new(&base_path).join("comments.jsonl");
-
-        let mut comments = HashMap::new();
-        let prev_instants = HashMap::new();
-
         let lines = read_lines(&filename);
+
         if lines.is_err() {
             if !Self::create_comments_file(&filename) {
                 panic!("Failed to create comments file");
