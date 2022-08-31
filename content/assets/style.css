@@ -317,11 +317,14 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments li {
-    padding: 0.5em 0 0.5em;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-    margin: 0;
+    padding: 0.5em 0.7em 0.5em;
+    margin: 0 -0.7em 0;
     list-style: none;
     transition: background-color 2s ease;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-bottom-width: 1px;
+    border-bottom-style: dashed;
+    border-bottom-color: rgba(0, 0, 0, 0.2);
 }
 
 #comments li.new {
@@ -330,6 +333,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 
 #comments li p {
     font-size: 0.9em;
+    color: #467;
 }
 
 #comments h3 {
@@ -390,7 +394,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 .next-prev {
     border-top-width: 1px 0 0 0;
     border-top-style: dotted;
-    border-top-color: rgba(0, 0, 0, 0.1);
+    border-top-color: rgba(0, 0, 0, 0.2);
 }
 
 .pagination,
