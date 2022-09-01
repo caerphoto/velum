@@ -384,6 +384,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     font-size: 0.9em;
     color: #467;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 #comments h3 {

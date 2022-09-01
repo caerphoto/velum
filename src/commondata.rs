@@ -9,7 +9,7 @@ use crate::comments::Comments;
 const CONFIG_FILE: &str = "Settings"; // .toml is implied
 const DEFAULT_PAGE_SIZE: usize = 5;
 
-fn load_config() -> Config {
+pub fn load_config() -> Config {
     Config::builder()
         .add_source(config::File::with_name(CONFIG_FILE))
         .build()
