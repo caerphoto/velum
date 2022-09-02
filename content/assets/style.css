@@ -366,7 +366,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 
 #comments li {
     box-sizing: border-box;
-    padding: 0.5em 0.7em 0.5em;
+    padding: 0 0 0.5em;
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-bottom-color: rgba(0, 0, 0, 0.2);
     margin-bottom: 0.5em;
@@ -381,6 +381,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments li p {
+    margin: 0 1rem 0;
     font-size: 0.9em;
     color: #467;
     overflow-x: auto;
@@ -388,7 +389,11 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments h3 {
+    padding: 0.4rem 1rem 0.6rem;
+    background-color: #f5f5ee;
     margin-bottom: 0.3em;
+    color: #555;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
 }
 
 #comments p {
