@@ -1,14 +1,17 @@
 html {
     padding: 0;
+    border: none;
     margin: 0;
     font-family: "IBM Plex Serif", serif;
     font-size: 62.5%;
     background-color: #16425b;
+    width: 100%;
 }
 
 body {
     padding: 0;
     margin: 0;
+    width: 100%;
     font-size: 18px;
     line-height: 1.4;
     color: #16425b;
@@ -25,11 +28,11 @@ body.dimmed {
 article {
     margin: 1em auto;
     max-width: 35em;
-    padding: 0 4em;
+    padding: 0 0.5em;
     -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
-    background-color: rgba(247, 247, 244, 0.7);
-    box-shadow: 0 0 100px 80px rgba(247, 247, 244, 0.8);
+    background-color: rgba(252, 252, 247, 0.7);
+    box-shadow: 0 0 100px 80px rgba(252, 252, 247, 0.7);
     z-index: 0;
 }
 
@@ -63,7 +66,7 @@ footer {
 }
 
 header {
-    padding: 1em 5em 1.4em;
+    padding: 0 0 1.4em;
     color: #fff;
     box-shadow: 0 3px 5px 0 rgba(0, 0, 0, 0.2);
     border-bottom: 2px solid #000;
@@ -97,6 +100,41 @@ h1 {
         0 1px 0 rgba(0, 0, 0, 0.9);
 
 }
+
+header .home-link-box {
+    display: block;
+    background-color: #367;
+    margin: 0 0 1em;
+    padding: 0.5em 1em 0.7em;
+    border-bottom: 1px solid #000;
+    box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
+    line-height: 1;
+}
+
+header a,
+header a:visited,
+footer a,
+footer a:visited {
+    color: #d9dcd6;
+}
+
+header a:hover {
+    color: #fff;
+}
+
+@media (max-width: 43em) {
+    h1 {
+        font-size: 2em;
+        max-width: 100%;
+    }
+    header {
+        padding: 0 0 1em;
+    }
+    #comments ul {
+        border-width: 1px 0;
+    }
+}
+
 
 p.content-preview {
     font-size: 0.9em;
@@ -230,31 +268,41 @@ ul.tags .current-tag {
     color: rgba(0, 20, 50, 0.9);
 }
 
-header .home-link-box {
-    display: block;
-    height: 1em;
-    margin: 0;
-
-}
-
-header a,
-header a:visited,
-footer a,
-footer a:visited {
-    color: #d9dcd6;
-}
-
-header a:hover {
-    color: #fff;
-}
-
 p {
     margin: 0 0 1em;
     padding: 0;
 }
 
+pre {
+    overflow-x: scroll;
+    max-width: 100%;
+    background-color: #fcfcfc;
+    box-sizing: border-box;
+    border: 1px dotted rgba(0, 0, 0, 0.2);
+    margin: 0 0 1rem;
+    padding: 1rem 2rem 0.7rem;
+    white-space: pre;
+    line-height: 1.2;
+}
+
 code {
-    font-size: 0.8em;
+    font-size: 0.9em;
+    background-color: #fff;
+    border: 1px dotted rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    padding: 0 0.2em;
+    color: #074;
+}
+
+pre code {
+    display: inline-block;
+    white-space: pre;
+    overflow: hidden;
+    font-size: 0.7em;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #444;
 }
 
 p.img {
@@ -313,18 +361,20 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 
 #comments ul {
     padding: 0;
-    margin: 0;
+    margin: 0 -0.5em;
+    border-width: 1px 1px 0 1px;
+    border-style: dashed;
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 #comments li {
     padding: 0.5em 0.7em 0.5em;
-    margin: 0 -0.7em 0;
     list-style: none;
     transition: background-color 2s ease;
     background-color: rgba(255, 255, 255, 0.4);
-    border-bottom-width: 1px;
-    border-bottom-style: dashed;
-    border-bottom-color: rgba(0, 0, 0, 0.2);
+    border-width: 0 0 1px 0;
+    border-style: dashed;
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 #comments li.new {
@@ -334,6 +384,8 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 #comments li p {
     font-size: 0.9em;
     color: #467;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 #comments h3 {
@@ -354,26 +406,40 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments input,
+#comments textarea {
+    background-color: #fff;
+}
+
+#comments input,
 #comments textarea,
 #comments button {
+    box-sizing: border-box;
     -webkit-appearance: none;
     appearance: none;
     margin-bottom: 1em;
-}
-
-#comments button,
-#comments input,
-#comments textarea {
+    max-width: 100%;
     font: inherit;
     padding: 0.2em 0.5em;
-    border: 1px solid #16425b;
+    border: 1px solid #58a;
     border-radius: 2px;
+    outline: none;
+}
+
+#comments button:focus,
+#comments input:focus,
+#comments textarea:focus {
+    border-color: #279;
+    box-shadow: 0 0 0 1px #279,
+        0 4px 5px -2px rgba(0, 0, 0, 0.2);
+}
+#comments input:focus,
+#comments textarea:focus {
+    background-color: #fafaff;
 }
 
 #comments input[type="url"],
 #comments textarea {
     width: 30em;
-    background-color: #fff;
 }
 
 #comments textarea {
@@ -424,4 +490,20 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 
 .nav-next {
     text-align: left;
+}
+
+#debug {
+    display: none;
+    position: fixed;
+    top: 8em;
+    left: 1em;
+    background-color: #fff;
+    border: 2px solid #f00;
+    padding: 0.5em 1em;
+    font-family: monospace;
+    color: #333;
+}
+
+#debug.active {
+    display: block;
 }

@@ -7,9 +7,10 @@ mod routes;
 
 use std::sync::{Arc, Mutex};
 use std::time;
+use std::net::IpAddr;
 use std::collections::HashMap;
 use warp::Filter;
-use commondata::CommonData;
+use commondata::{CommonData, load_config};
 use routes::{
     index_page_route,
     tag_search_route,
@@ -19,6 +20,9 @@ use routes::{
 };
 
 #[macro_use] extern crate lazy_static;
+
+const DEFAULT_LISTEN_IP: &str = "127.0.0.1";
+const DEFAULT_LISTEN_PORT: u16 = 3090;
 
 #[tokio::main]
 async fn main() {
@@ -78,7 +82,17 @@ async fn main() {
         .or(assets)
         .recover(file_not_found_route);
 
+    let config = load_config();
+    let listen_ip = config
+        .get_string("listen_ip")
+        .unwrap_or_else(|_| DEFAULT_LISTEN_IP.to_string());
+    let listen_ip = listen_ip.parse::<IpAddr>()
+        .expect(&format!("Failed to parse listen IP from {}", listen_ip));
+    let listen_port = config
+        .get_int("listen_port")
+        .unwrap_or(DEFAULT_LISTEN_PORT as i64) as u16;
+
     warp::serve(routes)
-        .run(([127, 0, 0, 1], 3090))
+        .run((listen_ip, listen_port))
         .await;
 }

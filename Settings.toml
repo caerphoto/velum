@@ -1,3 +1,5 @@
+listen_ip = "0.0.0.0"
+listen_port = 3090
 content_dir = "./content"
 page_size = 10
 blog_title = "Velum Test Blog"
