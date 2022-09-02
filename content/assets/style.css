@@ -106,7 +106,7 @@ header .home-link-box {
     background-color: #367;
     margin: 0 0 1em;
     padding: 0.5em 1em 0.7em;
-    border-bottom: 1px dotted #000;
+    border-bottom: 1px solid #000;
     box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
     line-height: 1;
 }
