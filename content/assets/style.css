@@ -66,7 +66,7 @@ footer {
 }
 
 header {
-    padding: 1em 5em 1.4em;
+    padding: 0 0 1.4em;
     color: #fff;
     box-shadow: 0 3px 5px 0 rgba(0, 0, 0, 0.2);
     border-bottom: 2px solid #000;
@@ -103,9 +103,12 @@ h1 {
 
 header .home-link-box {
     display: block;
-    height: 1em;
-    margin: 0;
-
+    background-color: #367;
+    margin: 0 0 1em;
+    padding: 0.5em 1em 0.7em;
+    border-bottom: 1px dotted #000;
+    box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
+    line-height: 1;
 }
 
 header a,
@@ -125,12 +128,10 @@ header a:hover {
         max-width: 100%;
     }
     header {
-        padding: 0.5em 1em 1em;
+        padding: 0 0 1em;
     }
-
-    header .home-link-box {
-        line-height: 1;
-        height: 1.4em;
+    #comments ul {
+        border-width: 1px 0;
     }
 }
 
@@ -360,7 +361,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 
 #comments ul {
     padding: 0;
-    margin: 0;
+    margin: 0 -0.5em;
     border-width: 1px 1px 0 1px;
     border-style: dashed;
     border-color: rgba(0, 0, 0, 0.1);
