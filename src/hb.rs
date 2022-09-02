@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use crate::article::storage::DEFAULT_CONTENT_DIR;
 use chrono::prelude::*;
+use chrono::Duration;
 use ordinal::Ordinal;
 use handlebars::{Handlebars, handlebars_helper};
 
@@ -21,6 +22,32 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
         Ordinal(dt.day()), // Date
         dt.format("%B %Y") // Month, year, time
     )
+});
+
+handlebars_helper!(age_from_timestamp: |ts: i64| {
+    let dt = Utc.timestamp_millis(ts);
+    let age = Utc::now().signed_duration_since(dt);
+    if age.num_minutes() < 60 * 24 {
+        if age.num_minutes() <= 90 {
+            format!("{} minutes ago", age.num_minutes())
+        } else {
+            format!("{} hours ago", age.num_hours())
+        }
+    } else {
+        // We'll pretend every month has 30 days, it's close enough
+        match age.num_days() {
+            0..=1 => format!("yesterday"),
+            2..=14 => format!("{} days ago", age.num_days()),
+            15..=31 => format!("{} weeks ago", age.num_weeks()),
+            32..=365 => format!("{} months ago", age.num_days() / 30),
+            _ => {
+                let years = age.num_days() / 365;
+                let remainder = age - Duration::days(years * 365);
+                let months = remainder.num_days() / 30;
+                format!("{} years {} months ago", years, months)
+            }
+        }
+    }
 });
 
 handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
@@ -56,6 +83,7 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
 
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
     hb.register_helper("is_current_tag", Box::new(is_current_tag));
+    hb.register_helper("age_from_timestamp", Box::new(age_from_timestamp));
 
     hb
 }

@@ -362,19 +362,18 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 #comments ul {
     padding: 0;
     margin: 0 -0.5em;
-    border-width: 1px 1px 0 1px;
-    border-style: dashed;
-    border-color: rgba(0, 0, 0, 0.1);
 }
 
 #comments li {
-    padding: 0.5em 0.7em 0.5em;
+    box-sizing: border-box;
+    padding: 0 0 0.5em;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom-color: rgba(0, 0, 0, 0.2);
+    margin-bottom: 0.5em;
+    box-shadow: 0 4px 4px -2px rgba(0, 0, 0, 0.1);
     list-style: none;
     transition: background-color 2s ease;
     background-color: rgba(255, 255, 255, 0.4);
-    border-width: 0 0 1px 0;
-    border-style: dashed;
-    border-color: rgba(0, 0, 0, 0.1);
 }
 
 #comments li.new {
@@ -382,6 +381,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments li p {
+    margin: 0 1rem 0;
     font-size: 0.9em;
     color: #467;
     overflow-x: auto;
@@ -389,13 +389,33 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments h3 {
+    padding: 0.4rem 1rem 0.6rem;
+    background-color: #f5f5ee;
     margin-bottom: 0.3em;
+    color: #555;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
 }
 
 #comments p {
     margin: 0;
     padding: 0;
     white-space: pre-wrap;
+}
+
+#comments p.comment-text {
+    margin-bottom: 0.5em;
+}
+
+#comments p.comment-age {
+    color: #999;
+    font-size: 0.8em;
+}
+
+.comment-age::before {
+    content: "[ ";
+}
+.comment-age::after {
+    content: " ]";
 }
 
 #comments label,
