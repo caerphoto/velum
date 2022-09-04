@@ -50,13 +50,8 @@ handlebars_helper!(age_from_timestamp: |ts: i64| {
             unit = pluralize("hour", num.unwrap());
         }
     } else {
-        // We'll pretend every month has 30 days, it's close enough
         match age.num_days() {
-            0..=1 => {
-                num = None;
-                unit = "yesterday".to_string();
-            },
-            2..=14 => {
+            1..=14 => {
                 num = Some(age.num_days());
                 unit = pluralize("day", num.unwrap());
             },
@@ -65,6 +60,7 @@ handlebars_helper!(age_from_timestamp: |ts: i64| {
                 unit = pluralize("week", num.unwrap());
             },
             32..=365 => {
+                // We'll pretend every month has 30 days, it's close enough
                 num = Some(age.num_days() / 30);
                 unit = pluralize("month", num.unwrap());
             },
