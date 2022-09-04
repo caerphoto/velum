@@ -81,7 +81,7 @@ handlebars_helper!(age_from_timestamp: |ts: i64| {
     if let Some(n) = num {
         format!("{} {} ago", n, unit)
     } else {
-        format!("{}", unit)
+        unit
     }
 });
 

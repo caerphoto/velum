@@ -87,7 +87,7 @@ async fn main() {
         .get_string("listen_ip")
         .unwrap_or_else(|_| DEFAULT_LISTEN_IP.to_string());
     let listen_ip = listen_ip.parse::<IpAddr>()
-        .expect(&format!("Failed to parse listen IP from {}", listen_ip));
+        .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", listen_ip));
     let listen_port = config
         .get_int("listen_port")
         .unwrap_or(DEFAULT_LISTEN_PORT as i64) as u16;
