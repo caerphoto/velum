@@ -368,12 +368,12 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     box-sizing: border-box;
     padding: 0 0 0.5em;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    border-bottom-color: rgba(0, 0, 0, 0.2);
-    margin-bottom: 0.5em;
-    box-shadow: 0 4px 4px -2px rgba(0, 0, 0, 0.1);
+    border-top-color: rgba(0, 0, 0, 0.15);
+    margin-bottom: 0.8em;
+    box-shadow: 0 3px 4px -2px rgba(0, 0, 0, 0.1);
     list-style: none;
     transition: background-color 2s ease;
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: #fff;
 }
 
 #comments li.new {
@@ -391,9 +391,9 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 #comments h3 {
     padding: 0.4rem 1rem 0.6rem;
     background-color: #f5f5ee;
+    background-image: linear-gradient(#f5f5ee, #fff);
     margin-bottom: 0.3em;
     color: #555;
-    border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
 }
 
 #comments p {
@@ -463,11 +463,12 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments textarea {
-    height: 8em;
+    height: 10em;
 }
 
 #comments button {
     color: #16425b;
+    background-color: #eee;
 }
 
 #comments button:hover {

@@ -14,7 +14,14 @@ fn tmpl_path(tmpl_name: &str, config: &config::Config) -> PathBuf {
     path.join(filename)
 }
 
-// TODO: friendlier date format, e.g. "3 months ago on 23rd May 2022"
+fn pluralize(word: &str, num: i64) -> String {
+    if num == 1 {
+        word.to_string()
+    } else {
+        word.to_string() + "s"
+    }
+}
+
 handlebars_helper!(date_from_timestamp: |ts: i64| {
     let dt = Utc.timestamp_millis(ts);
     format!("{} {} {}",
@@ -27,26 +34,54 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
 handlebars_helper!(age_from_timestamp: |ts: i64| {
     let dt = Utc.timestamp_millis(ts);
     let age = Utc::now().signed_duration_since(dt);
+    let unit: String;
+    let num: Option<i64>;
     if age.num_minutes() < 60 * 24 {
         if age.num_minutes() <= 90 {
-            format!("{} minutes ago", age.num_minutes())
+            if age.num_minutes() == 0 {
+                num = None;
+                unit = "Just now".to_string();
+            } else {
+                num = Some(age.num_minutes());
+                unit = pluralize("minute", num.unwrap());
+            }
         } else {
-            format!("{} hours ago", age.num_hours())
+            num = Some(age.num_hours());
+            unit = pluralize("hour", num.unwrap());
         }
     } else {
         // We'll pretend every month has 30 days, it's close enough
         match age.num_days() {
-            0..=1 => format!("yesterday"),
-            2..=14 => format!("{} days ago", age.num_days()),
-            15..=31 => format!("{} weeks ago", age.num_weeks()),
-            32..=365 => format!("{} months ago", age.num_days() / 30),
+            0..=1 => {
+                num = None;
+                unit = "yesterday".to_string();
+            },
+            2..=14 => {
+                num = Some(age.num_days());
+                unit = pluralize("day", num.unwrap());
+            },
+            15..=31 => {
+                num = Some(age.num_weeks());
+                unit = pluralize("week", num.unwrap());
+            },
+            32..=365 => {
+                num = Some(age.num_days() / 30);
+                unit = pluralize("month", num.unwrap());
+            },
             _ => {
                 let years = age.num_days() / 365;
                 let remainder = age - Duration::days(years * 365);
                 let months = remainder.num_days() / 30;
-                format!("{} years {} months ago", years, months)
+                let yunit = pluralize("year", years);
+                unit = format!("{} {} {}", years, yunit, months);
+                num = Some(months);
             }
         }
+    }
+    if let Some(n) = num {
+        format!("{} {} ago", n, unit)
+    } else {
+        format!("{}", unit)
     }
 });
 
