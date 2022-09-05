@@ -113,14 +113,21 @@ pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentVie
         if ext.is_none() || ext.unwrap() != "md" { continue }
 
         log::debug!("Building article from {}", path.to_string_lossy());
-        if let Ok(builder) = Builder::from_file(&path) {
-            let view = builder_to_content_view(builder, config)?;
-            articles.push(view);
-        } else {
-            // Build can fail if, for example, the file contains invalid UTF-8
-            // byte sequences, but we don't really need to panic or return an
-            // error, just log the problem and carry on with the next file.
-            log::error!("Failed to build article from {}", path.to_string_lossy());
+        match Builder::from_file(&path) {
+            Ok(builder) => {
+                let view = builder_to_content_view(builder, config)?;
+                articles.push(view);
+            },
+            Err(e) => {
+                // Build can fail if, for example, the file contains invalid UTF-8
+                // byte sequences, but we don't really need to panic or return an
+                // error, just log the problem and carry on with the next file.
+                log::error!(
+                    "Failed to build article from {}: {:?}",
+                    path.to_string_lossy(),
+                    e
+                );
+            }
         }
     }
     articles.sort_by_key(|k| k.timestamp);

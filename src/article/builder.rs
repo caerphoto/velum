@@ -26,8 +26,11 @@ impl Builder {
     pub fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
         let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
-        let created = metadata.created()?;
-        if let Ok(s) = created.duration_since(UNIX_EPOCH) {
+        let filedate = match metadata.created() {
+            Ok(c) => c,
+            Err(_) => metadata.modified()?
+        };
+        if let Ok(s) = filedate.duration_since(UNIX_EPOCH) {
             Ok(Self {
                 content,
                 timestamp: s.as_millis() as i64,
