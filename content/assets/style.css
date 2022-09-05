@@ -329,7 +329,6 @@ p.img img {
     max-height: 95vh;
     height: auto;
     margin: 0 auto;
-    padding: 0.6em 0;
 }
 
 #article-body figcaption, #article-body img + em {

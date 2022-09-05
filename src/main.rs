@@ -68,9 +68,12 @@ async fn main() {
         .and(warp::post())
         .then(comment_route);
 
-    let images = warp::path("images").and(warp::fs::dir("content/images"));
-    let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
+    // can't use path! macro because it ends the path
+    let images = warp::path("content")
+        .and(warp::path("images"))
+        .and(warp::fs::dir("content/images"));
 
+    let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
     let routes = article_index
         .or(article_index_at_page)
