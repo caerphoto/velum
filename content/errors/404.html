@@ -2,12 +2,36 @@
 <html>
   <head>
     <title>Error 404: Item not found</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="/assets/style.css">
   </head>
+
   <body>
-    <section id="content">
-      <h1>Item not found</h1>
-      <p>HTTP Error 404</p>
-    </section>
+    <header>
+      <div class="home-link-box">
+        <a href="/">&larr; article index</a>
+      </div>
+      <h1>Not found</h1>
+    </header>
+
+    <article>
+      <section id="article-body" class="post-content">
+        <p>The page you’re looking for doesn’t exist at this address. Try browsing from <a href="/">the article index</a>.</p>
+
+        <p>This is an HTTP Error 404.</p>
+      </section>
+    </article>
+
+    <nav class="next-prev"></nav>
+
+    <footer>
+      <p>Blog powered by <a href="https://github.com/caerphoto/velum">Velum</a>.</p>
+      <div id="debug"></div>
+    </footer>
   </body>
 </html>

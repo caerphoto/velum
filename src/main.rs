@@ -76,6 +76,21 @@ async fn main() {
 
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
+    let errorlogger = warp::filters::log::custom(|info| {
+        let s = info.status();
+        let msg = format!(
+            "{} `{}` {}",
+            info.method(),
+            info.path(),
+            info.status()
+        );
+        if s.is_client_error() {
+            log::info!("{}", msg);
+        } else if s.is_server_error() {
+            log::error!("{}", msg);
+        }
+    });
+
     let routes = article_index
         .or(article_index_at_page)
         .or(article)
@@ -84,7 +99,8 @@ async fn main() {
         .or(comment)
         .or(images)
         .or(assets)
-        .recover(file_not_found_route);
+        .recover(file_not_found_route)
+        .with(errorlogger);
 
     let config = load_config();
     let listen_ip = config

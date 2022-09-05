@@ -111,7 +111,7 @@ pub async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonDa
     response
 }
 
-pub async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
+pub async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<Mutex<CommonData>>) -> Result<impl warp::Reply, warp::Rejection> {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let title = data.config
@@ -140,8 +140,9 @@ pub async fn article_route(slug: String, query: HashMap<String, String>, data: A
         log::info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
         Ok(warp::reply::with_status(reply, StatusCode::OK))
     } else {
-        let reply = warp::reply::html(String::from("Unable to read article"));
-        Ok(warp::reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR))
+        // let reply = warp::reply::html(String::from("Unable to read article"));
+        // Ok(warp::reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR))
+        Err(warp::reject::not_found())
     }
 }
 
