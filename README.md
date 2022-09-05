@@ -72,8 +72,11 @@ future there may be options for running daemonised, or as a system service.
    kind. There is already code in place to rebuild the article cache, so it's
    mostly a matter of wiring it up to a UI.
 
-3. Finally there's the question of an editor: does Velum even need one? If not,
+3. Then there's the question of an editor: does Velum even need one? If not,
    what about a simplified way to upload content, that means users don't have
    to manually copy files (including images) to their server? As with the
    server restart issue, this is about UX for the blog maintainer, obviating
    the need for SSHing into the server and other such disagreeableness.
+
+4. RSS: it feels a bit like a niche thing these days, but plenty of people
+   still use RSS, myself included, so I want to include it.
