@@ -36,6 +36,11 @@ article {
     z-index: 0;
 }
 
+.dimmed article {
+    box-shadow: none;
+    background: none;
+}
+
 .article-list {
     margin: 1em 0 0 0;
     padding: 0;
