@@ -72,10 +72,6 @@ header {
     border-bottom: 2px solid #000;
 }
 
-header.index {
-    padding-top: 2.5em;
-}
-
 footer {
     padding: 2em 5em;
     color: #f8f7f4;
@@ -91,7 +87,7 @@ h1 {
     font-size: 2.8em;
     font-weight: 300;
     margin: 0 auto 0.1em;
-    padding: 0;
+    padding: 0.8em 0 0;
     max-width: 15em;
     text-align: center;
     line-height: 1;
@@ -109,6 +105,10 @@ header .home-link-box {
     border-bottom: 1px solid #000;
     box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
     line-height: 1;
+}
+
+.home-link-box + h1 {
+    padding-top: 0;
 }
 
 header a,
