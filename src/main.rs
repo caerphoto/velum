@@ -68,6 +68,7 @@ async fn main() {
         .and(warp::post())
         .then(comment_route);
 
+    // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
     let images = warp::path("content")
         .and(warp::path("images"))
