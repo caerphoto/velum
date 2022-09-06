@@ -60,6 +60,11 @@ async fn main() {
         .and(codata_filter.clone())
         .and_then(article_route);
 
+    let legacy_article = warp::path!(String)
+        .and(warp::query::<HashMap<String, String>>())
+        .and(codata_filter.clone())
+        .and_then(article_route);
+
     let comment = warp::path!("comment" / String)
         .and(warp::body::content_length_limit(4000))
         .and(warp::filters::body::form())
@@ -99,6 +104,7 @@ async fn main() {
         .or(comment)
         .or(images)
         .or(assets)
+        .or(legacy_article)
         .recover(file_not_found_route)
         .with(errorlogger);
 
