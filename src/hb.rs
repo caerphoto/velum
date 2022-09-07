@@ -83,6 +83,7 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
     let header_tmpl_path = tmpl_path("_header", config);
     let footer_tmpl_path = tmpl_path("_footer", config);
 
+    #[cfg(debug_assertions)]
     hb.set_dev_mode(true);
 
     hb.register_template_file("main", &index_tmpl_path)
