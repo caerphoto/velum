@@ -113,6 +113,37 @@ header .home-link-box {
     line-height: 1;
 }
 
+.index-link::before {
+    display: inline-block;
+    content: "|";
+    width: 0.9em;
+    height: 18px;
+    padding-left: 0.1em;
+    line-height: 0.9;
+    margin-bottom: -0.1em;
+    margin-right: 0.5em;
+    text-shadow: 1px 0 0 #367;
+    background: #d9dcd6;
+    background: linear-gradient(
+        0deg,
+        rgba(0,0,0,0) 3px, #d9dcd6 3px, #d9dcd6 5px, rgba(0,0,0,0) 5px,
+        rgba(0,0,0,0) 8px, #d9dcd6 8px, #d9dcd6 10px, rgba(0,0,0,0) 10px,
+        rgba(0,0,0,0) 13px, #d9dcd6 13px, #d9dcd6 15px, rgba(0,0,0,0) 15px,
+        rgba(0,0,0,0) 100%);
+
+    color: #367;
+}
+
+.index-link:hover::before {
+    text-shadow: 1px 0 0 #4b7b97;
+    background: linear-gradient(
+        0deg,
+        rgba(0,0,0,0) 3px, #fff 3px, #fff 5px, rgba(0,0,0,0) 5px,
+        rgba(0,0,0,0) 8px, #fff 8px, #fff 10px, rgba(0,0,0,0) 10px,
+        rgba(0,0,0,0) 13px, #fff 13px, #fff 15px, rgba(0,0,0,0) 15px,
+        rgba(0,0,0,0) 100%);
+}
+
 .home-link-box + h1 {
     padding-top: 0;
 }
