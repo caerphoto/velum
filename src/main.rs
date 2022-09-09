@@ -81,6 +81,15 @@ async fn main() {
 
     let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
 
+    let robots_txt = warp::path!("robots.txt").map(|| "");
+
+    let favicon16 = warp::path!("favicon16.png")
+        .and(warp::fs::file("content/favicon16.png"));
+    let favicon32 = warp::path!("favicon32.png")
+        .and(warp::fs::file("content/favicon32.png"));
+    let favicon_apple = warp::path!("favicon_apple.png")
+        .and(warp::fs::file("content/favicon_apple.png"));
+
     let errorlogger = warp::filters::log::custom(|info| {
         let s = info.status();
         let msg = format!(
@@ -104,6 +113,8 @@ async fn main() {
         .or(comment)
         .or(images)
         .or(assets)
+        .or(robots_txt)
+        .or(favicon16).or(favicon32).or(favicon_apple)
         .or(legacy_article)
         .recover(file_not_found_route)
         .with(errorlogger);
