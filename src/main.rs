@@ -17,6 +17,7 @@ use routes::{
     article_route,
     comment_route,
     file_not_found_route,
+    admin_route,
 };
 
 #[macro_use] extern crate lazy_static;
@@ -73,6 +74,9 @@ async fn main() {
         .and(warp::post())
         .then(comment_route);
 
+    let admin = warp::path!("admin")
+        .and_then(admin_route);
+
     // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
     let images = warp::path("content")
@@ -90,7 +94,7 @@ async fn main() {
     let favicon_apple = warp::path!("favicon_apple.png")
         .and(warp::fs::file("content/favicon_apple.png"));
 
-    let errorlogger = warp::filters::log::custom(|info| {
+    let error_logger = warp::filters::log::custom(|info| {
         let s = info.status();
         let msg = format!(
             "{} `{}` {}",
@@ -111,13 +115,14 @@ async fn main() {
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
         .or(comment)
+        .or(admin)
         .or(images)
         .or(assets)
         .or(robots_txt)
         .or(favicon16).or(favicon32).or(favicon_apple)
         .or(legacy_article)
         .recover(file_not_found_route)
-        .with(errorlogger);
+        .with(error_logger);
 
     let config = load_config();
     let listen_ip = config

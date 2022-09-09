@@ -1,3 +1,4 @@
+mod admin;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
@@ -12,6 +13,8 @@ use crate::article::storage::{
     fetch_by_slug,
     fetch_index_links,
 };
+
+pub use admin::admin_route;
 
 const DEFAULT_TITLE: &str = "Velum Blog";
 
