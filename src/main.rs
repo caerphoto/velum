@@ -18,6 +18,7 @@ use routes::{
     comment_route,
     file_not_found_route,
     admin_route,
+    login_route,
 };
 
 #[macro_use] extern crate lazy_static;
@@ -74,8 +75,10 @@ async fn main() {
         .and(warp::post())
         .then(comment_route);
 
-    let admin = warp::path!("admin")
-        .and_then(admin_route);
+    let login = warp::path!("login")
+        .and(codata_filter.clone())
+        .and_then(login_route);
+    let admin = warp::path!("admin").and_then(admin_route);
 
     // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
@@ -116,6 +119,7 @@ async fn main() {
         .or(articles_with_tag_at_page)
         .or(comment)
         .or(admin)
+        .or(login)
         .or(images)
         .or(assets)
         .or(robots_txt)

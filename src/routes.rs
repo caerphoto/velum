@@ -14,7 +14,7 @@ use crate::article::storage::{
     fetch_index_links,
 };
 
-pub use admin::admin_route;
+pub use admin::{admin_route, login_route};
 
 const DEFAULT_TITLE: &str = "Velum Blog";
 
