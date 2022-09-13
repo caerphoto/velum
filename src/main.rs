@@ -18,7 +18,8 @@ use routes::{
     comment_route,
     file_not_found_route,
     admin_route,
-    login_route,
+    login_page_route,
+    do_login_route,
 };
 
 #[macro_use] extern crate lazy_static;
@@ -75,10 +76,18 @@ async fn main() {
         .and(warp::post())
         .then(comment_route);
 
-    let login = warp::path!("login")
+    let admin = warp::path!("admin")
         .and(codata_filter.clone())
-        .and_then(login_route);
-    let admin = warp::path!("admin").and_then(admin_route);
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(admin_route);
+    let login_page = warp::path!("login")
+        .and(codata_filter.clone())
+        .and_then(login_page_route);
+    let do_login = warp::path!("login")
+        .and(codata_filter.clone())
+        .and(warp::body::content_length_limit(2048))
+        .and(warp::body::json())
+        .and_then(do_login_route);
 
     // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
@@ -109,6 +118,10 @@ async fn main() {
             log::info!("{}", msg);
         } else if s.is_server_error() {
             log::error!("{}", msg);
+        } else if let Some(r) = info.referer() {
+            if !r.contains("blog.andyf.me") {
+                log::info!("Referer: {}", r);
+            }
         }
     });
 
@@ -119,7 +132,8 @@ async fn main() {
         .or(articles_with_tag_at_page)
         .or(comment)
         .or(admin)
-        .or(login)
+        .or(login_page)
+        .or(do_login)
         .or(images)
         .or(assets)
         .or(robots_txt)

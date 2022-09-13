@@ -21,6 +21,7 @@ pub struct CommonData {
     pub articles: Vec<ContentView>,
     pub comments: Comments,
     pub config: Config,
+    pub session_id: Option<String>,
 }
 
 impl CommonData {
@@ -33,6 +34,7 @@ impl CommonData {
             articles,
             comments,
             config,
+            session_id: None,
         }
     }
 
