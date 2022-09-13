@@ -75,6 +75,7 @@ fn render_article_list(
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
             "return_to": return_to,
+            "body_class": "index",
         })
     ) {
         Ok(rendered_page) => {
@@ -136,6 +137,7 @@ pub async fn article_route(slug: String, query: HashMap<String, String>, data: A
                     "prev": article.prev,
                     "next": article.next,
                     "return_path": return_path,
+                    "body_class": "article",
                 })
             ).expect("Failed to render article with Handlebars")
         );

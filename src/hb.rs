@@ -93,9 +93,9 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
         .expect("Failed to register index template file");
     hb.register_template_file("article", &article_tmpl_path)
         .expect("Failed to register article template file");
-    hb.register_template_file("login", &article_tmpl_path)
+    hb.register_template_file("login", &login_tmpl_path)
         .expect("Failed to register login template file");
-    hb.register_template_file("admin", &article_tmpl_path)
+    hb.register_template_file("admin", &admin_tmpl_path)
         .expect("Failed to register admin template file");
     hb.register_template_file("tag_list", &tag_list_tmpl_path)
         .expect("Failed to register tag_list template file");

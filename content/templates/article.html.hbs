@@ -1,47 +1,45 @@
 {{> header}}
-  <body class="article">
-    <header>
-      <div class="home-link-box">
-        <a href="{{return_path}}" class="index-link">article index</a>
-      </div>
-      <h1>{{article.title}}</h1>
-    </header>
 
-    <article>
-      <section id="article-body" class="post-content">
-        <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
-        {{#with article}}
-          {{> tag_list search_tag="" }}
-        {{/with}}
-        {{{article.content}}}
-      </section>
+<header>
+  <div class="home-link-box">
+    <a href="{{return_path}}" class="index-link">article index</a>
+  </div>
+  <h1>{{article.title}}</h1>
+</header>
 
-      {{> comments}}
+<article>
+  <section id="article-body" class="post-content">
+    <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
+    {{#with article}}
+      {{> tag_list search_tag="" }}
+    {{/with}}
+    {{{article.content}}}
+  </section>
 
-    </article>
+  {{> comments}}
 
-    <nav class="next-prev">
-      <p>More articles:</p>
-      {{#if prev}}
-      <div class="nav-prev">
-        <a href="/articles/{{prev.slug}}">&larr; {{prev.title}}</a>
-      </div>
-      {{else}}
-      <span class="empty"></span>
-      {{/if}}
-      <span class="nav-sep">&middot;</span>
-      {{#if next}}
-      <div class="nav-next">
-        <a href="/articles/{{next.slug}}">{{next.title}} &rarr;</a>
-      </div>
-      {{else}}
-      <span class="empty"></span>
-      {{/if}}
-      <p class="footer-home-link-box">
-        <a href="{{return_path}}" class="index-link">article index</a>
-      </p>
-    </nav>
+</article>
 
-    {{> footer}}
-  </body>
-</html>
+<nav class="next-prev">
+  <p>More articles:</p>
+  {{#if prev}}
+  <div class="nav-prev">
+    <a href="/articles/{{prev.slug}}">&larr; {{prev.title}}</a>
+  </div>
+  {{else}}
+  <span class="empty"></span>
+  {{/if}}
+  <span class="nav-sep">&middot;</span>
+  {{#if next}}
+  <div class="nav-next">
+    <a href="/articles/{{next.slug}}">{{next.title}} &rarr;</a>
+  </div>
+  {{else}}
+  <span class="empty"></span>
+  {{/if}}
+  <p class="footer-home-link-box">
+    <a href="{{return_path}}" class="index-link">article index</a>
+  </p>
+</nav>
+
+{{> footer}}

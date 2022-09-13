@@ -80,7 +80,8 @@ header {
 footer {
     padding: 2em 5em;
     color: #f8f7f4;
-    box-shadow: inset 0 8px 5px -5px rgba(0, 0, 0, 0.7);
+    box-shadow: inset 0 8px 5px -5px rgba(0, 0, 0, 0.7),
+        0 150px 0 100px #16425b; /* to cover article shadow on short pages */
 }
 
 h1, h2, h3, h4, .tags {
@@ -172,6 +173,13 @@ header a:hover {
     }
 }
 
+p.error-message {
+    background-color: #fcc;
+    color: #600;
+    padding: 1em;
+    border: 1px solid #800;
+    margin: 0 0 1em;
+}
 
 p.content-preview {
     font-size: 0.9em;
@@ -454,21 +462,21 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     content: " ]";
 }
 
-#comments label,
-#comments input,
-#comments textarea {
+label,
+input,
+textarea {
     display: block;
     font-size: 0.9em;
 }
 
-#comments input,
-#comments textarea {
+input,
+textarea {
     background-color: #fff;
 }
 
-#comments input,
-#comments textarea,
-#comments button {
+input,
+textarea,
+button {
     box-sizing: border-box;
     -webkit-appearance: none;
     appearance: none;
@@ -481,33 +489,33 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     outline: none;
 }
 
-#comments button:focus,
-#comments input:focus,
-#comments textarea:focus {
+button:focus,
+input:focus,
+textarea:focus {
     border-color: #279;
     box-shadow: 0 0 0 1px #279,
         0 4px 5px -2px rgba(0, 0, 0, 0.2);
 }
-#comments input:focus,
-#comments textarea:focus {
+input:focus,
+textarea:focus {
     background-color: #fafaff;
 }
 
-#comments input[type="url"],
-#comments textarea {
+input[type="url"],
+textarea {
     width: 30em;
 }
 
-#comments textarea {
+textarea {
     height: 10em;
 }
 
-#comments button {
+button {
     color: #16425b;
     background-color: #eee;
 }
 
-#comments button:hover {
+button:hover {
     cursor: pointer;
     border-color: #176694;
     color: #176694;

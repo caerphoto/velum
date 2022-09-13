@@ -1,58 +1,56 @@
 {{> header}}
-  <body>
-    <header class="index">
-      {{#if search_tag}}
-        <div class="home-link-box">
-          <a href="/" class="index-link">article index</a>
-        </div>
-        <h1 class="with-tag"><span class="subdued">Tag:</span> {{search_tag}}</h1>
-        <h2>{{article_count}} articles</h2>
-      {{else}}
-        <h1>{{title}}</h1>
-      {{/if}}
-    </header>
 
-    <article>
-      <section id="post-index" class="content">
-        <ul class="article-list">
-          {{#each articles}}
-          <li class="article-list_item">
-            <h2><a href="/articles/{{this.slug}}?return_to={{../return_to}}">{{this.title}}</a></h2>
-            <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
-            <p class="content-preview">{{this.preview}}</p>
-            {{> tag_list search_tag=../search_tag}}
-          </li>
-          {{/each}}
-        </ul>
-      </section>
-    </article>
+<header class="index">
+  {{#if search_tag}}
+    <div class="home-link-box">
+      <a href="/" class="index-link">article index</a>
+    </div>
+    <h1 class="with-tag"><span class="subdued">Tag:</span> {{search_tag}}</h1>
+    <h2>{{article_count}} articles</h2>
+  {{else}}
+    <h1>{{title}}</h1>
+  {{/if}}
+</header>
 
-    <nav class="pagination">
-      {{#if (gt current_page 1)}}
-      <div class="nav-prev">
-        {{#if search_tag}}
-          <a href="/tag/{{search_tag}}/{{prev_page}}">&larr; previous</a>
-        {{else}}
-          <a href="/index/{{prev_page}}">&larr; previous</a>
-        {{/if}}
-      </div>
-      {{else}}
-      <span class="empty"></span>
-      {{/if}}
-      <span class="nav-sep">Page {{current_page}} of {{max_page}}</span>
-      {{#if (gt next_page 0)}}
-      <div class="nav-next">
-        {{#if search_tag}}
-          <a href="/tag/{{search_tag}}/{{next_page}}">next &rarr;</a>
-        {{else}}
-          <a href="/index/{{next_page}}">next &rarr;</a>
-        {{/if}}
-      </div>
-      {{else}}
-      <span class="empty"></span>
-      {{/if}}
-    </nav>
+<article>
+  <section id="post-index" class="content">
+    <ul class="article-list">
+      {{#each articles}}
+      <li class="article-list_item">
+        <h2><a href="/articles/{{this.slug}}?return_to={{../return_to}}">{{this.title}}</a></h2>
+        <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
+        <p class="content-preview">{{this.preview}}</p>
+        {{> tag_list search_tag=../search_tag}}
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+</article>
 
-    {{> footer}}
-  </body>
-</html>
+<nav class="pagination">
+  {{#if (gt current_page 1)}}
+  <div class="nav-prev">
+    {{#if search_tag}}
+      <a href="/tag/{{search_tag}}/{{prev_page}}">&larr; previous</a>
+    {{else}}
+      <a href="/index/{{prev_page}}">&larr; previous</a>
+    {{/if}}
+  </div>
+  {{else}}
+  <span class="empty"></span>
+  {{/if}}
+  <span class="nav-sep">Page {{current_page}} of {{max_page}}</span>
+  {{#if (gt next_page 0)}}
+  <div class="nav-next">
+    {{#if search_tag}}
+      <a href="/tag/{{search_tag}}/{{next_page}}">next &rarr;</a>
+    {{else}}
+      <a href="/index/{{next_page}}">next &rarr;</a>
+    {{/if}}
+  </div>
+  {{else}}
+  <span class="empty"></span>
+  {{/if}}
+</nav>
+
+{{> footer}}

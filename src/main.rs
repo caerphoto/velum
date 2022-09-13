@@ -81,12 +81,14 @@ async fn main() {
         .and(warp::cookie::optional::<String>("session_id"))
         .and_then(admin_route);
     let login_page = warp::path!("login")
+        .and(warp::get())
         .and(codata_filter.clone())
         .and_then(login_page_route);
     let do_login = warp::path!("login")
         .and(codata_filter.clone())
+        .and(warp::post())
         .and(warp::body::content_length_limit(2048))
-        .and(warp::body::json())
+        .and(warp::body::form())
         .and_then(do_login_route);
 
     // TODO: change hard-coded content dir() to use the one from config
