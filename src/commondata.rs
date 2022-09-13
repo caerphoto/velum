@@ -40,7 +40,7 @@ impl CommonData {
             .expect("Failed to build config")
     }
 
-    fn rebuild(&mut self) -> Result<(), ParseError> {
+    pub fn rebuild(&mut self) -> Result<(), ParseError> {
         gather_fs_articles(&self.config)
             .map(|articles| {
                 self.articles = articles;

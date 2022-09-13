@@ -19,6 +19,7 @@ pub use admin::{
     login_page_route,
     do_login_route,
     do_logout_route,
+    rebuild_index_route,
 };
 
 const DEFAULT_TITLE: &str = "Velum Blog";

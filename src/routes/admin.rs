@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use crate::CommonData;
-use warp::Reply;
+use warp::{Reply, http::Uri};
 use serde_json::json;
+use uuid::Uuid;
 
 type WarpResult = Result<
     warp::reply::Response,
@@ -51,13 +52,11 @@ pub async fn do_login_route(data: Arc<Mutex<CommonData>>, form_data: HashMap<Str
     let hash = if hash.is_none() { "" } else { hash.unwrap().as_str() };
     let verified = bcrypt::verify(&password, hash).unwrap_or(false);
 
-    log::info!("given: {}, hash: {}", &password, hash);
-
     if !verified {
         return render_login_page(&data.hbs, Some("Incorrect password"));
     }
 
-    let session_id = "test";
+    let session_id = Uuid::new_v4();
     let cookie = format!(
         "session_id={}; Path=/; HttpOnly; Max-Age={}",
         session_id,
@@ -91,15 +90,18 @@ pub async fn do_logout_route(data: Arc<Mutex<CommonData>>) -> WarpResult {
     )
 }
 
-pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
-    let data = data.lock().unwrap();
+fn needs_to_log_in(data: &CommonData, session_id: Option<String>) -> bool
+{
     let sid = data.session_id.as_ref();
-    if sid.is_none()
+    sid.is_none()
         || session_id.is_none()
         || sid.unwrap() != session_id.as_ref().unwrap()
-    {
-        let reply = warp::redirect::found(warp::http::Uri::from_static("/login"));
-        return Ok(reply.into_response());
+}
+
+pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
+    let data = data.lock().unwrap();
+    if needs_to_log_in(&data, session_id) {
+        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
     }
 
     let body = data.hbs.render(
@@ -117,3 +119,15 @@ pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String
     }
 }
 
+pub async fn rebuild_index_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
+    let mut data = data.lock().unwrap();
+    if needs_to_log_in(&data, session_id) {
+        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
+    }
+
+    match data.rebuild() {
+        Ok(_) => Ok(warp::redirect::found(Uri::from_static("/admin")).into_response()),
+        Err(e) => server_error(format!("Error rebuilding index: {:?}", e))
+    }
+
+}

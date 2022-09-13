@@ -22,6 +22,7 @@ use routes::{
     login_page_route,
     do_login_route,
     do_logout_route,
+    rebuild_index_route,
 };
 
 #[macro_use] extern crate lazy_static;
@@ -122,6 +123,12 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
         .and_then(do_logout_route);
+    let rebuild_index = warp::path!("rebuild")
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and(warp::post())
+        .and(warp::body::content_length_limit(0))
+        .and_then(rebuild_index_route);
 
     // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
@@ -169,6 +176,7 @@ async fn main() {
         .or(login_page)
         .or(do_login)
         .or(do_logout)
+        .or(rebuild_index)
         .or(images)
         .or(assets)
         .or(robots_txt)
