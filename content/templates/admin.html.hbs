@@ -1,15 +1,34 @@
-{{>header}}
+{{> header}}
 
 <header>
-  <div class="home-link-box">
+  <div class="home link-box">
     <a href="/" class="index-link">home</a>
   </div>
-  <h1>{{Admin Login}}</h1>
+  <div class="logout link-box">
+    <form action="/logout" method="POST">
+      <button type="submit">Log out</button>
+    </form>
+  </div>
+  <h1>Blog Admin</h1>
 </header>
 
 <article>
-  <section id="login-form" class="content">
+  <section id="admin" class="content">
+    <h2>Articles:</h2>
+    <form action="/rebuild" method="POST">
+      <button type="submit">Rebuild article index</button>
+    </form>
+
+    <ol class="admin-article-list" reversed>
+      {{#each articles}}
+      <li class="admin-article-list_item">
+        <p class="admin-post-title">
+          <a href="/articles/{{this.slug}}">{{this.title}}</a>: {{date_from_timestamp this.timestamp}}
+        </p>
+      </li>
+      {{/each}}
+    </ol>
   </section>
 </article>
 
-{{>footer}}
+{{> footer}}

@@ -1,4 +1,4 @@
-listen_ip = "0.0.0.0"
+listen_ip = "127.0.0.1"
 listen_port = 3090
 content_dir = "./content"
 page_size = 10

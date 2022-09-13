@@ -7,10 +7,11 @@ mod routes;
 
 use std::sync::{Arc, Mutex};
 use std::time;
+use std::env;
 use std::net::IpAddr;
 use std::collections::HashMap;
 use warp::Filter;
-use commondata::{CommonData, load_config};
+use commondata::CommonData;
 use routes::{
     index_page_route,
     tag_search_route,
@@ -20,12 +21,37 @@ use routes::{
     admin_route,
     login_page_route,
     do_login_route,
+    do_logout_route,
 };
 
 #[macro_use] extern crate lazy_static;
 
 const DEFAULT_LISTEN_IP: &str = "127.0.0.1";
 const DEFAULT_LISTEN_PORT: u16 = 3090;
+const HASH_COST: u32 = 8;
+
+fn check_args(data: Arc<Mutex<CommonData>>) {
+    let mut data = data.lock().unwrap();
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 || &args[1] != "register" { return; }
+
+    if let Ok(pw) = rpassword::prompt_password("Enter an admin password: ") {
+        if pw.is_empty() {
+            println!("Password cannot be blank.");
+            std::process::exit(1);
+        }
+        if let Ok(pw_conf) = rpassword::prompt_password("Confirm admin password: ") {
+            if pw != pw_conf {
+                println!("Passwords do not match.");
+                std::process::exit(1);
+            }
+            data.admin_password_hash = Some(
+                bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
+            );
+
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -36,7 +62,8 @@ async fn main() {
     let codata = Arc::new(Mutex::new(CommonData::new()));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
-    // This needs to be assined after rebuild, so we can transfer ownership into the lambda
+    check_args(codata.clone());
+
     let codata_filter = warp::any()
         .map(move || codata.clone());
 
@@ -90,6 +117,11 @@ async fn main() {
         .and(warp::body::content_length_limit(2048))
         .and(warp::body::form())
         .and_then(do_login_route);
+    let do_logout = warp::path!("logout")
+        .and(codata_filter.clone())
+        .and(warp::post())
+        .and(warp::body::content_length_limit(0))
+        .and_then(do_logout_route);
 
     // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
@@ -136,6 +168,7 @@ async fn main() {
         .or(admin)
         .or(login_page)
         .or(do_login)
+        .or(do_logout)
         .or(images)
         .or(assets)
         .or(robots_txt)
@@ -144,7 +177,7 @@ async fn main() {
         .recover(file_not_found_route)
         .with(error_logger);
 
-    let config = load_config();
+    let config = CommonData::load_config();
     let listen_ip = config
         .get_string("listen_ip")
         .unwrap_or_else(|_| DEFAULT_LISTEN_IP.to_string());
@@ -157,4 +190,5 @@ async fn main() {
     warp::serve(routes)
         .run((listen_ip, listen_port))
         .await;
+
 }

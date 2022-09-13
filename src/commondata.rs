@@ -9,24 +9,18 @@ use crate::comments::Comments;
 const CONFIG_FILE: &str = "Settings"; // .toml is implied
 const DEFAULT_PAGE_SIZE: usize = 5;
 
-pub fn load_config() -> Config {
-    Config::builder()
-        .add_source(config::File::with_name(CONFIG_FILE))
-        .build()
-        .expect("Failed to build config")
-}
-
 pub struct CommonData {
     pub hbs: Handlebars<'static>,
     pub articles: Vec<ContentView>,
     pub comments: Comments,
     pub config: Config,
     pub session_id: Option<String>,
+    pub admin_password_hash: Option<String>,
 }
 
 impl CommonData {
     pub fn new() -> Self {
-        let config = load_config();
+        let config = Self::load_config();
         let articles = gather_fs_articles(&config).expect("gather FS articles");
         let comments = Comments::new(&config);
         Self {
@@ -35,7 +29,15 @@ impl CommonData {
             comments,
             config,
             session_id: None,
+            admin_password_hash: None,
         }
+    }
+
+    pub fn load_config() -> Config {
+        Config::builder()
+            .add_source(config::File::with_name(CONFIG_FILE))
+            .build()
+            .expect("Failed to build config")
     }
 
     fn rebuild(&mut self) -> Result<(), ParseError> {

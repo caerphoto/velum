@@ -14,7 +14,12 @@ use crate::article::storage::{
     fetch_index_links,
 };
 
-pub use admin::{admin_route, login_page_route, do_login_route};
+pub use admin::{
+    admin_route,
+    login_page_route,
+    do_login_route,
+    do_logout_route,
+};
 
 const DEFAULT_TITLE: &str = "Velum Blog";
 
@@ -30,6 +35,11 @@ fn div_ceil(lhs: usize, rhs: usize) -> usize {
         d
     }
 }
+
+// ---------------------------------------------------------------------------
+// TODO: refactor the return types of these functions to be like the admin
+//       routes, which are much cleaner.
+// ---------------------------------------------------------------------------
 
 fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
     let reply = warp::reply::html(msg);

@@ -20,6 +20,7 @@ lazy_static = "1.4.0"
 chrono = "0.4"
 ordinal = "0.3.0"
 bcrypt = "0.13"
+rpassword = "7.0"
 
 [profile.release]
 lto = true
