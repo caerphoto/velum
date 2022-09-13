@@ -75,8 +75,11 @@ handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
 
 pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
     let mut hb = Handlebars::new();
+    //TODO: put this stuff in config, and loop over it here.
     let index_tmpl_path = tmpl_path("index", config);
     let article_tmpl_path = tmpl_path("article", config);
+    let login_tmpl_path = tmpl_path("login", config);
+    let admin_tmpl_path = tmpl_path("admin", config);
     let tag_list_tmpl_path = tmpl_path("_tag_list", config);
     let comments_tmpl_path = tmpl_path("_comments", config);
     let comment_tmpl_path = tmpl_path("_comment", config);
@@ -90,6 +93,10 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
         .expect("Failed to register index template file");
     hb.register_template_file("article", &article_tmpl_path)
         .expect("Failed to register article template file");
+    hb.register_template_file("login", &article_tmpl_path)
+        .expect("Failed to register login template file");
+    hb.register_template_file("admin", &article_tmpl_path)
+        .expect("Failed to register admin template file");
     hb.register_template_file("tag_list", &tag_list_tmpl_path)
         .expect("Failed to register tag_list template file");
     hb.register_template_file("header", &header_tmpl_path)

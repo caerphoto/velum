@@ -2,14 +2,21 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use crate::CommonData;
 use warp::Reply;
+use bcrypt;
 
 type WarpResult = Result<
     warp::reply::Response,
     warp::reject::Rejection
 >;
 
-pub async fn login_page_route(_data: Arc<Mutex<CommonData>>) -> WarpResult {
-    Ok(warp::reply::html("this is the login page").into_response())
+const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
+
+pub async fn login_page_route(data: Arc<Mutex<CommonData>>) -> WarpResult {
+    let data = data.lock().unwrap();
+    let body = data.hbs.render("login", &"");
+    body
+        .map(|b| warp::reply::html(b).into_response())
+        .map_err(|e| e)
 }
 
 pub async fn do_login_route(data: Arc<Mutex<CommonData>>, _json: HashMap<String, String>) -> WarpResult {
@@ -17,7 +24,7 @@ pub async fn do_login_route(data: Arc<Mutex<CommonData>>, _json: HashMap<String,
     let body = "login page";
 
     let session_id = "test";
-    let cookie = format!("session_id={}; Path=/; HttpOnly; Max-Age=1209600", session_id);
+    let cookie = format!("session_id={}; Path=/; HttpOnly; Max-Age={}", session_id, THIRTY_DAYS);
 
     data.session_id = Some(session_id.to_string());
 
