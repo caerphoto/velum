@@ -10,7 +10,8 @@ use std::time;
 use std::env;
 use std::net::IpAddr;
 use std::collections::HashMap;
-use warp::Filter;
+use warp::{Filter, Reply, http::Uri};
+use core::convert::TryFrom;
 use commondata::CommonData;
 use routes::{
     index_page_route,
@@ -91,10 +92,15 @@ async fn main() {
         .and(codata_filter.clone())
         .and_then(article_route);
 
+    // Only necessary for handling imported articles from Ghost blog.
     let legacy_article = warp::path!(String)
         .and(warp::query::<HashMap<String, String>>())
-        .and(codata_filter.clone())
-        .and_then(article_route);
+        .map(|slug, _| {
+            let path = Uri::try_from(format!("/articles/{}", slug));
+            warp::redirect::redirect(
+                path.unwrap_or_else(|_| Uri::from_static("/"))
+            ).into_response()
+        });
 
     let comment = warp::path!("comment" / String)
         .and(warp::body::content_length_limit(4000))
