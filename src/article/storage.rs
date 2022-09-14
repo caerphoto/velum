@@ -4,9 +4,7 @@ use crate::errors::{ParseResult, ParseError};
 use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;
-
-pub const DEFAULT_CONTENT_DIR: &str = "./content";
-const DEFAULT_MAX_PREVIEW_LENGTH: usize = 200;
+use crate::config::Config;
 
 pub struct LinkList {
     pub index_views: Vec<IndexView>,
@@ -75,17 +73,13 @@ fn set_prev_next(articles: &mut Vec<ContentView>) {
     }
 }
 
-fn builder_to_content_view(builder: Builder, config: &config::Config) -> ParseResult<ContentView> {
-    let max_len: usize = config
-        .get_int("max_preview_length")
-        .unwrap_or(DEFAULT_MAX_PREVIEW_LENGTH as i64) as usize;
-
+fn builder_to_content_view(builder: Builder, config: &Config) -> ParseResult<ContentView> {
         let title = builder.title()?;
         Ok(ContentView {
             slug: builder.slug()?, // borrow here before
             title,                       // move here
             content: builder.parsed_content(),
-            preview: builder.content_preview(max_len),
+            preview: builder.content_preview(config.max_preview_length),
             timestamp: builder.timestamp,
             tags: builder.tags(),
             prev: None,
@@ -93,11 +87,8 @@ fn builder_to_content_view(builder: Builder, config: &config::Config) -> ParseRe
         })
 }
 
-pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentView>> {
-    let content_dir = config
-        .get_string("content_dir")
-        .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_owned());
-    let path = PathBuf::from(content_dir).join("articles");
+pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {
+    let path = PathBuf::from(&config.content_dir).join("articles");
     if !path.is_dir() {
         let path = path.to_string_lossy();
         return Err(ParseError { cause: format!("article path `{}` is not a directory", &path) });

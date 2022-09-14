@@ -4,14 +4,15 @@ mod hb;
 mod comments;
 mod errors;
 mod routes;
+mod config;
 
 use std::sync::{Arc, Mutex};
 use std::time;
 use std::env;
 use std::net::IpAddr;
 use std::collections::HashMap;
-use warp::{Filter, Reply, http::Uri};
 use core::convert::TryFrom;
+use warp::{Filter, Reply, http::Uri};
 use commondata::CommonData;
 use routes::{
     index_page_route,
@@ -28,8 +29,6 @@ use routes::{
 
 #[macro_use] extern crate lazy_static;
 
-const DEFAULT_LISTEN_IP: &str = "127.0.0.1";
-const DEFAULT_LISTEN_PORT: u16 = 3090;
 const HASH_COST: u32 = 8;
 
 fn check_args(data: Arc<Mutex<CommonData>>) {
@@ -47,10 +46,14 @@ fn check_args(data: Arc<Mutex<CommonData>>) {
                 println!("Passwords do not match.");
                 std::process::exit(1);
             }
-            data.admin_password_hash = Some(
+            data.config.admin_password_hash = Some(
                 bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
             );
 
+            match data.config.save() {
+                Ok(_) => {},
+                Err(e) => { panic!("Config save failed: {:?}", e) }
+            }
         }
     }
 }
@@ -61,13 +64,15 @@ async fn main() {
 
     let now = time::Instant::now();
     log::info!("Building article and comment data from files... ");
-    let codata = Arc::new(Mutex::new(CommonData::new()));
+    let codata = CommonData::new();
+    let shared_codata = Arc::new(Mutex::new(codata));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
-    check_args(codata.clone());
+    check_args(shared_codata.clone());
 
+    let filter_data = shared_codata.clone();
     let codata_filter = warp::any()
-        .map(move || codata.clone());
+        .map(move || filter_data.clone());
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())
@@ -191,15 +196,17 @@ async fn main() {
         .recover(file_not_found_route)
         .with(error_logger);
 
-    let config = CommonData::load_config();
-    let listen_ip = config
-        .get_string("listen_ip")
-        .unwrap_or_else(|_| DEFAULT_LISTEN_IP.to_string());
-    let listen_ip = listen_ip.parse::<IpAddr>()
-        .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", listen_ip));
-    let listen_port = config
-        .get_int("listen_port")
-        .unwrap_or(DEFAULT_LISTEN_PORT as i64) as u16;
+    let listen_ip: IpAddr;
+    let listen_port: u16;
+    {
+        // ensure this mutex guard only lives inside this block, and doesn't
+        // get held across the below await point
+        let cd = shared_codata.lock().unwrap();
+        let config_listen_ip = cd.config.listen_ip.clone();
+        listen_ip = config_listen_ip.parse::<IpAddr>()
+            .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", config_listen_ip));
+        listen_port = cd.config.listen_port;
+    }
 
     warp::serve(routes)
         .run((listen_ip, listen_port))

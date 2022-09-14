@@ -1,26 +1,23 @@
 use handlebars::Handlebars;
-use config::Config;
 use crate::hb::create_handlebars;
 use crate::article::gather_fs_articles;
 use crate::errors::ParseError;
 use crate::article::view::ContentView;
 use crate::comments::Comments;
+use crate::config::Config;
 
-const CONFIG_FILE: &str = "Settings"; // .toml is implied
-const DEFAULT_PAGE_SIZE: usize = 5;
-
+#[derive(Clone)]
 pub struct CommonData {
     pub hbs: Handlebars<'static>,
     pub articles: Vec<ContentView>,
     pub comments: Comments,
     pub config: Config,
     pub session_id: Option<String>,
-    pub admin_password_hash: Option<String>,
 }
 
 impl CommonData {
     pub fn new() -> Self {
-        let config = Self::load_config();
+        let config = Config::load().expect("Failed to load config");
         let articles = gather_fs_articles(&config).expect("gather FS articles");
         let comments = Comments::new(&config);
         Self {
@@ -29,15 +26,7 @@ impl CommonData {
             comments,
             config,
             session_id: None,
-            admin_password_hash: None,
         }
-    }
-
-    pub fn load_config() -> Config {
-        Config::builder()
-            .add_source(config::File::with_name(CONFIG_FILE))
-            .build()
-            .expect("Failed to build config")
     }
 
     pub fn rebuild(&mut self) -> Result<(), ParseError> {
@@ -46,12 +35,4 @@ impl CommonData {
                 self.articles = articles;
             })
     }
-
-    pub fn page_size(&self) -> usize {
-        self.config
-            .get_int("page_size")
-            .unwrap_or(DEFAULT_PAGE_SIZE as i64) as usize
-    }
 }
-
-

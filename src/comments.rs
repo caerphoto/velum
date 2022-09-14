@@ -8,7 +8,7 @@ use std::io::{self, BufRead, prelude::*};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
-use crate::article::storage::DEFAULT_CONTENT_DIR;
+use crate::config::Config;
 
 const COMMENT_RATE_LIMIT: Duration = Duration::from_millis(2000);
 
@@ -59,7 +59,7 @@ where P: AsRef<Path>, {
 }
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Comments {
     comments: HashMap<String, Vec<Comment>>,
     prev_instants: HashMap<String, Instant>,
@@ -72,14 +72,10 @@ impl Comments {
         File::create(filename).is_ok()
     }
 
-    pub fn new(config: &config::Config) -> Self {
+    pub fn new(config: &Config) -> Self {
         let mut comments = HashMap::new();
         let prev_instants = HashMap::new();
-
-        let base_path = config
-            .get_string("content_path")
-            .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_string());
-        let filename = Path::new(&base_path).join("comments.jsonl");
+        let filename = Path::new(&config.content_dir).join("comments.jsonl");
         let lines = read_lines(&filename);
 
         if let Ok(lines) = lines {

@@ -22,8 +22,6 @@ pub use admin::{
     rebuild_index_route,
 };
 
-const DEFAULT_TITLE: &str = "Velum Blog";
-
 type InfResult<T> = Result<T, Infallible>;
 
 // Integer division rounding up, for calculating page count
@@ -68,12 +66,10 @@ fn render_article_list(
     data: &CommonData,
     tag: Option<&str>,
 ) -> InfResult<warp::reply::WithStatus<warp::reply::Html<String>>> {
-    let title = data.config
-        .get_string("blog_title")
-        .unwrap_or_else(|_| DEFAULT_TITLE.to_owned());
-
+    let title = &data.config.blog_title;
     let max_page = div_ceil(article_list.total_articles, page_size);
     let return_to = build_return_path(page, tag);
+
     match data.hbs.render(
         "main",
         &json!({
@@ -104,7 +100,7 @@ fn render_article_list(
 pub async fn index_page_route(page: usize, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
-    let page_size = data.page_size();
+    let page_size = data.config.page_size;
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
     let response = render_article_list(article_list, page, page_size, &data, None);
     if response.is_ok() {
@@ -117,7 +113,7 @@ pub async fn index_page_route(page: usize, data: Arc<Mutex<CommonData>>) -> InfR
 pub async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonData>>) -> InfResult<impl warp::Reply> {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
-    let page_size = data.page_size();
+    let page_size = data.config.page_size;
     let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
     let response = render_article_list(article_result, page, page_size, &data, Some(&tag));
     if response.is_ok() {
@@ -129,9 +125,7 @@ pub async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonDa
 pub async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<Mutex<CommonData>>) -> Result<impl warp::Reply, warp::Rejection> {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
-    let title = data.config
-        .get_string("blog_title")
-        .unwrap_or_else(|_| DEFAULT_TITLE.to_owned());
+    let title = &data.config.blog_title;
 
     let default_path = "/".to_string();
     let return_path = query.get("return_to").unwrap_or(&default_path);
@@ -142,7 +136,7 @@ pub async fn article_route(slug: String, query: HashMap<String, String>, data: A
             data.hbs.render(
                 "article",
                 &json!({
-                    "title": (article.title.clone() + " &middot ") + &title,
+                    "title": (article.title.clone() + " &middot ") + title,
                     "article": article,
                     "comments": comments,
                     "prev": article.prev,
