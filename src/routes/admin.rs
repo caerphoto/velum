@@ -1,18 +1,15 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use bytes::Bytes;
 use crate::CommonData;
 use warp::{Reply, http::Uri};
 use serde_json::json;
 use uuid::Uuid;
-
-type WarpResult = Result<
-    warp::reply::Response,
-    warp::reject::Rejection
->;
+use super::{WarpResult, error_response};
+use crate::article::storage::update_article;
 
 const SEE_OTHER: u16 = 303;
 const INTERNAL_SERVER_ERROR: u16 = 500;
-
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
 
 fn server_error(msg: String) -> WarpResult {
@@ -131,3 +128,37 @@ pub async fn rebuild_index_route(data: Arc<Mutex<CommonData>>, session_id: Optio
     }
 
 }
+
+pub async fn update_article_route(
+    slug: String,
+    new_content: Bytes,
+    data: Arc<Mutex<CommonData>>,
+    session_id: Option<String>,
+) -> WarpResult {
+    let mut data = data.lock().unwrap();
+    if needs_to_log_in(&data, session_id) {
+        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
+    }
+
+    if let Ok(new_content) = String::from_utf8(new_content.to_vec()) {
+
+        match update_article(&slug, &new_content, &mut data) {
+            Ok(_) =>  Ok(warp::reply::reply().into_response()),
+            Err(err) => {
+                log::error!("failed to update article: {:?}", err);
+                Ok(error_response("Unable to update article".to_string())
+                    .unwrap()
+                    .into_response()
+                )
+            }
+        }
+    } else {
+        Ok(
+            warp::reply::with_status(
+                warp::reply(),
+                warp::http::StatusCode::BAD_REQUEST
+            ).into_response()
+        )
+    }
+}
+

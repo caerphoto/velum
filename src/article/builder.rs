@@ -18,8 +18,9 @@ fn safe_truncate(s: &str, max_chars: usize) -> &str {
 
 // Struct for creating and managing article data
 pub struct Builder {
-    content: String,
+    pub content: String,
     pub timestamp: i64,
+    pub source_filename: PathBuf,
 }
 
 impl Builder {
@@ -34,6 +35,7 @@ impl Builder {
             Ok(Self {
                 content,
                 timestamp: s.as_millis() as i64,
+                source_filename: path.clone(),
             })
         } else {
             Err(io::Error::new(ErrorKind::Other, "failed to read file"))

@@ -14,6 +14,7 @@ handlebars = { git = "https://github.com/sunng87/handlebars-rust.git" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "0.5"
+bytes = "1.1"
 tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 regex = "1"

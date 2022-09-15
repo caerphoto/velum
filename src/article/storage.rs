@@ -1,10 +1,12 @@
-use crate::article::view::{ContentView, IndexView};
-use crate::article::builder::Builder;
-use crate::errors::{ParseResult, ParseError};
 use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;
+use std::io::{self, ErrorKind};
+use crate::CommonData;
 use crate::config::Config;
+use crate::errors::{ParseResult, ParseError};
+use crate::article::view::{ContentView, IndexView};
+use crate::article::builder::Builder;
 
 pub struct LinkList {
     pub index_views: Vec<IndexView>,
@@ -59,6 +61,15 @@ pub fn fetch_by_slug<'a >(slug: &str, articles: &'a Vec<ContentView>) -> Option<
     None
 }
 
+fn fetch_by_slug_mut<'a >(slug: &str, articles: &'a mut Vec<ContentView>) -> Option<&'a mut ContentView> {
+    for a in articles {
+        if a.slug == slug { return Some(a) }
+    }
+
+    None
+}
+
+
 fn set_prev_next(articles: &mut Vec<ContentView>) {
     for i in 0..articles.len() {
         let prev = if i > 0 {
@@ -78,13 +89,37 @@ fn builder_to_content_view(builder: Builder, config: &Config) -> ParseResult<Con
         Ok(ContentView {
             slug: builder.slug()?, // borrow here before
             title,                       // move here
-            content: builder.parsed_content(),
+            parsed_content: builder.parsed_content(),
+            base_content: builder.content.clone(),
             preview: builder.content_preview(config.max_preview_length),
+            source_filename: builder.source_filename.clone(),
             timestamp: builder.timestamp,
             tags: builder.tags(),
             prev: None,
             next: None,
         })
+}
+
+pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> Result<(), std::io::Error> {
+
+    let res = fetch_by_slug_mut(slug, &mut data.articles);
+    if res.is_some() {
+        let article: &mut ContentView = res.unwrap();
+
+        let builder = Builder {
+            content: new_content.to_string(),
+            timestamp: article.timestamp,
+            source_filename: article.source_filename.clone(),
+        };
+
+        if let Ok(new_article) = builder_to_content_view(builder, &data.config) {
+            article.parsed_content = new_article.parsed_content;
+            article.tags = new_article.tags;
+        }
+        Ok(())
+    } else {
+        Err(io::Error::new(ErrorKind::Other, "failed to read file"))
+    }
 }
 
 pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {

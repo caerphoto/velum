@@ -18,6 +18,8 @@ use routes::{
     index_page_route,
     tag_search_route,
     article_route,
+    article_text_route,
+    update_article_route,
     comment_route,
     file_not_found_route,
     admin_route,
@@ -92,6 +94,10 @@ async fn main() {
         .and(codata_filter.clone())
         .and_then(tag_search_route);
 
+    let article_text = warp::path!("articles" / String / "text")
+        .and(codata_filter.clone())
+        .and_then(article_text_route);
+
     let article = warp::path!("articles" / String)
         .and(warp::query::<HashMap<String, String>>())
         .and(codata_filter.clone())
@@ -100,6 +106,7 @@ async fn main() {
     // Only necessary for handling imported articles from Ghost blog.
     let legacy_article = warp::path!(String)
         .and(warp::query::<HashMap<String, String>>())
+        .and(warp::get())
         .map(|slug, _| {
             let path = Uri::try_from(format!("/articles/{}", slug));
             warp::redirect::redirect(
@@ -108,11 +115,11 @@ async fn main() {
         });
 
     let comment = warp::path!("comment" / String)
-        .and(warp::body::content_length_limit(4000))
+        .and(warp::post())
         .and(warp::filters::body::form())
+        .and(warp::body::content_length_limit(4000))
         .and(warp::filters::addr::remote())
         .and(codata_filter.clone())
-        .and(warp::post())
         .then(comment_route);
 
     let admin = warp::path!("admin")
@@ -126,8 +133,8 @@ async fn main() {
     let do_login = warp::path!("login")
         .and(codata_filter.clone())
         .and(warp::post())
-        .and(warp::body::content_length_limit(2048))
         .and(warp::body::form())
+        .and(warp::body::content_length_limit(2048))
         .and_then(do_login_route);
     let do_logout = warp::path!("logout")
         .and(codata_filter.clone())
@@ -140,6 +147,14 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
         .and_then(rebuild_index_route);
+    let update_article = warp::path!("update-article" / String)
+        .and(warp::put())
+        .and(warp::filters::body::bytes())
+        .and(warp::body::content_length_limit(10000))
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(update_article_route);
+
 
     // TODO: change hard-coded content dir() to use the one from config
     // can't use path! macro because it ends the path
@@ -179,7 +194,9 @@ async fn main() {
 
     let routes = article_index
         .or(article_index_at_page)
+        .or(article_text)
         .or(article)
+        .or(update_article)
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
         .or(comment)

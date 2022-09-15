@@ -25,6 +25,10 @@ body.dimmed {
     color: #333;
 }
 
+body.admin {
+    font-family: "IBM Plex Sans", sans-serif;
+}
+
 article {
     margin: 1em auto;
     max-width: 35em;
@@ -57,6 +61,89 @@ article {
     text-align: center;
 }
 
+.admin article {
+    max-width: none;
+    width: 100%;
+    position: relative;
+    margin: 0 0 0.5em;
+    padding: 0;
+    font-size: 15px;
+
+    display: grid;
+    grid-template-columns: 35em 1fr;
+    grid-template-rows: calc(100vh - 15em);
+}
+
+.admin h2,
+.admin form {
+    margin: 0;
+    padding: 0;
+    align-self: center;
+}
+
+.admin button {
+    margin: 0;
+}
+
+.admin-main-section {
+    padding: 0 0.5em;
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 2.8em auto;
+}
+
+.main-section-form {
+    justify-self: end;
+}
+
+.admin-article-list {
+    grid-column: 1 / 3;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.5em 0 0.5em 3em;
+    border: 1px solid #ddd;
+    overflow-y: scroll;
+    background-color: #fff;
+}
+
+.admin-article-list li {
+    margin-bottom: 0.5em;
+}
+
+.admin-article-list a {
+    box-shadow: none;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.5);
+}
+
+.admin-article-list a:visited {
+    color: #579;
+}
+
+.admin-article-list a:hover {
+    background: none;
+    box-shadow: none;
+    color: #000;
+    border-color: #000;
+}
+
+.admin-article-list .date {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.admin .article-editor {
+    max-width: none;
+    margin: 0;
+    width: auto;
+    height: auto;
+    grid-column: 1/ 3;
+    grid-row: 2 / 3;
+    justify-self: stretch;
+    align-self: stretch;
+
+    font-family: monospace;
+}
+
 nav,
 header,
 footer {
@@ -66,12 +153,16 @@ footer {
 
 header,
 footer {
+    display: grid;
+    align-items: center;
     margin: 0;
     background-color: #16425b;
 }
 
 header {
-    padding: 0 0 1.4em;
+    box-sizing: border-box;
+    grid-template: 2.5em 1fr / 50% 50%;
+    height: 8em;
     color: #fff;
     box-shadow: 0 3px 5px 0 rgba(0, 0, 0, 0.2);
     border-bottom: 2px solid #000;
@@ -79,11 +170,21 @@ header {
 }
 
 footer {
-    padding: 2em 5em;
+    box-sizing: border-box;
+    height: 4em;
+    grid-template: 1fr / 1fr;
+    align-items: center;
+    padding: 0 5em;
+
     color: #f8f7f4;
     box-shadow: inset 0 8px 5px -5px rgba(0, 0, 0, 0.7),
         0 150px 0 100px #16425b; /* to cover article shadow on short pages */
 }
+
+footer p {
+    margin: 0;
+}
+
 
 h1, h2, h3, h4, .tags {
     font-family: "IBM Plex Sans", sans-serif;
@@ -91,11 +192,12 @@ h1, h2, h3, h4, .tags {
 }
 
 h1 {
+    grid-column: 1 / 3;
+    grid-row: 2 / 3;
     font-size: 2.8em;
     font-weight: 300;
-    margin: 0 auto 0.1em;
-    padding: 0.8em 0 0;
-    max-width: 15em;
+    margin: 0;
+    padding: 0;
     text-align: center;
     text-wrap: balance;
     line-height: 1;
@@ -107,24 +209,29 @@ h1 {
 
 
 header .link-box {
-    margin: 0 0 1em;
-    padding: 0.5em 1em 0.7em;
-    line-height: 1;
+    grid-row: 1 / 2;
 }
 
 
 header .home.link-box {
-    display: block;
+    grid-column: 1 / 3;
+    justify-self: stretch;
+    align-self: stretch;
+    display: grid;
+    align-items: center;
+    justify-items: start;
+
+    padding-left: 1em;
+
     background-color: #367;
     border-bottom: 1px solid #000;
     box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
 }
 
 header .logout.link-box {
-    position: absolute;
-    text-align: right;
-    right: 0;
-    top: 0;
+    grid-column: 2 / 3;
+    justify-self: end;
+    padding-right: 1em;
 }
 
 .index-link::before {
@@ -289,8 +396,11 @@ ul.tags li:last-child::after {
 a {
     text-decoration: none;
     color: #579;
-    box-shadow: inset 0 -4px 0 #c9d5dc;
+    box-shadow: inset 0 -4px 0 #cccecf;
     border-radius: 1px;
+    transition:
+        border-color 0.5s ease,
+        background-color 0.5s ease;
 }
 
 header a,
@@ -310,6 +420,7 @@ a:hover {
     background-color: #4b7b97;
     border-color: transparent;
     border-radius: 1px;
+    transition: background-color 0s ease;
 }
 
 ul.tags a {
@@ -526,6 +637,9 @@ textarea {
 button {
     color: #16425b;
     background-color: #eee;
+    line-height: 1;
+    font-family: "IBM Plex Sans", sans-serif;
+    padding: 0.3em 0.5em;
 }
 
 button:hover {

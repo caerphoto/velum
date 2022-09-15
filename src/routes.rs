@@ -20,7 +20,14 @@ pub use admin::{
     do_login_route,
     do_logout_route,
     rebuild_index_route,
+    update_article_route,
 };
+
+pub type WarpResult = Result<
+    warp::reply::Response,
+    warp::reject::Rejection
+>;
+
 
 type InfResult<T> = Result<T, Infallible>;
 
@@ -40,7 +47,7 @@ fn div_ceil(lhs: usize, rhs: usize) -> usize {
 //       routes, which are much cleaner.
 // ---------------------------------------------------------------------------
 
-fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
+pub fn error_response(msg: String) -> Result<warp::reply::WithStatus<warp::reply::Html<String>>, Infallible> {
     let reply = warp::reply::html(msg);
     Ok(warp::reply::with_status(reply, warp::http::StatusCode::INTERNAL_SERVER_ERROR))
 }
@@ -120,6 +127,20 @@ pub async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonDa
         log::info!("Rendered tag '{}' index page {} in {}ms", &tag, page, now.elapsed().as_millis());
     }
     response
+}
+
+pub async fn article_text_route(slug: String, data: Arc<Mutex<CommonData>>) -> Result<impl warp::Reply, warp::Rejection> {
+    let mut data = data.lock().unwrap();
+    if let Some(article) = fetch_by_slug(&slug, &mut data.articles) {
+        Ok(warp::http::Response::builder()
+            .status(200)
+            .header("Content-Type", "text/plain; charset=utf-8")
+            .body(article.base_content.clone())
+            .unwrap()
+        )
+    } else {
+        Err(warp::reject::not_found())
+    }
 }
 
 pub async fn article_route(slug: String, query: HashMap<String, String>, data: Arc<Mutex<CommonData>>) -> Result<impl warp::Reply, warp::Rejection> {

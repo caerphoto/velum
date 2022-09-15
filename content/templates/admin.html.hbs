@@ -13,22 +13,33 @@
 </header>
 
 <article>
-  <section id="admin" class="content">
+  <section id="admin-article-manager" class="admin-main-section">
     <h2>Articles:</h2>
-    <form action="/rebuild" method="POST">
+
+    <form action="/rebuild" method="POST" class="main-section-form">
       <button type="submit">Rebuild article index</button>
     </form>
 
     <ol class="admin-article-list" reversed>
       {{#each articles}}
       <li class="admin-article-list_item">
-        <p class="admin-post-title">
-          <a href="/articles/{{this.slug}}">{{this.title}}</a>: {{date_from_timestamp this.timestamp}}
-        </p>
+      <a data-slug="{{this.slug}}" href="#{{this.slug}}">{{this.title}}</a><br>
+        <span class="date">{{date_from_timestamp this.timestamp}}</span>
       </li>
       {{/each}}
     </ol>
   </section>
+
+  <section id="admin-article-editor" class="admin-main-section">
+    <h2>Edit article:</h2>
+
+    <form data-action="/update-article" method="PUT" id="save-article" class="main-section-form">
+      <button type="submit">Save</button>
+    </form>
+
+    <textarea class="article-editor"></textarea>
+  </section>
 </article>
 
+<script src="/assets/admin.js"></script>
 {{> footer}}

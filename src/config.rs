@@ -1,7 +1,7 @@
 use std::fs;
 use serde::{Serialize, Deserialize};
 
-const CONFIG_FILE: &str = "Settings.toml"; // .toml is implied
+const CONFIG_FILE: &str = "./Settings.toml"; // .toml is implied
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Config {
