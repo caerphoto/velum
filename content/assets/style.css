@@ -139,8 +139,21 @@ article {
     border-color: #000;
 }
 
+.admin-article-list a.admin-open-article-link,
 .admin-article-list .date {
     font-size: 0.8em;
+}
+.admin-article-list a.admin-open-article-link {
+    display: inline-block;
+    margin-left: 2em;
+    border: none;
+    color: #ccc;
+}
+.admin-article-list li:hover a.admin-open-article-link {
+    color: #579;
+    text-decoration: underline;
+}
+.admin-article-list .date {
     color: #666;
 }
 
