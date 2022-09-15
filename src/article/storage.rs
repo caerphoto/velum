@@ -100,6 +100,20 @@ fn builder_to_content_view(builder: Builder, config: &Config) -> ParseResult<Con
         })
 }
 
+fn update_article_source(path: &PathBuf, content: &str) -> Result<(), std::io::Error> {
+    let metadata = fs::metadata(path)?;
+    let filedate = match metadata.created() {
+        Ok(c) => c,
+        Err(_) => metadata.modified()?
+    };
+    let mtime = filetime::FileTime::from_system_time(filedate);
+    fs::write(path, content)?;
+
+    // Modified time needs to be restored to original value to preserve
+    // article order.
+    filetime::set_file_mtime(path, mtime)
+}
+
 pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> Result<(), std::io::Error> {
 
     let res = fetch_by_slug_mut(slug, &mut data.articles);
@@ -113,12 +127,17 @@ pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> R
         };
 
         if let Ok(new_article) = builder_to_content_view(builder, &data.config) {
+            article.base_content = new_article.base_content;
             article.parsed_content = new_article.parsed_content;
+            article.preview = new_article.preview;
             article.tags = new_article.tags;
         }
-        Ok(())
+        update_article_source(
+            &article.source_filename,
+            &article.base_content,
+        )
     } else {
-        Err(io::Error::new(ErrorKind::Other, "failed to read file"))
+        Err(io::Error::new(ErrorKind::Other, "failed to fetch mutable article reference"))
     }
 }
 
