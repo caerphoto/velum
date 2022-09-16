@@ -18,7 +18,7 @@
 
     function confirmDelete(slug, title) {
         if (!window.confirm(
-            `"${title}"\n\nAre you sure you want to delete this article?`
+            `"${title}"\n\nAre you sure you want to delete this article?\n\nWARNING: this cannot be undone!`
         )) return;
 
         const xhr = new XMLHttpRequest();
