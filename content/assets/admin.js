@@ -20,6 +20,7 @@
         const target = event.target;
         if (target.nodeName !== 'A') return;
         slug = target.getAttribute('data-slug');
+        if (!slug) return;
         fetchArticleText();
     });
 
