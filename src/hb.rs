@@ -80,6 +80,7 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let tag_list_tmpl_path = tmpl_path("_tag_list", config);
     let comments_tmpl_path = tmpl_path("_comments", config);
     let comment_tmpl_path = tmpl_path("_comment", config);
+    let index_pagination_tmpl_path = tmpl_path("_index_pagination", config);
     let header_tmpl_path = tmpl_path("_header", config);
     let footer_tmpl_path = tmpl_path("_footer", config);
     let admin_article_list_item_tmpl_path = tmpl_path("_admin_article_list_item", config);
@@ -97,6 +98,8 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
         .expect("Failed to register admin template file");
     hb.register_template_file("tag_list", &tag_list_tmpl_path)
         .expect("Failed to register tag_list template file");
+    hb.register_template_file("index_pagination", &index_pagination_tmpl_path)
+        .expect("Failed to register index pagination template file");
     hb.register_template_file("header", &header_tmpl_path)
         .expect("Failed to register header template file");
     hb.register_template_file("comments", &comments_tmpl_path)

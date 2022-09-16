@@ -12,6 +12,10 @@
   {{/if}}
 </header>
 
+{{#if (gt current_page 1) }}
+  {{> index_pagination }}
+{{/if}}
+
 <article>
   <section id="post-index" class="content">
     <ul class="article-list">
@@ -27,30 +31,6 @@
   </section>
 </article>
 
-<nav class="pagination">
-  {{#if (gt current_page 1)}}
-  <div class="nav-prev">
-    {{#if search_tag}}
-      <a href="/tag/{{search_tag}}/{{prev_page}}">&larr; previous</a>
-    {{else}}
-      <a href="/index/{{prev_page}}">&larr; previous</a>
-    {{/if}}
-  </div>
-  {{else}}
-  <span class="empty"></span>
-  {{/if}}
-  <span class="nav-sep">Page {{current_page}} of {{max_page}}</span>
-  {{#if (gt next_page 0)}}
-  <div class="nav-next">
-    {{#if search_tag}}
-      <a href="/tag/{{search_tag}}/{{next_page}}">next &rarr;</a>
-    {{else}}
-      <a href="/index/{{next_page}}">next &rarr;</a>
-    {{/if}}
-  </div>
-  {{else}}
-  <span class="empty"></span>
-  {{/if}}
-</nav>
+{{> index_pagination }}
 
 {{> footer}}
