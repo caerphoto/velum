@@ -22,6 +22,7 @@ use routes::{
     article_route,
     article_text_route,
     update_article_route,
+    delete_article_route,
     comment_route,
     file_not_found_route,
     admin_route,
@@ -100,6 +101,7 @@ async fn main() {
         .and_then(article_text_route);
 
     let article = warp::path!("articles" / String)
+        .and(warp::get())
         .and(warp::query::<HashMap<String, String>>())
         .and(codata_filter.clone())
         .and_then(article_route);
@@ -155,23 +157,27 @@ async fn main() {
         .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
         .and_then(update_article_route);
+    let delete_article = warp::path!("article" / String)
+        .and(warp::delete())
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(delete_article_route);
 
 
-    let path = PathBuf::from(config.content_dir.clone());
-    let content_route = config.content_dir.clone();
-    let images = warp::path(content_route)
+    let path = PathBuf::from(&config.content_dir);
+    let images = warp::path("content")
         .and(warp::path("images"))
-        .and(warp::fs::dir(path.join("/images")));
-    let assets = warp::path("assets").and(warp::fs::dir(path.join("/assets")));
+        .and(warp::fs::dir(path.join("images")));
+    let assets = warp::path("assets").and(warp::fs::dir(path.join("assets")));
 
     let robots_txt = warp::path!("robots.txt").map(|| "");
 
     let favicon16 = warp::path!("favicon16.png")
-        .and(warp::fs::file(path.join("/favicon16.png")));
+        .and(warp::fs::file(path.join("favicon16.png")));
     let favicon32 = warp::path!("favicon32.png")
-        .and(warp::fs::file(path.join("/favicon32.png")));
+        .and(warp::fs::file(path.join("favicon32.png")));
     let favicon_apple = warp::path!("favicon_apple.png")
-        .and(warp::fs::file(path.join("/favicon_apple.png")));
+        .and(warp::fs::file(path.join("favicon_apple.png")));
 
     let error_logger = warp::filters::log::custom(|info| {
         let s = info.status();
@@ -197,6 +203,7 @@ async fn main() {
         .or(article_text)
         .or(article)
         .or(update_article)
+        .or(delete_article)
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
         .or(comment)

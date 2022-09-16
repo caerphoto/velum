@@ -16,12 +16,34 @@
         xhr.send();
     }
 
+    function confirmDelete(slug, title) {
+        if (!window.confirm(
+            `"${title}"\n\nAre you sure you want to delete this article?`
+        )) return;
+
+        const xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', () => {
+            const li = articleList.querySelector(`li[data-slug="${slug}"]`);
+            if (!li) return;
+            li.parentNode.removeChild(li);
+            editor.value = '';
+        });
+        xhr.open('DELETE', `/article/${slug}`);
+        xhr.send();
+    }
+
     articleList.addEventListener('click', event => {
         const target = event.target;
-        if (target.nodeName !== 'A') return;
-        slug = target.getAttribute('data-slug');
-        if (!slug) return;
-        fetchArticleText();
+        if (target.nodeName === 'A') {
+            slug = target.getAttribute('data-slug');
+            if (!slug) return;
+            fetchArticleText();
+        } else if (target.nodeName === 'BUTTON') {
+            confirmDelete(
+                target.getAttribute('data-slug'),
+                target.getAttribute('data-title')
+            );
+        }
     });
 
     saveForm.addEventListener('submit', event => {

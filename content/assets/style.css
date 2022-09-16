@@ -116,6 +116,7 @@ article {
     padding: 0.2em 0.7em;
     border-bottom: 1px solid #fff;
     list-style: none;
+    position: relative;
 }
 
 .admin-article-list li:hover {
@@ -147,12 +148,38 @@ article {
     display: inline-block;
     margin-left: 2em;
     border: none;
-    color: #ccc;
+    opacity: 0.2;
 }
 .admin-article-list li:hover a.admin-open-article-link {
-    color: #579;
+    opacity: 1;
     text-decoration: underline;
 }
+
+.admin-article-list button {
+    position: absolute;
+    right: 0.5em;
+    top: 0.9em;
+
+    font-size: 14px;
+    text-indent: -999em;
+    background-image: url('/assets/icon-bin.svg');
+    background-repeat: no-repeat;
+    background-size: 14px;
+    background-position: center;
+    width: 1.7em;
+    height: 1.7em;
+
+    opacity: 0;
+}
+
+.admin-article-list li:hover button {
+    opacity: 1;
+}
+
+.admin-article-list button:hover {
+    border-color: #800;
+}
+
 .admin-article-list .date {
     color: #666;
 }

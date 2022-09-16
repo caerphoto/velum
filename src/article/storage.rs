@@ -117,9 +117,7 @@ fn update_article_source(path: &PathBuf, content: &str) -> Result<(), std::io::E
 pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> Result<(), std::io::Error> {
 
     let res = fetch_by_slug_mut(slug, &mut data.articles);
-    if res.is_some() {
-        let article: &mut ContentView = res.unwrap();
-
+    if let Some(article) = res {
         let builder = Builder {
             content: new_content.to_string(),
             timestamp: article.timestamp,
@@ -139,6 +137,11 @@ pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> R
     } else {
         Err(io::Error::new(ErrorKind::Other, "failed to fetch mutable article reference"))
     }
+}
+
+pub fn delete_article(slug: &str, data: &mut CommonData) {
+    // TODO: delete the article from disk
+    data.articles.retain(|article| article.slug != slug)
 }
 
 pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {

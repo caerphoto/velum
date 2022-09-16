@@ -6,7 +6,7 @@ use warp::{Reply, http::Uri};
 use serde_json::json;
 use uuid::Uuid;
 use super::{WarpResult, error_response};
-use crate::article::storage::update_article;
+use crate::article::storage;
 
 const SEE_OTHER: u16 = 303;
 const INTERNAL_SERVER_ERROR: u16 = 500;
@@ -142,7 +142,7 @@ pub async fn update_article_route(
 
     if let Ok(new_content) = String::from_utf8(new_content.to_vec()) {
 
-        match update_article(&slug, &new_content, &mut data) {
+        match storage::update_article(&slug, &new_content, &mut data) {
             Ok(_) =>  Ok(warp::reply::reply().into_response()),
             Err(err) => {
                 log::error!("failed to update article: {:?}", err);
@@ -160,5 +160,21 @@ pub async fn update_article_route(
             ).into_response()
         )
     }
+}
+
+
+pub async fn delete_article_route(
+    slug: String,
+    data: Arc<Mutex<CommonData>>,
+    session_id: Option<String>,
+) -> WarpResult {
+    let mut data = data.lock().unwrap();
+    if needs_to_log_in(&data, session_id) {
+        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
+    }
+
+    storage::delete_article(&slug, &mut data);
+    log::info!("Deleted article '{}'", &slug);
+    Ok(warp::reply::reply().into_response())
 }
 

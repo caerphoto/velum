@@ -21,6 +21,7 @@ pub use admin::{
     do_logout_route,
     rebuild_index_route,
     update_article_route,
+    delete_article_route,
 };
 
 pub type WarpResult = Result<
@@ -130,8 +131,8 @@ pub async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonDa
 }
 
 pub async fn article_text_route(slug: String, data: Arc<Mutex<CommonData>>) -> Result<impl warp::Reply, warp::Rejection> {
-    let mut data = data.lock().unwrap();
-    if let Some(article) = fetch_by_slug(&slug, &mut data.articles) {
+    let data = data.lock().unwrap();
+    if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         Ok(warp::http::Response::builder()
             .status(200)
             .header("Content-Type", "text/plain; charset=utf-8")
