@@ -91,7 +91,7 @@ fn render_article_list(
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
             "return_to": return_to,
-            "body_class": "index",
+            "body_class": if tag.is_some() { "tag-index" } else { "index" },
         })
     ) {
         Ok(rendered_page) => {
