@@ -61,6 +61,8 @@ future there may be options for running daemonised, or as a system service.
 
 ## To Do
 
-1. Ensure there are no duplicate slugs.
+1. Image uploader for admin page.
 
-2. RSS feeds for main site, and maybe per-tag?
+2. Ensure there are no duplicate slugs.
+
+3. RSS feeds for main site, and maybe per-tag?
