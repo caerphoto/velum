@@ -61,24 +61,9 @@ future there may be options for running daemonised, or as a system service.
 
 ## To Do
 
-1. Since removing the reliance on Redis, it's become clear that there's no
-   proper handling of duplicate slugs/titles. While this shouldn't really be
-   a problem, and nothing will *break*, exactly, it's obviously not ideal, and
-   a solution needs to be found.
+1. The admin page is largely complete, but it needs a way of uploading/creating
+   new articles. This should be fairly straightforward.
 
-2. Rebuilding the article database: adding a new article currently means
-   restarting the server is necessary in order for it to be included in the
-   article list, but  this obviously means downtime, and is not great from a UX
-   perspective. A better option would be a way to send a special HTTP request
-   to the server that signals it to rebuild, possibly via an admin page of some
-   kind. There is already code in place to rebuild the article cache, so it's
-   mostly a matter of wiring it up to a UI.
+2. Ensure there are no duplicate slugs.
 
-3. Then there's the question of an editor: does Velum even need one? If not,
-   what about a simplified way to upload content, that means users don't have
-   to manually copy files (including images) to their server? As with the
-   server restart issue, this is about UX for the blog maintainer, obviating
-   the need for SSHing into the server and other such disagreeableness.
-
-4. RSS: it feels a bit like a niche thing these days, but plenty of people
-   still use RSS, myself included, so I want to include it.
+3. RSS feeds for main site, and maybe per-tag?
