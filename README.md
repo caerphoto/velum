@@ -61,9 +61,6 @@ future there may be options for running daemonised, or as a system service.
 
 ## To Do
 
-1. The admin page is largely complete, but it needs a way of uploading/creating
-   new articles. This should be fairly straightforward.
+1. Ensure there are no duplicate slugs.
 
-2. Ensure there are no duplicate slugs.
-
-3. RSS feeds for main site, and maybe per-tag?
+2. RSS feeds for main site, and maybe per-tag?
