@@ -139,9 +139,8 @@ pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> R
     }
 }
 
-pub fn delete_article(slug: &str, data: &mut CommonData) {
-    // TODO: delete the article from disk
-    data.articles.retain(|article| article.slug != slug)
+pub fn delete_article(article: &ContentView) -> Result<(), std::io::Error> {
+    fs::remove_file(&article.source_filename)
 }
 
 pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {

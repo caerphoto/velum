@@ -71,7 +71,7 @@ article {
 
     display: grid;
     grid-template-columns: 35em 1fr;
-    grid-template-rows: calc(100vh - 15em);
+    grid-template-rows: calc(100vh - 14em);
 }
 
 .admin h2,
@@ -250,6 +250,9 @@ footer {
     color: #f8f7f4;
     box-shadow: inset 0 8px 5px -5px rgba(0, 0, 0, 0.7),
         0 150px 0 100px #16425b; /* to cover article shadow on short pages */
+}
+.admin footer {
+    height: 3em;
 }
 
 footer p {
