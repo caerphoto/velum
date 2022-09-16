@@ -7,12 +7,14 @@ mod routes;
 mod config;
 
 use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
 use std::time;
 use std::env;
 use std::net::IpAddr;
 use std::collections::HashMap;
 use core::convert::TryFrom;
 use warp::{Filter, Reply, http::Uri};
+use crate::config::Config;
 use commondata::CommonData;
 use routes::{
     index_page_route,
@@ -33,8 +35,7 @@ use routes::{
 
 const HASH_COST: u32 = 8;
 
-fn check_args(data: Arc<Mutex<CommonData>>) {
-    let mut data = data.lock().unwrap();
+fn check_args(config: &mut Config) {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 || &args[1] != "register" { return; }
 
@@ -48,11 +49,11 @@ fn check_args(data: Arc<Mutex<CommonData>>) {
                 println!("Passwords do not match.");
                 std::process::exit(1);
             }
-            data.config.admin_password_hash = Some(
+            config.admin_password_hash = Some(
                 bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
             );
 
-            match data.config.save() {
+            match config.save() {
                 Ok(_) => {},
                 Err(e) => { panic!("Config save failed: {:?}", e) }
             }
@@ -67,14 +68,14 @@ async fn main() {
     let now = time::Instant::now();
     log::info!("Building article and comment data from files... ");
     let codata = CommonData::new();
+    let mut config = codata.config.clone();
     let shared_codata = Arc::new(Mutex::new(codata));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
-    check_args(shared_codata.clone());
+    check_args(&mut config);
 
-    let filter_data = shared_codata.clone();
     let codata_filter = warp::any()
-        .map(move || filter_data.clone());
+        .map(move || shared_codata.clone());
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())
@@ -156,22 +157,21 @@ async fn main() {
         .and_then(update_article_route);
 
 
-    // TODO: change hard-coded content dir() to use the one from config
-    // can't use path! macro because it ends the path
-    let images = warp::path("content")
+    let path = PathBuf::from(config.content_dir.clone());
+    let content_route = config.content_dir.clone();
+    let images = warp::path(content_route)
         .and(warp::path("images"))
-        .and(warp::fs::dir("content/images"));
-
-    let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
+        .and(warp::fs::dir(path.join("/images")));
+    let assets = warp::path("assets").and(warp::fs::dir(path.join("/assets")));
 
     let robots_txt = warp::path!("robots.txt").map(|| "");
 
     let favicon16 = warp::path!("favicon16.png")
-        .and(warp::fs::file("content/favicon16.png"));
+        .and(warp::fs::file(path.join("/favicon16.png")));
     let favicon32 = warp::path!("favicon32.png")
-        .and(warp::fs::file("content/favicon32.png"));
+        .and(warp::fs::file(path.join("/favicon32.png")));
     let favicon_apple = warp::path!("favicon_apple.png")
-        .and(warp::fs::file("content/favicon_apple.png"));
+        .and(warp::fs::file(path.join("/favicon_apple.png")));
 
     let error_logger = warp::filters::log::custom(|info| {
         let s = info.status();
@@ -213,17 +213,9 @@ async fn main() {
         .recover(file_not_found_route)
         .with(error_logger);
 
-    let listen_ip: IpAddr;
-    let listen_port: u16;
-    {
-        // ensure this mutex guard only lives inside this block, and doesn't
-        // get held across the below await point
-        let cd = shared_codata.lock().unwrap();
-        let config_listen_ip = cd.config.listen_ip.clone();
-        listen_ip = config_listen_ip.parse::<IpAddr>()
-            .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", config_listen_ip));
-        listen_port = cd.config.listen_port;
-    }
+    let listen_ip = config.listen_ip.parse::<IpAddr>()
+        .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", &config.listen_ip));
+    let listen_port = config.listen_port;
 
     warp::serve(routes)
         .run((listen_ip, listen_port))
