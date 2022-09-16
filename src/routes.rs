@@ -20,6 +20,7 @@ pub use admin::{
     do_login_route,
     do_logout_route,
     rebuild_index_route,
+    create_article_route,
     update_article_route,
     delete_article_route,
 };

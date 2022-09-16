@@ -148,6 +148,45 @@ pub async fn rebuild_index_route(data: Arc<Mutex<CommonData>>, session_id: Optio
 
 }
 
+pub async fn create_article_route(
+    content: Bytes,
+    data: Arc<Mutex<CommonData>>,
+    session_id: Option<String>,
+) -> WarpResult {
+    let mut data = data.lock().unwrap();
+    if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
+
+    if let Ok(content) = String::from_utf8(content.to_vec()) {
+        match storage::create_article(&content, &mut data) {
+            Ok(view) => {
+                log::info!("Created article '{}' on disk.", view.slug);
+                if let Err(err) = data.rebuild() {
+                    log::error!("Failed to rebuild article index: {:?}", err);
+                    server_error("Error rebuilding article index")
+                } else {
+                    let body = data.hbs.render(
+                        "admin_article_list_item",
+                        &view
+                    );
+                    match body {
+                        Ok(b) =>  Ok(warp::reply::html(b).into_response()),
+                        Err(e) => {
+                            log::error!("Failed to render list item: {:?}", e);
+                            server_error("Error rendering new item for list")
+                        }
+                    }
+                }
+            },
+            Err(err) => {
+                log::error!("Failed to create article: {:?}", err);
+                server_error("Error creating article")
+            }
+        }
+    } else {
+        empty_response(BAD_REQUEST)
+    }
+}
+
 pub async fn update_article_route(
     slug: String,
     new_content: Bytes,
@@ -162,7 +201,13 @@ pub async fn update_article_route(
             log::error!("Failed to update article: {:?}", err);
             server_error("Error upating article")
         } else {
-            empty_response(OK)
+            log::info!("Updated article '{}' on disk.", &slug);
+            if let Err(err) = data.rebuild() {
+                log::error!("Failed to rebuild article index: {:?}", err);
+                server_error("Error rebuilding article index")
+            } else {
+                empty_response(OK)
+            }
         }
     } else {
         empty_response(BAD_REQUEST)

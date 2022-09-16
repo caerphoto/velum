@@ -82,6 +82,7 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let comment_tmpl_path = tmpl_path("_comment", config);
     let header_tmpl_path = tmpl_path("_header", config);
     let footer_tmpl_path = tmpl_path("_footer", config);
+    let admin_article_list_item_tmpl_path = tmpl_path("_admin_article_list_item", config);
 
     #[cfg(debug_assertions)]
     hb.set_dev_mode(true);
@@ -104,6 +105,8 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
         .expect("Failed to register comment template file");
     hb.register_template_file("footer", &footer_tmpl_path)
         .expect("Failed to register footer template file");
+    hb.register_template_file("admin_article_list_item", &admin_article_list_item_tmpl_path)
+        .expect("Failed to register list item template file");
 
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
     hb.register_helper("is_current_tag", Box::new(is_current_tag));

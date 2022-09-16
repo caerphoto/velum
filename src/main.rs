@@ -21,6 +21,7 @@ use routes::{
     tag_search_route,
     article_route,
     article_text_route,
+    create_article_route,
     update_article_route,
     delete_article_route,
     comment_route,
@@ -82,7 +83,6 @@ async fn main() {
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())
         .and_then(index_page_route);
-
     let article_index_at_page = warp::path!("index" / usize)
         .and(codata_filter.clone())
         .and_then(index_page_route);
@@ -92,20 +92,38 @@ async fn main() {
         .untuple_one()
         .and(codata_filter.clone())
         .and_then(tag_search_route);
-
     let articles_with_tag_at_page = warp::path!("tag" / String / usize)
         .and(codata_filter.clone())
         .and_then(tag_search_route);
-
-    let article_text = warp::path!("articles" / String / "text")
-        .and(codata_filter.clone())
-        .and_then(article_text_route);
 
     let article = warp::path!("articles" / String)
         .and(warp::get())
         .and(warp::query::<HashMap<String, String>>())
         .and(codata_filter.clone())
         .and_then(article_route);
+    let create_article = warp::path!("articles")
+        .and(warp::post())
+        .and(warp::filters::body::bytes())
+        .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(create_article_route);
+    let update_article = warp::path!("articles" / String)
+        .and(warp::put())
+        .and(warp::filters::body::bytes())
+        .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(update_article_route);
+    let delete_article = warp::path!("articles" / String)
+        .and(warp::delete())
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(delete_article_route);
+
+    let article_text = warp::path!("articles" / String / "text")
+        .and(codata_filter.clone())
+        .and_then(article_text_route);
 
     // Only necessary for handling imported articles from Ghost blog.
     let legacy_article = warp::path!(String)
@@ -151,19 +169,6 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
         .and_then(rebuild_index_route);
-    let update_article = warp::path!("article" / String)
-        .and(warp::put())
-        .and(warp::filters::body::bytes())
-        .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
-        .and(codata_filter.clone())
-        .and(warp::cookie::optional::<String>("session_id"))
-        .and_then(update_article_route);
-    let delete_article = warp::path!("article" / String)
-        .and(warp::delete())
-        .and(codata_filter.clone())
-        .and(warp::cookie::optional::<String>("session_id"))
-        .and_then(delete_article_route);
-
 
     let path = PathBuf::from(&config.content_dir);
     let images = warp::path("content")
@@ -201,10 +206,11 @@ async fn main() {
 
     let routes = article_index
         .or(article_index_at_page)
-        .or(article_text)
         .or(article)
+        .or(create_article)
         .or(update_article)
         .or(delete_article)
+        .or(article_text)
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
         .or(comment)

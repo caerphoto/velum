@@ -2,6 +2,7 @@ use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;
 use std::io::{self, ErrorKind};
+use uuid::Uuid;
 use crate::CommonData;
 use crate::config::Config;
 use crate::errors::{ParseResult, ParseError};
@@ -112,6 +113,37 @@ fn update_article_source(path: &PathBuf, content: &str) -> Result<(), std::io::E
     // Modified time needs to be restored to original value to preserve
     // article order.
     filetime::set_file_mtime(path, mtime)
+}
+
+pub fn create_article(content: &str, data: &mut CommonData) -> Result<IndexView, std::io::Error> {
+    let temp_filename = PathBuf::from(data.config.content_dir.clone())
+        .join("articles")
+        .join(Uuid::new_v4().to_string() + ".md");
+    fs::write(&temp_filename, content)?;
+
+    let builder = Builder::from_file(&temp_filename)?;
+    if let Ok(slug) = builder.slug() {
+        let new_filename = temp_filename
+            .clone()
+            .with_file_name(
+                slug.clone() + builder.timestamp.to_string().as_str() + ".md"
+            );
+        log::info!("temp: {:?}, new: {:?}", temp_filename, new_filename);
+        if new_filename.is_file() {
+            return Err(io::Error::new(ErrorKind::Other, "File already exists"))
+        }
+        fs::rename(&temp_filename, &new_filename)?;
+        Ok(IndexView {
+            title: builder.title().unwrap_or_else(|_| "error".to_string()),
+            slug,
+            preview: "".to_string(),
+            timestamp: builder.timestamp,
+            tags: Vec::new()
+        })
+    } else {
+        Err(io::Error::new(ErrorKind::Other, "Couldn't create slug from content"))
+
+    }
 }
 
 pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> Result<(), std::io::Error> {

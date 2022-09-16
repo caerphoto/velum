@@ -54,7 +54,7 @@ impl Builder {
     }
 
     /// Converts the given string to a URL-safe, lowercase version
-    fn slug_from(text: &str) -> String {
+    pub fn slug_from(text: &str) -> String {
         lazy_static! {
             static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap();
         }
