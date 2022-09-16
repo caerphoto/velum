@@ -5,12 +5,12 @@
     const saveBtn = D.querySelector('#save-article button');
     const successMsg = D.querySelector('#save-success');
 
-    let slug = '';
-
-    function fetchArticleText() {
+    function fetchArticleText(slug) {
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
             editor.value = xhr.responseText;
+            saveForm.dataset.slug = slug;
+            saveForm.dataset.method = 'PUT';
         });
         xhr.open('GET', `/articles/${slug}/text`);
         xhr.send();
@@ -35,30 +35,29 @@
     articleList.addEventListener('click', event => {
         const target = event.target;
         if (target.nodeName === 'A') {
-            slug = target.getAttribute('data-slug');
-            if (!slug) return;
-            fetchArticleText();
+            if (!target.dataset.slug) return;
+            fetchArticleText(target.dataset.slug);
         } else if (target.nodeName === 'BUTTON') {
             confirmDelete(
-                target.getAttribute('data-slug'),
-                target.getAttribute('data-title')
+                target.dataset.slug,
+                target.dataset.title
             );
         }
     });
 
     saveForm.addEventListener('submit', event => {
         event.preventDefault();
-        const articleText = editor.value;
+
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save';
             setTimeout(() => { successMsg.classList.remove('visible') }, 1000);
         });
-        const path = `${saveForm.getAttribute('data-action')}/${slug}`;
-        xhr.open('PUT', path);
+
+        xhr.open(saveForm.dataset.method, `/article/${saveForm.dataset.slug}`);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(articleText);
+        xhr.send(editor.value);
 
         saveBtn.disabled = true;
         saveBtn.textContent = '...';
@@ -66,8 +65,8 @@
     });
 
     if (window.location.hash) {
-        slug = window.location.hash.replace(/^#/, '');
-        fetchArticleText();
+        const slug = window.location.hash.replace(/^#/, '');
+        fetchArticleText(slug);
     }
 }(window.document));
 

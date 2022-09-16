@@ -8,8 +8,12 @@ use uuid::Uuid;
 use super::WarpResult;
 use crate::article::storage;
 
+const OK: u16 = 200;
 const SEE_OTHER: u16 = 303;
+const BAD_REQUEST: u16 = 400;
+const NOT_FOUND: u16 = 404;
 const INTERNAL_SERVER_ERROR: u16 = 500;
+
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
 
 fn server_error(msg: &str) -> WarpResult {
@@ -19,6 +23,26 @@ fn server_error(msg: &str) -> WarpResult {
         .body("Internal server error :(".into())
         .unwrap()
     )
+}
+
+fn redirect_to(path: &'static str) -> WarpResult {
+    Ok(warp::redirect::found(Uri::from_static(path)).into_response())
+}
+
+fn empty_response(status: u16) -> WarpResult {
+    Ok(
+        warp::reply::with_status(
+            warp::reply(),
+            warp::http::StatusCode::from_u16(status).unwrap()
+        ).into_response()
+    )
+}
+
+fn needs_to_log_in(data: &CommonData, session_id: Option<String>) -> bool {
+    let sid = data.session_id.as_ref();
+    sid.is_none()
+        || session_id.is_none()
+        || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
 fn render_login_page(hbs: &handlebars::Handlebars, error_msg: Option<&str>) -> WarpResult {
@@ -90,19 +114,9 @@ pub async fn do_logout_route(data: Arc<Mutex<CommonData>>) -> WarpResult {
     )
 }
 
-fn needs_to_log_in(data: &CommonData, session_id: Option<String>) -> bool
-{
-    let sid = data.session_id.as_ref();
-    sid.is_none()
-        || session_id.is_none()
-        || sid.unwrap() != session_id.as_ref().unwrap()
-}
-
 pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
     let data = data.lock().unwrap();
-    if needs_to_log_in(&data, session_id) {
-        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
-    }
+    if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
     let body = data.hbs.render(
         "admin",
@@ -110,7 +124,6 @@ pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String
             "body_class": "admin",
             "title": "Blog Admin",
             "articles": &data.articles,
-
         })
     );
     match body {
@@ -124,15 +137,13 @@ pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String
 
 pub async fn rebuild_index_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
     let mut data = data.lock().unwrap();
-    if needs_to_log_in(&data, session_id) {
-        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
-    }
+    if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
     if let Err(e) = data.rebuild() {
         log::error!("Failed to rebuild article index index: {:?}", e);
         server_error("Error rebuilding article index")
     } else {
-        Ok(warp::redirect::found(Uri::from_static("/admin")).into_response())
+        redirect_to("/admin")
     }
 
 }
@@ -144,27 +155,19 @@ pub async fn update_article_route(
     session_id: Option<String>,
 ) -> WarpResult {
     let mut data = data.lock().unwrap();
-    if needs_to_log_in(&data, session_id) {
-        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
-    }
+    if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
     if let Ok(new_content) = String::from_utf8(new_content.to_vec()) {
         if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
             log::error!("Failed to update article: {:?}", err);
             server_error("Error upating article")
         } else {
-            Ok(warp::reply::reply().into_response())
+            empty_response(OK)
         }
     } else {
-        Ok(
-            warp::reply::with_status(
-                warp::reply(),
-                warp::http::StatusCode::BAD_REQUEST
-            ).into_response()
-        )
+        empty_response(BAD_REQUEST)
     }
 }
-
 
 pub async fn delete_article_route(
     slug: String,
@@ -172,9 +175,7 @@ pub async fn delete_article_route(
     session_id: Option<String>,
 ) -> WarpResult {
     let mut data = data.lock().unwrap();
-    if needs_to_log_in(&data, session_id) {
-        return Ok(warp::redirect::found(Uri::from_static("/login")).into_response());
-    }
+    if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
     if let Some(article) = storage::fetch_by_slug(&slug, &data.articles) {
         if let Err(err) = storage::delete_article(article) {
@@ -186,16 +187,10 @@ pub async fn delete_article_route(
                 log::error!("Failed to rebuild article index: {:?}", err);
                 server_error("Error rebuilding article index")
             } else {
-                Ok(warp::reply::reply().into_response())
+                empty_response(OK)
             }
         }
     } else {
-        Ok(
-            warp::reply::with_status(
-                warp::reply(),
-                warp::http::StatusCode::NOT_FOUND
-            ).into_response()
-        )
+        empty_response(NOT_FOUND)
     }
 }
-

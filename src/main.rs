@@ -35,6 +35,7 @@ use routes::{
 #[macro_use] extern crate lazy_static;
 
 const HASH_COST: u32 = 8;
+const MAX_ARTICLE_LENGTH: u64 = 100_000;
 
 fn check_args(config: &mut Config) {
     let args: Vec<String> = env::args().collect();
@@ -150,10 +151,10 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
         .and_then(rebuild_index_route);
-    let update_article = warp::path!("update-article" / String)
+    let update_article = warp::path!("article" / String)
         .and(warp::put())
         .and(warp::filters::body::bytes())
-        .and(warp::body::content_length_limit(10000))
+        .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
         .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
         .and_then(update_article_route);
