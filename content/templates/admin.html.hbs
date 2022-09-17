@@ -20,25 +20,26 @@
       <button type="submit">Rebuild article index</button>
     </form>
 
+    <form id="admin-new-article" action="#new">
+      <button type="submit">Create new article</button>
+    </form>
+
     <ol class="admin-article-list" reversed>
       {{#each articles}}
-      <li class="admin-article-list_item">
-      <a data-slug="{{this.slug}}" href="#{{this.slug}}">{{this.title}}</a> <a href="/articles/{{this.slug}}" target="velum-{{this.slug}}" class="admin-open-article-link">open in new tab ↗</a><br>
-        <span class="date">{{date_from_timestamp this.timestamp}}</span>
-      </li>
+        {{> admin_article_list_item }}
       {{/each}}
     </ol>
   </section>
 
   <section id="admin-article-editor" class="admin-main-section">
-    <h2>Edit article:</h2>
+    <h2>Edit <span class="if-new">new</span> article:</h2>
 
     <p id="save-success">Saved!</p>
-    <form data-action="/update-article" method="PUT" id="save-article" class="main-section-form">
+    <form action="/article" data-method="PUT" id="save-article" class="main-section-form">
       <button type="submit">Save</button>
     </form>
 
-    <textarea class="article-editor"></textarea>
+    <textarea class="article-editor" disabled></textarea>
   </section>
 </article>
 

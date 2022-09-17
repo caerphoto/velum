@@ -17,7 +17,13 @@ pub struct Config {
 impl Config {
     pub fn load() -> Result<Self, std::io::Error> {
         let content = fs::read_to_string(CONFIG_FILE)?;
-        let config: Self = toml::from_str(&content)?;
+        let mut config: Self = toml::from_str(&content)?;
+        if config.content_dir.starts_with("./") {
+            config.content_dir = config.content_dir
+                .strip_prefix("./")
+                .unwrap()
+                .to_string();
+        }
         Ok(config)
     }
 

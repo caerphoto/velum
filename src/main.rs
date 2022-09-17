@@ -7,19 +7,23 @@ mod routes;
 mod config;
 
 use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
 use std::time;
 use std::env;
 use std::net::IpAddr;
 use std::collections::HashMap;
 use core::convert::TryFrom;
 use warp::{Filter, Reply, http::Uri};
+use crate::config::Config;
 use commondata::CommonData;
 use routes::{
     index_page_route,
     tag_search_route,
     article_route,
     article_text_route,
+    create_article_route,
     update_article_route,
+    delete_article_route,
     comment_route,
     file_not_found_route,
     admin_route,
@@ -32,9 +36,9 @@ use routes::{
 #[macro_use] extern crate lazy_static;
 
 const HASH_COST: u32 = 8;
+const MAX_ARTICLE_LENGTH: u64 = 100_000;
 
-fn check_args(data: Arc<Mutex<CommonData>>) {
-    let mut data = data.lock().unwrap();
+fn check_args(config: &mut Config) {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 || &args[1] != "register" { return; }
 
@@ -48,11 +52,11 @@ fn check_args(data: Arc<Mutex<CommonData>>) {
                 println!("Passwords do not match.");
                 std::process::exit(1);
             }
-            data.config.admin_password_hash = Some(
+            config.admin_password_hash = Some(
                 bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
             );
 
-            match data.config.save() {
+            match config.save() {
                 Ok(_) => {},
                 Err(e) => { panic!("Config save failed: {:?}", e) }
             }
@@ -67,19 +71,18 @@ async fn main() {
     let now = time::Instant::now();
     log::info!("Building article and comment data from files... ");
     let codata = CommonData::new();
+    let mut config = codata.config.clone();
     let shared_codata = Arc::new(Mutex::new(codata));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
-    check_args(shared_codata.clone());
+    check_args(&mut config);
 
-    let filter_data = shared_codata.clone();
     let codata_filter = warp::any()
-        .map(move || filter_data.clone());
+        .map(move || shared_codata.clone());
 
     let article_index = warp::path::end().map(|| 1usize)
         .and(codata_filter.clone())
         .and_then(index_page_route);
-
     let article_index_at_page = warp::path!("index" / usize)
         .and(codata_filter.clone())
         .and_then(index_page_route);
@@ -89,19 +92,38 @@ async fn main() {
         .untuple_one()
         .and(codata_filter.clone())
         .and_then(tag_search_route);
-
     let articles_with_tag_at_page = warp::path!("tag" / String / usize)
         .and(codata_filter.clone())
         .and_then(tag_search_route);
 
-    let article_text = warp::path!("articles" / String / "text")
-        .and(codata_filter.clone())
-        .and_then(article_text_route);
-
     let article = warp::path!("articles" / String)
+        .and(warp::get())
         .and(warp::query::<HashMap<String, String>>())
         .and(codata_filter.clone())
         .and_then(article_route);
+    let create_article = warp::path!("articles")
+        .and(warp::post())
+        .and(warp::filters::body::bytes())
+        .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(create_article_route);
+    let update_article = warp::path!("articles" / String)
+        .and(warp::put())
+        .and(warp::filters::body::bytes())
+        .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(update_article_route);
+    let delete_article = warp::path!("articles" / String)
+        .and(warp::delete())
+        .and(codata_filter.clone())
+        .and(warp::cookie::optional::<String>("session_id"))
+        .and_then(delete_article_route);
+
+    let article_text = warp::path!("articles" / String / "text")
+        .and(codata_filter.clone())
+        .and_then(article_text_route);
 
     // Only necessary for handling imported articles from Ghost blog.
     let legacy_article = warp::path!(String)
@@ -147,31 +169,21 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
         .and_then(rebuild_index_route);
-    let update_article = warp::path!("update-article" / String)
-        .and(warp::put())
-        .and(warp::filters::body::bytes())
-        .and(warp::body::content_length_limit(10000))
-        .and(codata_filter.clone())
-        .and(warp::cookie::optional::<String>("session_id"))
-        .and_then(update_article_route);
 
-
-    // TODO: change hard-coded content dir() to use the one from config
-    // can't use path! macro because it ends the path
+    let path = PathBuf::from(&config.content_dir);
     let images = warp::path("content")
         .and(warp::path("images"))
-        .and(warp::fs::dir("content/images"));
-
-    let assets = warp::path("assets").and(warp::fs::dir("content/assets"));
+        .and(warp::fs::dir(path.join("images")));
+    let assets = warp::path("assets").and(warp::fs::dir(path.join("assets")));
 
     let robots_txt = warp::path!("robots.txt").map(|| "");
 
     let favicon16 = warp::path!("favicon16.png")
-        .and(warp::fs::file("content/favicon16.png"));
+        .and(warp::fs::file(path.join("favicon16.png")));
     let favicon32 = warp::path!("favicon32.png")
-        .and(warp::fs::file("content/favicon32.png"));
+        .and(warp::fs::file(path.join("favicon32.png")));
     let favicon_apple = warp::path!("favicon_apple.png")
-        .and(warp::fs::file("content/favicon_apple.png"));
+        .and(warp::fs::file(path.join("favicon_apple.png")));
 
     let error_logger = warp::filters::log::custom(|info| {
         let s = info.status();
@@ -194,9 +206,11 @@ async fn main() {
 
     let routes = article_index
         .or(article_index_at_page)
-        .or(article_text)
         .or(article)
+        .or(create_article)
         .or(update_article)
+        .or(delete_article)
+        .or(article_text)
         .or(articles_with_tag)
         .or(articles_with_tag_at_page)
         .or(comment)
@@ -213,17 +227,9 @@ async fn main() {
         .recover(file_not_found_route)
         .with(error_logger);
 
-    let listen_ip: IpAddr;
-    let listen_port: u16;
-    {
-        // ensure this mutex guard only lives inside this block, and doesn't
-        // get held across the below await point
-        let cd = shared_codata.lock().unwrap();
-        let config_listen_ip = cd.config.listen_ip.clone();
-        listen_ip = config_listen_ip.parse::<IpAddr>()
-            .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", config_listen_ip));
-        listen_port = cd.config.listen_port;
-    }
+    let listen_ip = config.listen_ip.parse::<IpAddr>()
+        .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", &config.listen_ip));
+    let listen_port = config.listen_port;
 
     warp::serve(routes)
         .run((listen_ip, listen_port))

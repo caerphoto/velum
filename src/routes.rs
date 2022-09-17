@@ -20,7 +20,9 @@ pub use admin::{
     do_login_route,
     do_logout_route,
     rebuild_index_route,
+    create_article_route,
     update_article_route,
+    delete_article_route,
 };
 
 pub type WarpResult = Result<
@@ -89,7 +91,7 @@ fn render_article_list(
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
             "return_to": return_to,
-            "body_class": "index",
+            "body_class": if tag.is_some() { "tag-index" } else { "index" },
         })
     ) {
         Ok(rendered_page) => {
@@ -130,8 +132,8 @@ pub async fn tag_search_route(tag: String, page: usize, data: Arc<Mutex<CommonDa
 }
 
 pub async fn article_text_route(slug: String, data: Arc<Mutex<CommonData>>) -> Result<impl warp::Reply, warp::Rejection> {
-    let mut data = data.lock().unwrap();
-    if let Some(article) = fetch_by_slug(&slug, &mut data.articles) {
+    let data = data.lock().unwrap();
+    if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         Ok(warp::http::Response::builder()
             .status(200)
             .header("Content-Type", "text/plain; charset=utf-8")
