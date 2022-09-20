@@ -151,7 +151,7 @@ article {
 
 .admin-article-list a {
     box-shadow: none;
-    border-bottom: 1px dotted rgba(0, 0, 0, 0.5);
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.5);
 }
 
 .admin-article-list a:visited {

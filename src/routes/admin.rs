@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use bytes::Bytes;
-use crate::CommonData;
 use warp::Reply;
 use serde_json::json;
 use uuid::Uuid;
@@ -21,7 +20,8 @@ const NOT_FOUND: u16 = 404;
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
 
 
-fn needs_to_log_in(data: &CommonData, session_id: Option<String>) -> bool {
+fn needs_to_log_in(data: &SharedData, session_id: Option<String>) -> bool {
+    let data = data.lock().unwrap();
     let sid = data.session_id.as_ref();
     sid.is_none()
         || session_id.is_none()
@@ -98,8 +98,9 @@ pub async fn do_logout_route(data: SharedData) -> WarpResult {
 }
 
 pub async fn admin_route(session_id: Option<String>, data: SharedData) -> WarpResult {
-    let data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
+
+    let data = data.lock().unwrap();
 
     let body = data.hbs.render(
         "admin",
@@ -119,8 +120,9 @@ pub async fn admin_route(session_id: Option<String>, data: SharedData) -> WarpRe
 }
 
 pub async fn rebuild_index_route(session_id: Option<String>, data: SharedData) -> WarpResult {
-    let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
+
+    let mut data = data.lock().unwrap();
 
     if let Err(e) = data.rebuild() {
         log::error!("Failed to rebuild article index index: {:?}", e);
@@ -136,8 +138,9 @@ pub async fn create_article_route(
     session_id: Option<String>,
     data: SharedData,
 ) -> WarpResult {
-    let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
+
+    let mut data = data.lock().unwrap();
 
     if let Ok(content) = String::from_utf8(content.to_vec()) {
         match storage::create_article(&content, &mut data) {
@@ -176,8 +179,9 @@ pub async fn update_article_route(
     session_id: Option<String>,
     data: SharedData,
 ) -> WarpResult {
-    let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
+
+    let mut data = data.lock().unwrap();
 
     if let Ok(new_content) = String::from_utf8(new_content.to_vec()) {
         if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
@@ -202,8 +206,9 @@ pub async fn delete_article_route(
     session_id: Option<String>,
     data: SharedData,
 ) -> WarpResult {
-    let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
+
+    let mut data = data.lock().unwrap();
 
     if let Some(article) = storage::fetch_by_slug(&slug, &data.articles) {
         if let Err(err) = storage::delete_article(article) {
