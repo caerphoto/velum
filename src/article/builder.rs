@@ -62,9 +62,10 @@ impl Builder {
             static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap();
         }
 
-        let lowercase_text = text.to_lowercase();
-        let simplified_text = INVALID_CHARS.replace_all(&lowercase_text, "-");
-        String::from(SEQUENTIAL_HYPEHNS.replace_all(&simplified_text, "-"))
+        let lowercase = text.to_lowercase();
+        let simplified = INVALID_CHARS.replace_all(&lowercase, "-");
+        let desequentialized = SEQUENTIAL_HYPEHNS.replace_all(&simplified, "-");
+        String::from(desequentialized.trim_matches('-'))
     }
 
     pub fn slug(&self) -> ParseResult<String> {
