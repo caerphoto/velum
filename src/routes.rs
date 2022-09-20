@@ -98,13 +98,20 @@ fn render_article_list(
     data: &CommonData,
     tag: Option<&str>,
 ) -> WarpResult {
-    let title = &data.config.blog_title;
+    let blog_title = &data.config.blog_title;
     let max_page = div_ceil(article_list.total_articles, page_size);
     let return_to = build_return_path(page, tag);
+
+    let title = if let Some(tag) = tag {
+        String::from("Tag: ") + tag
+    } else {
+        String::from("Article Index")
+    };
 
     match data.hbs.render(
         "main",
         &json!({
+            "blog_title": blog_title,
             "title": title,
             "prev_page": if page > 1 { page - 1 } else { 0 },
             "current_page": page,
@@ -185,7 +192,7 @@ pub async fn article_text_route(slug: String, data: SharedData) -> WarpResult {
 pub async fn article_route(slug: String, query: HashMap<String, String>, data: SharedData) -> WarpResult {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
-    let title = &data.config.blog_title;
+    let blog_title = &data.config.blog_title;
 
     let default_path = "/".to_string();
     let return_path = query.get("return_to").unwrap_or(&default_path);
@@ -196,7 +203,8 @@ pub async fn article_route(slug: String, query: HashMap<String, String>, data: S
             data.hbs.render(
                 "article",
                 &json!({
-                    "title": (article.title.clone() + " &middot ") + title,
+                    "title": &article.title,
+                    "blog_title": blog_title,
                     "article": article,
                     "comments": comments,
                     "prev": article.prev,

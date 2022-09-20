@@ -28,12 +28,15 @@ fn needs_to_log_in(data: &SharedData, session_id: Option<String>) -> bool {
         || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
-fn render_login_page(hbs: &handlebars::Handlebars, error_msg: Option<&str>) -> WarpResult {
-    let body = hbs.render(
+fn render_login_page(data: &SharedData, error_msg: Option<&str>) -> WarpResult {
+    let data = data.lock().unwrap();
+    let blog_title = &data.config.blog_title;
+    let body = data.hbs.render(
         "login",
         &json!({
             "body_class": "login",
             "title": "Admin Login",
+            "blog_title": blog_title,
             "error_msg": error_msg
         })
     );
@@ -47,20 +50,20 @@ fn render_login_page(hbs: &handlebars::Handlebars, error_msg: Option<&str>) -> W
 }
 
 pub async fn login_page_route(data: SharedData) -> WarpResult {
-    render_login_page(&data.lock().unwrap().hbs, None)
+    render_login_page(&data, None)
 }
 
 pub async fn do_login_route(form_data: HashMap<String, String>, data: SharedData) -> WarpResult {
-    let mut data = data.lock().unwrap();
+    let mut mdata = data.lock().unwrap();
 
     let password = form_data.get("password");
     let password = if password.is_none() { "" } else { password.unwrap().as_str() };
-    let hash = data.config.admin_password_hash.as_ref();
+    let hash = mdata.config.admin_password_hash.as_ref();
     let hash = if hash.is_none() { "" } else { hash.unwrap().as_str() };
     let verified = bcrypt::verify(&password, hash).unwrap_or(false);
 
     if !verified {
-        return render_login_page(&data.hbs, Some("Incorrect password"));
+        return render_login_page(&data, Some("Incorrect password"));
     }
 
     let session_id = Uuid::new_v4();
@@ -69,7 +72,7 @@ pub async fn do_login_route(form_data: HashMap<String, String>, data: SharedData
         session_id,
         THIRTY_DAYS
     );
-    data.session_id = Some(session_id.to_string());
+    mdata.session_id = Some(session_id.to_string());
 
     Ok(warp::http::Response::builder()
         .header("Location", "/admin")
@@ -101,12 +104,13 @@ pub async fn admin_route(session_id: Option<String>, data: SharedData) -> WarpRe
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
     let data = data.lock().unwrap();
-
+    let blog_title = &data.config.blog_title;
     let body = data.hbs.render(
         "admin",
         &json!({
             "body_class": "admin",
             "title": "Blog Admin",
+            "blog_title": blog_title,
             "articles": &data.articles,
         })
     );
