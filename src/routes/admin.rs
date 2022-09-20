@@ -1,42 +1,25 @@
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use bytes::Bytes;
 use crate::CommonData;
-use warp::{Reply, http::Uri};
+use warp::Reply;
 use serde_json::json;
 use uuid::Uuid;
-use super::WarpResult;
+use super::{
+    WarpResult,
+    SharedData,
+    BAD_REQUEST,
+    server_error,
+    redirect_to,
+    empty_response,
+};
 use crate::article::storage;
 
 const OK: u16 = 200;
 const SEE_OTHER: u16 = 303;
-const BAD_REQUEST: u16 = 400;
 const NOT_FOUND: u16 = 404;
-const INTERNAL_SERVER_ERROR: u16 = 500;
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
 
-fn server_error(msg: &str) -> WarpResult {
-    log::error!("{}", msg);
-    Ok(warp::http::Response::builder()
-        .status(INTERNAL_SERVER_ERROR)
-        .body("Internal server error :(".into())
-        .unwrap()
-    )
-}
-
-fn redirect_to(path: &'static str) -> WarpResult {
-    Ok(warp::redirect::found(Uri::from_static(path)).into_response())
-}
-
-fn empty_response(status: u16) -> WarpResult {
-    Ok(
-        warp::reply::with_status(
-            warp::reply(),
-            warp::http::StatusCode::from_u16(status).unwrap()
-        ).into_response()
-    )
-}
 
 fn needs_to_log_in(data: &CommonData, session_id: Option<String>) -> bool {
     let sid = data.session_id.as_ref();
@@ -63,11 +46,11 @@ fn render_login_page(hbs: &handlebars::Handlebars, error_msg: Option<&str>) -> W
     }
 }
 
-pub async fn login_page_route(data: Arc<Mutex<CommonData>>) -> WarpResult {
+pub async fn login_page_route(data: SharedData) -> WarpResult {
     render_login_page(&data.lock().unwrap().hbs, None)
 }
 
-pub async fn do_login_route(data: Arc<Mutex<CommonData>>, form_data: HashMap<String, String>) -> WarpResult {
+pub async fn do_login_route(form_data: HashMap<String, String>, data: SharedData) -> WarpResult {
     let mut data = data.lock().unwrap();
 
     let password = form_data.get("password");
@@ -97,7 +80,7 @@ pub async fn do_login_route(data: Arc<Mutex<CommonData>>, form_data: HashMap<Str
     )
 }
 
-pub async fn do_logout_route(data: Arc<Mutex<CommonData>>) -> WarpResult {
+pub async fn do_logout_route(data: SharedData) -> WarpResult {
     let mut data = data.lock().unwrap();
 
     // Note expiry date: setting a date in the past is the spec-compliant way
@@ -114,7 +97,7 @@ pub async fn do_logout_route(data: Arc<Mutex<CommonData>>) -> WarpResult {
     )
 }
 
-pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
+pub async fn admin_route(session_id: Option<String>, data: SharedData) -> WarpResult {
     let data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
@@ -135,7 +118,7 @@ pub async fn admin_route(data: Arc<Mutex<CommonData>>, session_id: Option<String
     }
 }
 
-pub async fn rebuild_index_route(data: Arc<Mutex<CommonData>>, session_id: Option<String>) -> WarpResult {
+pub async fn rebuild_index_route(session_id: Option<String>, data: SharedData) -> WarpResult {
     let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
 
@@ -150,8 +133,8 @@ pub async fn rebuild_index_route(data: Arc<Mutex<CommonData>>, session_id: Optio
 
 pub async fn create_article_route(
     content: Bytes,
-    data: Arc<Mutex<CommonData>>,
     session_id: Option<String>,
+    data: SharedData,
 ) -> WarpResult {
     let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
@@ -190,8 +173,8 @@ pub async fn create_article_route(
 pub async fn update_article_route(
     slug: String,
     new_content: Bytes,
-    data: Arc<Mutex<CommonData>>,
     session_id: Option<String>,
+    data: SharedData,
 ) -> WarpResult {
     let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }
@@ -216,8 +199,8 @@ pub async fn update_article_route(
 
 pub async fn delete_article_route(
     slug: String,
-    data: Arc<Mutex<CommonData>>,
     session_id: Option<String>,
+    data: SharedData,
 ) -> WarpResult {
     let mut data = data.lock().unwrap();
     if needs_to_log_in(&data, session_id) { return redirect_to("/login"); }

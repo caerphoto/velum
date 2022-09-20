@@ -124,7 +124,6 @@ pub fn create_article(content: &str, data: &mut CommonData) -> Result<IndexView,
     let builder = Builder::from_file(&temp_filename)?;
     if let Ok(slug) = builder.slug() {
         let new_filename = temp_filename
-            .clone()
             .with_file_name(
                 slug.clone() + builder.timestamp.to_string().as_str() + ".md"
             );

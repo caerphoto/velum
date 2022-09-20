@@ -105,20 +105,20 @@ async fn main() {
         .and(warp::post())
         .and(warp::filters::body::bytes())
         .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
-        .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
+        .and(codata_filter.clone())
         .and_then(create_article_route);
     let update_article = warp::path!("articles" / String)
         .and(warp::put())
         .and(warp::filters::body::bytes())
         .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
-        .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
+        .and(codata_filter.clone())
         .and_then(update_article_route);
     let delete_article = warp::path!("articles" / String)
         .and(warp::delete())
-        .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
+        .and(codata_filter.clone())
         .and_then(delete_article_route);
 
     let article_text = warp::path!("articles" / String / "text")
@@ -142,21 +142,21 @@ async fn main() {
         .and(warp::body::content_length_limit(4000))
         .and(warp::filters::addr::remote())
         .and(codata_filter.clone())
-        .then(comment_route);
+        .and_then(comment_route);
 
     let admin = warp::path!("admin")
-        .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
+        .and(codata_filter.clone())
         .and_then(admin_route);
     let login_page = warp::path!("login")
         .and(warp::get())
         .and(codata_filter.clone())
         .and_then(login_page_route);
     let do_login = warp::path!("login")
-        .and(codata_filter.clone())
         .and(warp::post())
         .and(warp::body::form())
         .and(warp::body::content_length_limit(2048))
+        .and(codata_filter.clone())
         .and_then(do_login_route);
     let do_logout = warp::path!("logout")
         .and(codata_filter.clone())
@@ -164,10 +164,10 @@ async fn main() {
         .and(warp::body::content_length_limit(0))
         .and_then(do_logout_route);
     let rebuild_index = warp::path!("rebuild")
-        .and(codata_filter.clone())
         .and(warp::cookie::optional::<String>("session_id"))
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
+        .and(codata_filter.clone())
         .and_then(rebuild_index_route);
 
     let path = PathBuf::from(&config.content_dir);
