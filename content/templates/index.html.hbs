@@ -5,10 +5,11 @@
     <div class="home link-box">
       <a href="/" class="index-link">article index</a>
     </div>
+    <div class="logout link-box">{{{blog_title}}}</div>
     <h1 class="with-tag"><span class="subdued">Tag:</span> {{search_tag}}</h1>
     <h2>{{article_count}} articles</h2>
   {{else}}
-    <h1>{{title}}</h1>
+    <h1>{{blog_title}}</h1>
   {{/if}}
 </header>
 
