@@ -18,22 +18,21 @@ fn safe_truncate(s: &str, max_chars: usize) -> &str {
 
 // Struct for creating and managing article data
 pub struct Builder {
-    content: String,
+    pub content: String,
     pub timestamp: i64,
+    pub source_filename: PathBuf,
 }
 
 impl Builder {
     pub fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
         let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
-        let filedate = match metadata.created() {
-            Ok(c) => c,
-            Err(_) => metadata.modified()?
-        };
+        let filedate = metadata.modified()?;
         if let Ok(s) = filedate.duration_since(UNIX_EPOCH) {
             Ok(Self {
                 content,
                 timestamp: s.as_millis() as i64,
+                source_filename: path.clone(),
             })
         } else {
             Err(io::Error::new(ErrorKind::Other, "failed to read file"))
@@ -55,7 +54,7 @@ impl Builder {
     }
 
     /// Converts the given string to a URL-safe, lowercase version
-    fn slug_from(text: &str) -> String {
+    pub fn slug_from(text: &str) -> String {
         lazy_static! {
             static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap();
         }
@@ -63,9 +62,10 @@ impl Builder {
             static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap();
         }
 
-        let lowercase_text = text.to_lowercase();
-        let simplified_text = INVALID_CHARS.replace_all(&lowercase_text, "-");
-        String::from(SEQUENTIAL_HYPEHNS.replace_all(&simplified_text, "-"))
+        let lowercase = text.to_lowercase();
+        let simplified = INVALID_CHARS.replace_all(&lowercase, "-");
+        let desequentialized = SEQUENTIAL_HYPEHNS.replace_all(&simplified, "-");
+        String::from(desequentialized.trim_matches('-'))
     }
 
     pub fn slug(&self) -> ParseResult<String> {

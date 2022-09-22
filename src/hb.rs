@@ -1,16 +1,13 @@
 use std::path::{Path, PathBuf};
-use crate::article::storage::DEFAULT_CONTENT_DIR;
 use chrono::prelude::*;
 use chrono::Duration;
 use ordinal::Ordinal;
 use handlebars::{Handlebars, handlebars_helper};
+use crate::config::Config;
 
-fn tmpl_path(tmpl_name: &str, config: &config::Config) -> PathBuf {
-    let base_path = config
-        .get_string("content_path")
-        .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_string());
+fn tmpl_path(tmpl_name: &str, config: &Config) -> PathBuf {
     let filename = [tmpl_name, "html.hbs"].join(".");
-    let path = Path::new(&base_path).join("templates");
+    let path = Path::new(&config.content_dir).join("templates");
     path.join(filename)
 }
 
@@ -73,15 +70,20 @@ handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
     this_tag == search_tag
 });
 
-pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
+pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let mut hb = Handlebars::new();
+    //TODO: put this stuff in config, and loop over it here.
     let index_tmpl_path = tmpl_path("index", config);
     let article_tmpl_path = tmpl_path("article", config);
+    let login_tmpl_path = tmpl_path("login", config);
+    let admin_tmpl_path = tmpl_path("admin", config);
     let tag_list_tmpl_path = tmpl_path("_tag_list", config);
     let comments_tmpl_path = tmpl_path("_comments", config);
     let comment_tmpl_path = tmpl_path("_comment", config);
+    let index_pagination_tmpl_path = tmpl_path("_index_pagination", config);
     let header_tmpl_path = tmpl_path("_header", config);
     let footer_tmpl_path = tmpl_path("_footer", config);
+    let admin_article_list_item_tmpl_path = tmpl_path("_admin_article_list_item", config);
 
     #[cfg(debug_assertions)]
     hb.set_dev_mode(true);
@@ -90,8 +92,14 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
         .expect("Failed to register index template file");
     hb.register_template_file("article", &article_tmpl_path)
         .expect("Failed to register article template file");
+    hb.register_template_file("login", &login_tmpl_path)
+        .expect("Failed to register login template file");
+    hb.register_template_file("admin", &admin_tmpl_path)
+        .expect("Failed to register admin template file");
     hb.register_template_file("tag_list", &tag_list_tmpl_path)
         .expect("Failed to register tag_list template file");
+    hb.register_template_file("index_pagination", &index_pagination_tmpl_path)
+        .expect("Failed to register index pagination template file");
     hb.register_template_file("header", &header_tmpl_path)
         .expect("Failed to register header template file");
     hb.register_template_file("comments", &comments_tmpl_path)
@@ -100,6 +108,8 @@ pub fn create_handlebars(config: &config::Config) -> Handlebars<'static> {
         .expect("Failed to register comment template file");
     hb.register_template_file("footer", &footer_tmpl_path)
         .expect("Failed to register footer template file");
+    hb.register_template_file("admin_article_list_item", &admin_article_list_item_tmpl_path)
+        .expect("Failed to register list item template file");
 
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
     hb.register_helper("is_current_tag", Box::new(is_current_tag));

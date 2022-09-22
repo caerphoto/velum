@@ -1,4 +1,5 @@
 use serde::Serialize;
+
 #[derive(Serialize, Clone, Debug)]
 pub struct IndexView {
     pub title: String,
@@ -17,9 +18,11 @@ pub struct PrevNextView {
 #[derive(Serialize, Clone, Debug)]
 pub struct ContentView {
     pub title: String,
-    pub content: String,
+    pub parsed_content: String,
+    pub base_content: String,
     pub preview: String,
     pub slug: String,
+    pub source_filename: std::path::PathBuf,
     pub timestamp: i64,
     pub tags: Vec<String>,
     pub prev: Option<PrevNextView>,

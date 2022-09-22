@@ -1,0 +1,47 @@
+{{> header}}
+
+<header>
+  <div class="home link-box">
+    <a href="/" class="index-link">home</a>
+  </div>
+  <div class="logout link-box">
+    <form action="/logout" method="POST">
+      <button type="submit">Log out</button>
+    </form>
+  </div>
+  <h1>Blog Admin</h1>
+</header>
+
+<article>
+  <section id="admin-article-manager" class="admin-main-section">
+    <h2>Articles:</h2>
+
+    <form action="/rebuild" method="POST" class="main-section-form">
+      <button type="submit">Rebuild article index</button>
+    </form>
+
+    <form id="admin-new-article" action="#new">
+      <button type="submit">Create new article</button>
+    </form>
+
+    <ol class="admin-article-list" reversed>
+      {{#each articles}}
+        {{> admin_article_list_item }}
+      {{/each}}
+    </ol>
+  </section>
+
+  <section id="admin-article-editor" class="admin-main-section">
+    <h2>Edit <span class="if-new">new</span> article:</h2>
+
+    <p id="save-success">Saved!</p>
+    <form action="/article" data-method="PUT" id="save-article" class="main-section-form">
+      <button type="submit">Save</button>
+    </form>
+
+    <textarea class="article-editor" disabled></textarea>
+  </section>
+</article>
+
+<script src="/assets/admin.js"></script>
+{{> footer}}

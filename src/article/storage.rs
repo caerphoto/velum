@@ -1,12 +1,13 @@
-use crate::article::view::{ContentView, IndexView};
-use crate::article::builder::Builder;
-use crate::errors::{ParseResult, ParseError};
 use std::fs;
 use std::cmp::min;
 use std::path::PathBuf;
-
-pub const DEFAULT_CONTENT_DIR: &str = "./content";
-const DEFAULT_MAX_PREVIEW_LENGTH: usize = 200;
+use std::io::{self, ErrorKind};
+use uuid::Uuid;
+use crate::CommonData;
+use crate::config::Config;
+use crate::errors::{ParseResult, ParseError};
+use crate::article::view::{ContentView, IndexView};
+use crate::article::builder::Builder;
 
 pub struct LinkList {
     pub index_views: Vec<IndexView>,
@@ -61,6 +62,15 @@ pub fn fetch_by_slug<'a >(slug: &str, articles: &'a Vec<ContentView>) -> Option<
     None
 }
 
+fn fetch_by_slug_mut<'a >(slug: &str, articles: &'a mut Vec<ContentView>) -> Option<&'a mut ContentView> {
+    for a in articles {
+        if a.slug == slug { return Some(a) }
+    }
+
+    None
+}
+
+
 fn set_prev_next(articles: &mut Vec<ContentView>) {
     for i in 0..articles.len() {
         let prev = if i > 0 {
@@ -75,17 +85,15 @@ fn set_prev_next(articles: &mut Vec<ContentView>) {
     }
 }
 
-fn builder_to_content_view(builder: Builder, config: &config::Config) -> ParseResult<ContentView> {
-    let max_len: usize = config
-        .get_int("max_preview_length")
-        .unwrap_or(DEFAULT_MAX_PREVIEW_LENGTH as i64) as usize;
-
+fn builder_to_content_view(builder: Builder, config: &Config) -> ParseResult<ContentView> {
         let title = builder.title()?;
         Ok(ContentView {
             slug: builder.slug()?, // borrow here before
             title,                       // move here
-            content: builder.parsed_content(),
-            preview: builder.content_preview(max_len),
+            parsed_content: builder.parsed_content(),
+            base_content: builder.content.clone(),
+            preview: builder.content_preview(config.max_preview_length),
+            source_filename: builder.source_filename.clone(),
             timestamp: builder.timestamp,
             tags: builder.tags(),
             prev: None,
@@ -93,11 +101,81 @@ fn builder_to_content_view(builder: Builder, config: &config::Config) -> ParseRe
         })
 }
 
-pub fn gather_fs_articles(config: &config::Config) -> ParseResult<Vec<ContentView>> {
-    let content_dir = config
-        .get_string("content_dir")
-        .unwrap_or_else(|_| DEFAULT_CONTENT_DIR.to_owned());
-    let path = PathBuf::from(content_dir).join("articles");
+fn update_article_source(path: &PathBuf, content: &str) -> Result<(), std::io::Error> {
+    let metadata = fs::metadata(path)?;
+    let filedate = match metadata.created() {
+        Ok(c) => c,
+        Err(_) => metadata.modified()?
+    };
+    let mtime = filetime::FileTime::from_system_time(filedate);
+    fs::write(path, content)?;
+
+    // Modified time needs to be restored to original value to preserve
+    // article order.
+    filetime::set_file_mtime(path, mtime)
+}
+
+pub fn create_article(content: &str, data: &mut CommonData) -> Result<IndexView, std::io::Error> {
+    let temp_filename = PathBuf::from(data.config.content_dir.clone())
+        .join("articles")
+        .join(Uuid::new_v4().to_string() + ".md");
+    fs::write(&temp_filename, content)?;
+
+    let builder = Builder::from_file(&temp_filename)?;
+    if let Ok(slug) = builder.slug() {
+        let new_filename = temp_filename
+            .with_file_name(
+                slug.clone() + builder.timestamp.to_string().as_str() + ".md"
+            );
+        log::info!("temp: {:?}, new: {:?}", temp_filename, new_filename);
+        if new_filename.is_file() {
+            return Err(io::Error::new(ErrorKind::Other, "File already exists"))
+        }
+        fs::rename(&temp_filename, &new_filename)?;
+        Ok(IndexView {
+            title: builder.title().unwrap_or_else(|_| "error".to_string()),
+            slug,
+            preview: "".to_string(),
+            timestamp: builder.timestamp,
+            tags: Vec::new()
+        })
+    } else {
+        Err(io::Error::new(ErrorKind::Other, "Couldn't create slug from content"))
+
+    }
+}
+
+pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> Result<(), std::io::Error> {
+
+    let res = fetch_by_slug_mut(slug, &mut data.articles);
+    if let Some(article) = res {
+        let builder = Builder {
+            content: new_content.to_string(),
+            timestamp: article.timestamp,
+            source_filename: article.source_filename.clone(),
+        };
+
+        if let Ok(new_article) = builder_to_content_view(builder, &data.config) {
+            article.base_content = new_article.base_content;
+            article.parsed_content = new_article.parsed_content;
+            article.preview = new_article.preview;
+            article.tags = new_article.tags;
+        }
+        update_article_source(
+            &article.source_filename,
+            &article.base_content,
+        )
+    } else {
+        Err(io::Error::new(ErrorKind::Other, "failed to fetch mutable article reference"))
+    }
+}
+
+pub fn delete_article(article: &ContentView) -> Result<(), std::io::Error> {
+    fs::remove_file(&article.source_filename)
+}
+
+pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {
+    let path = PathBuf::from(&config.content_dir).join("articles");
     if !path.is_dir() {
         let path = path.to_string_lossy();
         return Err(ParseError { cause: format!("article path `{}` is not a directory", &path) });

@@ -1,6 +1,6 @@
 [package]
 name = "velum"
-version = "0.1.0"
+version = "0.9.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,15 +10,21 @@ config = { version = "0.13.2", features = ["toml"] }
 log = "0.4.0"
 env_logger = "0.9.0"
 pulldown-cmark = { version = "0.9.1", default-features = false, features = ["simd"] }
-handlebars = { git = "https://github.com/sunng87/handlebars-rust.git" }
+handlebars = "4.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+toml = "0.5"
+bytes = "1.1"
+filetime = "0.2"
 tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 regex = "1"
 lazy_static = "1.4.0"
 chrono = "0.4"
 ordinal = "0.3.0"
+bcrypt = "0.13"
+rpassword = "7.0"
+uuid = { version = "1.1", features = [ "v4", "fast-rng" ] }
 
 [profile.release]
 lto = true
