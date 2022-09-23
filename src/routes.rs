@@ -95,7 +95,7 @@ fn render_article_list(
     };
 
     match data.hbs.render(
-        "main",
+        "index",
         &json!({
             "blog_title": blog_title,
             "title": title,
@@ -198,39 +198,12 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
     default_path
 }
 
-fn return_text(path: &str) -> String {
-    let default_text = "Home".to_string();
-    if path == "/" { return default_text }
-    let path_parts: Vec<&str> = path.split('/').collect();
-    match path_parts[0] {
-        "tag" => {
-            let text = String::from("Tag: ") + path_parts[1];
-            if path_parts.len() == 2 {
-                text
-            } else {
-                format!("{} (page {})", text, path_parts[2])
-            }
-        },
-        "index" => {
-            if path == "/index/1" {
-                default_text
-            } else {
-                format!("Articles (page {})", path_parts[1])
-            }
-        },
-        _ => default_text
-    }
-}
-
 pub async fn article_route(slug: String, referer: Option<String>, data: SharedData) -> WarpResult {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
 
     let return_path = return_path(&data.config.blog_host, referer);
-    let return_text = return_text(&return_path);
-
-    log::info!("Return path: {}, return text: {}", &return_path, &return_text);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         let comments = data.comments.get(&slug);
@@ -245,7 +218,6 @@ pub async fn article_route(slug: String, referer: Option<String>, data: SharedDa
                     "prev": article.prev,
                     "next": article.next,
                     "return_path": return_path,
-                    "return_text": return_text,
                     "body_class": "article",
                 })
             ).expect("Failed to render article with Handlebars")

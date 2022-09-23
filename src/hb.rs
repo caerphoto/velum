@@ -1,15 +1,10 @@
 use std::path::{Path, PathBuf};
+use std::fs;
 use chrono::prelude::*;
 use chrono::Duration;
 use ordinal::Ordinal;
 use handlebars::{Handlebars, handlebars_helper};
 use crate::config::Config;
-
-fn tmpl_path(tmpl_name: &str, config: &Config) -> PathBuf {
-    let filename = [tmpl_name, "html.hbs"].join(".");
-    let path = Path::new(&config.content_dir).join("templates");
-    path.join(filename)
-}
 
 fn pluralize(word: &str, num: i64) -> (String, i64) {
     if num == 1 {
@@ -76,7 +71,6 @@ handlebars_helper!(return_text: |path: String| {
         .trim_start_matches('/')
         .split('/')
         .collect();
-    log::info!("{:?}", &path_parts);
     if path == "/" {
         default_text
     } else {
@@ -101,49 +95,43 @@ handlebars_helper!(return_text: |path: String| {
     }
 });
 
+fn template_name(path: &Path) -> String {
+    let stem = path.file_stem().unwrap();
+    stem.to_string_lossy().to_string()
+        .split('.')
+        .map(|p: &str| p.to_string())
+        .collect::<Vec<String>>()
+        .get(0)
+        .unwrap()
+        .into()
+}
+
 pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let mut hb = Handlebars::new();
-    //TODO: put this stuff in config, and loop over it here.
-    let index_tmpl_path = tmpl_path("index", config);
-    let article_tmpl_path = tmpl_path("article", config);
-    let login_tmpl_path = tmpl_path("login", config);
-    let admin_tmpl_path = tmpl_path("admin", config);
-    let tag_list_tmpl_path = tmpl_path("_tag_list", config);
-    let comments_tmpl_path = tmpl_path("_comments", config);
-    let comment_tmpl_path = tmpl_path("_comment", config);
-    let index_pagination_tmpl_path = tmpl_path("_index_pagination", config);
-    let header_tmpl_path = tmpl_path("_header", config);
-    let footer_tmpl_path = tmpl_path("_footer", config);
-    let admin_article_list_item_tmpl_path = tmpl_path("_admin_article_list_item", config);
-    let icon_index_tmpl_path = tmpl_path("icon_index", config);
+
+    let path = PathBuf::from(&config.content_dir).join("templates");
+    if !path.is_dir() {
+        panic!("Template path {:?} is not a directory.", path);
+    }
 
     #[cfg(debug_assertions)]
     hb.set_dev_mode(true);
 
-    hb.register_template_file("main", &index_tmpl_path)
-        .expect("Failed to register index template file");
-    hb.register_template_file("article", &article_tmpl_path)
-        .expect("Failed to register article template file");
-    hb.register_template_file("login", &login_tmpl_path)
-        .expect("Failed to register login template file");
-    hb.register_template_file("admin", &admin_tmpl_path)
-        .expect("Failed to register admin template file");
-    hb.register_template_file("tag_list", &tag_list_tmpl_path)
-        .expect("Failed to register tag_list template file");
-    hb.register_template_file("index_pagination", &index_pagination_tmpl_path)
-        .expect("Failed to register index pagination template file");
-    hb.register_template_file("header", &header_tmpl_path)
-        .expect("Failed to register header template file");
-    hb.register_template_file("comments", &comments_tmpl_path)
-        .expect("Failed to register comments template file");
-    hb.register_template_file("comment", &comment_tmpl_path)
-        .expect("Failed to register comment template file");
-    hb.register_template_file("footer", &footer_tmpl_path)
-        .expect("Failed to register footer template file");
-    hb.register_template_file("admin_article_list_item", &admin_article_list_item_tmpl_path)
-        .expect("Failed to register list item template file");
-    hb.register_template_file("icon_index", &icon_index_tmpl_path)
-        .expect("Failed to register icon-index template file");
+    for entry in fs::read_dir(path).unwrap() {
+        let entry = entry.expect("Invalid entry");
+        let path = entry.path();
+        if path.is_dir() { continue }
+        let ext = path.extension().map(|e| e.to_ascii_lowercase());
+        if ext.is_none() || ext.unwrap() != "hbs" { continue }
+        let template_name = template_name(&path);
+        log::info!("Registering template name: {}", &template_name);
+        hb.register_template_file(&template_name, &path)
+            .unwrap_or_else(|_| panic!(
+                    "Failed to register template {} with path {:?}",
+                    template_name,
+                    path
+            ))
+    }
 
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
     hb.register_helper("is_current_tag", Box::new(is_current_tag));

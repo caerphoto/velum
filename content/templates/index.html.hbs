@@ -1,9 +1,9 @@
-{{> header}}
+{{> _header}}
 
 <header>
   {{#if search_tag}}
     <div class="home link-box">
-      <a href="/" class="index-link">{{> icon_index}}article index</a>
+      <a href="/" class="index-link">&larr; article index</a>
     </div>
     <div class="logout link-box">{{{blog_title}}}</div>
     <h1 class="with-tag"><span class="subdued">Tag:</span> {{search_tag}}</h1>
@@ -14,7 +14,7 @@
 </header>
 
 {{#if (gt current_page 1) }}
-  {{> index_pagination }}
+  {{> _index_pagination }}
 {{/if}}
 
 <article>
@@ -25,13 +25,13 @@
         <h2><a href="/articles/{{this.slug}}">{{this.title}}</a></h2>
         <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
         <p class="content-preview">{{this.preview}}</p>
-        {{> tag_list search_tag=../search_tag}}
+        {{> _tag_list search_tag=../search_tag}}
       </li>
       {{/each}}
     </ul>
   </section>
 </article>
 
-{{> index_pagination }}
+{{> _index_pagination }}
 
-{{> footer}}
+{{> _footer}}
