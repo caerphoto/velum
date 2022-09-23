@@ -181,7 +181,7 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
             //   /index/<page>
             //   /tag/<tag>
             //   /tag/<tag>/<page>
-            r"^(/index/\d+)|(/tag/[a-z\-]+(/\d+)?)"
+            r"^(/index/\d+)|(/tag/[a-z0-9\-]+(/\d+)?)"
         ).unwrap();
     }
     let default_path = "/".to_string();
