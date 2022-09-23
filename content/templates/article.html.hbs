@@ -1,8 +1,8 @@
-{{> header}}
+{{> _header}}
 
 <header>
   <div class="home link-box">
-    <a href="{{return_path}}" class="index-link">{{> icon_index}} {{{return_text return_path}}}</a>
+    <a href="{{return_path}}" class="index-link">&larr; {{{return_text return_path}}}</a>
   </div>
   <div class="logout link-box">{{{blog_title}}}</div>
   <h1>{{article.title}}</h1>
@@ -12,12 +12,12 @@
   <section id="article-body" class="post-content">
     <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
     {{#with article}}
-      {{> tag_list search_tag="" }}
+      {{> _tag_list search_tag="" }}
     {{/with}}
     {{{article.parsed_content}}}
   </section>
 
-  {{> comments}}
+  {{> _comments}}
 
 </article>
 
@@ -39,8 +39,8 @@
   <span class="empty"></span>
   {{/if}}
   <p class="footer-home-link-box">
-  <a href="{{return_path}}" class="index-link">{{> icon_index}} {{{return_text return_path}}}</a>
+  <a href="{{return_path}}" class="index-link">↰ {{{return_text return_path}}}</a>
   </p>
 </nav>
 
-{{> footer}}
+{{> _footer}}
