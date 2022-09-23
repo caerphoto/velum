@@ -58,7 +58,7 @@ pub async fn do_login_route(form_data: HashMap<String, String>, data: SharedData
 
     let password = form_data.get("password");
     let password = if password.is_none() { "" } else { password.unwrap().as_str() };
-    let hash = mdata.config.admin_password_hash.as_ref();
+    let hash = mdata.config.secrets.admin_password_hash.as_ref();
     let hash = if hash.is_none() { "" } else { hash.unwrap().as_str() };
     let verified = bcrypt::verify(&password, hash).unwrap_or(false);
 

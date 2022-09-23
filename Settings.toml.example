@@ -1,0 +1,24 @@
+# Where to listen to requests from. Use 0.0.0.0 to listen to requests from
+# anywhere.
+listen_ip = "127.0.0.1"
+
+# Use whatever you like above 1024 (below that is reserved for system services)
+listen_port = 3090
+
+# Where your posts, templates, images and assets (JS, CSS) live, relative to
+# the velum executable.
+content_dir = "content"
+
+# What your blog is called.
+blog_title = "Velum Blog"
+
+# How many posts to show per page on the index pages.
+page_size = 15
+
+# Maximum size of the preview on index pages.
+max_preview_length = 400
+
+# This is the domain your blog is hosted on, and is used to dynamically figure
+# out the 'return to' link on article pages. If it's set incorrectly, return
+# path will default to '/', i.e. the blog home page.
+blog_host = "localhost"
