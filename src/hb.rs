@@ -119,12 +119,11 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
 
     paths_with_ext_in_dir("hbs", &dir, |path| {
         let template_name = template_name(path);
-        log::info!("Registering template name: {}", &template_name);
         hb.register_template_file(&template_name, &path)
             .unwrap_or_else(|_| panic!(
-                    "Failed to register template {} with path {:?}",
-                    template_name,
-                    path
+                "Failed to register template {} with path {:?}",
+                template_name,
+                path
             ))
     });
 

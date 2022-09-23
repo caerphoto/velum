@@ -36,32 +36,13 @@ use routes::{
 
 #[macro_use] extern crate lazy_static;
 
-const HASH_COST: u32 = 8;
 const MAX_ARTICLE_LENGTH: u64 = 100_000;
 
 fn check_args(config: &mut Config) {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 || &args[1] != "register" { return; }
 
-    if let Ok(pw) = rpassword::prompt_password("Enter an admin password: ") {
-        if pw.is_empty() {
-            println!("Password cannot be blank.");
-            std::process::exit(1);
-        }
-        if let Ok(pw_conf) = rpassword::prompt_password("Confirm admin password: ") {
-            if pw != pw_conf {
-                println!("Passwords do not match.");
-                std::process::exit(1);
-            }
-            config.secrets.admin_password_hash = Some(
-                bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
-            );
-
-            if let Err(e) = config.save() {
-                panic!("Config save failed: {:?}", e);
-            }
-        }
-    }
+    config.prompt_for_password()
 }
 
 #[tokio::main]
@@ -69,7 +50,7 @@ async fn main() {
     env_logger::init();
 
     let now = time::Instant::now();
-    log::info!("Building article and comment data from files... ");
+    log::info!("Building articles and comments, and reading templates... ");
     let codata = CommonData::new();
     let mut config = codata.config.clone();
     let shared_codata = Arc::new(Mutex::new(codata));
