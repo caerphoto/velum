@@ -70,6 +70,37 @@ handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
     this_tag == search_tag
 });
 
+handlebars_helper!(return_text: |path: String| {
+    let default_text = "Home".to_string();
+    let path_parts: Vec<&str> = path
+        .trim_start_matches('/')
+        .split('/')
+        .collect();
+    log::info!("{:?}", &path_parts);
+    if path == "/" {
+        default_text
+    } else {
+        match path_parts[0] {
+            "tag" => {
+                let text = format!("Tag: <b>{}</b>", path_parts[1]);
+                if path_parts.len() == 2 {
+                    text
+                } else {
+                    format!("{} (page {})", text, path_parts[2])
+                }
+            },
+            "index" => {
+                if path == "/index/1" {
+                    default_text
+                } else {
+                    format!("Articles (page {})", path_parts[1])
+                }
+            },
+            _ => default_text
+        }
+    }
+});
+
 pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let mut hb = Handlebars::new();
     //TODO: put this stuff in config, and loop over it here.
@@ -84,6 +115,7 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let header_tmpl_path = tmpl_path("_header", config);
     let footer_tmpl_path = tmpl_path("_footer", config);
     let admin_article_list_item_tmpl_path = tmpl_path("_admin_article_list_item", config);
+    let icon_index_tmpl_path = tmpl_path("icon_index", config);
 
     #[cfg(debug_assertions)]
     hb.set_dev_mode(true);
@@ -110,10 +142,13 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
         .expect("Failed to register footer template file");
     hb.register_template_file("admin_article_list_item", &admin_article_list_item_tmpl_path)
         .expect("Failed to register list item template file");
+    hb.register_template_file("icon_index", &icon_index_tmpl_path)
+        .expect("Failed to register icon-index template file");
 
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
     hb.register_helper("is_current_tag", Box::new(is_current_tag));
     hb.register_helper("age_from_timestamp", Box::new(age_from_timestamp));
+    hb.register_helper("return_text", Box::new(return_text));
 
     hb
 }
