@@ -353,6 +353,57 @@ h1 {
     margin: 0.3em 0;
 }
 
+a {
+    text-decoration: none;
+    color: #579;
+    box-shadow: inset 0 -4px 0 #cccecf;
+    border-radius: 1px;
+    transition:
+        border-color 0.5s ease,
+        background-color 0.5s ease;
+}
+
+a svg {
+    width: 18px;
+    height: 17px;
+    vertical-align: -2px;
+    fill: #579;
+}
+
+header a,
+footer a {
+    box-shadow: none;
+    border-bottom: 1px solid #cdd;
+    border-radius: 0;
+}
+
+header a b {
+    font-weight: normal;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.4);
+}
+
+a:visited {
+    color: #969;
+}
+
+a:visited svg {
+    fill: #969;
+}
+
+a:hover {
+    color: #eee;
+    box-shadow: 0 -1px 0 2px #4b7b97;
+    background-color: #4b7b97;
+    border-color: transparent;
+    border-radius: 1px;
+    transition: background-color 0s ease;
+}
+
+a:hover svg {
+    fill: #eee;
+}
+
 header .link-box {
     grid-row: 1 / 2;
 }
@@ -379,46 +430,26 @@ header .logout.link-box {
     padding-right: 1em;
 }
 
-.index-link::before {
-    display: inline-block;
-    content: "|";
-    width: 0.9em;
-    height: 18px;
-    padding-left: 0.1em;
-    line-height: 0.9;
-    margin-bottom: -0.1em;
-    margin-right: 0.5em;
-    text-shadow: 1px 0 0 #367;
-    background: #d9dcd6;
-    background: linear-gradient(
-        0deg,
-        rgba(0,0,0,0) 3px, #d9dcd6 3px, #d9dcd6 5px, rgba(0,0,0,0) 5px,
-        rgba(0,0,0,0) 8px, #d9dcd6 8px, #d9dcd6 10px, rgba(0,0,0,0) 10px,
-        rgba(0,0,0,0) 13px, #d9dcd6 13px, #d9dcd6 15px, rgba(0,0,0,0) 15px,
-        rgba(0,0,0,0) 100%);
-
-    color: #367;
+.index-link {
 }
 
-.index-link:hover::before {
-    text-shadow: 1px 0 0 #4b7b97;
-    background: linear-gradient(
-        0deg,
-        rgba(0,0,0,0) 3px, #fff 3px, #fff 5px, rgba(0,0,0,0) 5px,
-        rgba(0,0,0,0) 8px, #fff 8px, #fff 10px, rgba(0,0,0,0) 10px,
-        rgba(0,0,0,0) 13px, #fff 13px, #fff 15px, rgba(0,0,0,0) 15px,
-        rgba(0,0,0,0) 100%);
-}
 
 header a,
 header a:visited,
+header a svg,
+header a:visited svg,
 footer a,
 footer a:visited {
     color: #d9dcd6;
+    fill: #d9dcd6;
 }
 
 header a:hover {
     color: #fff;
+}
+
+header a:hover svg {
+    fill: #ffffff;
 }
 
 @media (max-width: 43em) {
@@ -543,36 +574,6 @@ ul.tags li::after {
 
 ul.tags li:last-child::after {
     content: "";
-}
-
-a {
-    text-decoration: none;
-    color: #579;
-    box-shadow: inset 0 -4px 0 #cccecf;
-    border-radius: 1px;
-    transition:
-        border-color 0.5s ease,
-        background-color 0.5s ease;
-}
-
-header a,
-footer a {
-    box-shadow: none;
-    border-bottom: 1px solid #cdd;
-    border-radius: 0;
-}
-
-a:visited {
-    color: #969;
-}
-
-a:hover {
-    color: #eee;
-    box-shadow: 0 -1px 0 2px #4b7b97;
-    background-color: #4b7b97;
-    border-color: transparent;
-    border-radius: 1px;
-    transition: background-color 0s ease;
 }
 
 ul.tags a {
