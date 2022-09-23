@@ -5,6 +5,7 @@ mod comments;
 mod errors;
 mod routes;
 mod config;
+mod io;
 
 use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
@@ -56,9 +57,8 @@ fn check_args(config: &mut Config) {
                 bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
             );
 
-            match config.save() {
-                Ok(_) => {},
-                Err(e) => { panic!("Config save failed: {:?}", e) }
+            if let Err(e) = config.save() {
+                panic!("Config save failed: {:?}", e);
             }
         }
     }

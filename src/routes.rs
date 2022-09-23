@@ -131,9 +131,9 @@ pub async fn index_page_route(page: usize, data: SharedData) -> WarpResult {
         None
     );
     log::info!(
-        "Rendered article index page {} in {}ms",
+        "Rendered article index page {} in {}µs",
         page,
-        now.elapsed().as_millis()
+        now.elapsed().as_micros()
     );
 
     response
@@ -152,10 +152,10 @@ pub async fn tag_search_route(tag: String, page: usize, data: SharedData) -> War
         Some(&tag)
     );
     log::info!(
-        "Rendered tag '{}' index page {} in {}ms",
+        "Rendered tag '{}' index page {} in {}µs",
         &tag,
         page,
-        now.elapsed().as_millis()
+        now.elapsed().as_micros()
     );
     response
 }
@@ -223,7 +223,11 @@ pub async fn article_route(slug: String, referer: Option<String>, data: SharedDa
             ).expect("Failed to render article with Handlebars")
         ).into_response());
 
-        log::info!("Rendered article `{}` in {}ms", &slug, now.elapsed().as_millis());
+        log::info!(
+            "Rendered article `{}` in {}µs",
+            &slug,
+            now.elapsed().as_micros()
+        );
         reply
     } else {
         // let reply = warp::reply::html(String::from("Unable to read article"));

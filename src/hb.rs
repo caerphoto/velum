@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
-use std::fs;
 use chrono::prelude::*;
 use chrono::Duration;
 use ordinal::Ordinal;
 use handlebars::{Handlebars, handlebars_helper};
 use crate::config::Config;
+use crate::io::paths_with_ext_in_dir;
 
 fn pluralize(word: &str, num: i64) -> (String, i64) {
     if num == 1 {
@@ -109,21 +109,16 @@ fn template_name(path: &Path) -> String {
 pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     let mut hb = Handlebars::new();
 
-    let path = PathBuf::from(&config.content_dir).join("templates");
-    if !path.is_dir() {
-        panic!("Template path {:?} is not a directory.", path);
+    let dir = PathBuf::from(&config.content_dir).join("templates");
+    if !dir.is_dir() {
+        panic!("Template path {:?} is not a directory.", dir);
     }
 
     #[cfg(debug_assertions)]
     hb.set_dev_mode(true);
 
-    for entry in fs::read_dir(path).unwrap() {
-        let entry = entry.expect("Invalid entry");
-        let path = entry.path();
-        if path.is_dir() { continue }
-        let ext = path.extension().map(|e| e.to_ascii_lowercase());
-        if ext.is_none() || ext.unwrap() != "hbs" { continue }
-        let template_name = template_name(&path);
+    paths_with_ext_in_dir("hbs", &dir, |path| {
+        let template_name = template_name(path);
         log::info!("Registering template name: {}", &template_name);
         hb.register_template_file(&template_name, &path)
             .unwrap_or_else(|_| panic!(
@@ -131,8 +126,9 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
                     template_name,
                     path
             ))
-    }
+    });
 
+    // Not sure there's a way to automate this bit
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
     hb.register_helper("is_current_tag", Box::new(is_current_tag));
     hb.register_helper("age_from_timestamp", Box::new(age_from_timestamp));

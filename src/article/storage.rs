@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::errors::{ParseResult, ParseError};
 use crate::article::view::{ContentView, IndexView};
 use crate::article::builder::Builder;
+use crate::io::paths_with_ext_in_dir;
 
 pub struct LinkList {
     pub index_views: Vec<IndexView>,
@@ -85,7 +86,7 @@ fn set_prev_next(articles: &mut Vec<ContentView>) {
     }
 }
 
-fn builder_to_content_view(builder: Builder, config: &Config) -> ParseResult<ContentView> {
+fn builder_to_content_view(builder: &Builder, config: &Config) -> ParseResult<ContentView> {
         let title = builder.title()?;
         Ok(ContentView {
             slug: builder.slug()?, // borrow here before
@@ -155,7 +156,7 @@ pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> R
             source_filename: article.source_filename.clone(),
         };
 
-        if let Ok(new_article) = builder_to_content_view(builder, &data.config) {
+        if let Ok(new_article) = builder_to_content_view(&builder, &data.config) {
             article.base_content = new_article.base_content;
             article.parsed_content = new_article.parsed_content;
             article.preview = new_article.preview;
@@ -175,26 +176,28 @@ pub fn delete_article(article: &ContentView) -> Result<(), std::io::Error> {
 }
 
 pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {
-    let path = PathBuf::from(&config.content_dir).join("articles");
-    if !path.is_dir() {
-        let path = path.to_string_lossy();
-        return Err(ParseError { cause: format!("article path `{}` is not a directory", &path) });
+    let dir = PathBuf::from(&config.content_dir).join("articles");
+    if !dir.is_dir() {
+        let dir = dir.to_string_lossy();
+        return Err(ParseError {
+            cause: format!("article path `{}` is not a directory", &dir)
+        });
     }
 
     let mut articles: Vec<ContentView> = Vec::new();
 
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() { continue }
-        let ext = path.extension().map(|e| e.to_ascii_lowercase());
-        if ext.is_none() || ext.unwrap() != "md" { continue }
-
+    paths_with_ext_in_dir("md", &dir, |path| {
         log::debug!("Building article from {}", path.to_string_lossy());
-        match Builder::from_file(&path) {
+        match Builder::from_file(path) {
             Ok(builder) => {
-                let view = builder_to_content_view(builder, config)?;
-                articles.push(view);
+                if let Ok(view) = builder_to_content_view(&builder, config) {
+                    articles.push(view);
+                } else {
+                    log::error!(
+                        "Failed to convert builder:\n{}\nto view",
+                        &builder
+                    );
+                }
             },
             Err(e) => {
                 // Build can fail if, for example, the file contains invalid UTF-8
@@ -207,7 +210,8 @@ pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {
                 );
             }
         }
-    }
+    });
+
     articles.sort_by_key(|k| k.timestamp);
     articles.reverse();
     set_prev_next(&mut articles);

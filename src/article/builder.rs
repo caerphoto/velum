@@ -2,7 +2,7 @@ use crate::errors::{ParseError, ParseResult};
 use pulldown_cmark::{self as cmark, Event};
 use regex::Regex;
 use std::io::{self, ErrorKind};
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::{fs, time};
 
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
@@ -24,7 +24,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn from_file(path: &PathBuf) -> Result<Self, io::Error> {
+    pub fn from_file(path: &Path) -> Result<Self, io::Error> {
         let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
         let filedate = metadata.modified()?;
@@ -32,7 +32,7 @@ impl Builder {
             Ok(Self {
                 content,
                 timestamp: s.as_millis() as i64,
-                source_filename: path.clone(),
+                source_filename: path.into(),
             })
         } else {
             Err(io::Error::new(ErrorKind::Other, "failed to read file"))
@@ -122,5 +122,16 @@ impl Builder {
         let mut parsed = String::new();
         cmark::html::push_html(&mut parsed, parser);
         parsed
+    }
+}
+
+impl std::fmt::Display for Builder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Filename: {}, slug: {}",
+            self.source_filename.to_string_lossy(),
+            self.slug().unwrap_or_else(|_| "<unknown>".into())
+        )
     }
 }
