@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
 use std::net::SocketAddr;
 use std::convert::Infallible;
+use regex::Regex;
 use warp::{Reply, http::Uri};
 use serde_json::json;
 use crate::CommonData;
@@ -77,20 +78,6 @@ fn create_timestamp() -> i64 {
     }
 }
 
-fn build_return_path(page: usize, tag: Option<&str>) -> String {
-    if tag.is_some() {
-        if page <= 1 {
-            format!("/tag/{}", tag.unwrap())
-        } else {
-            format!("/tag/{}/{}", tag.unwrap(), page)
-        }
-    } else if page <= 1 {
-        "/".to_string()
-    } else {
-        format!("/index/{}", page)
-    }
-}
-
 fn render_article_list(
     article_list: LinkList,
     page: usize,
@@ -100,7 +87,6 @@ fn render_article_list(
 ) -> WarpResult {
     let blog_title = &data.config.blog_title;
     let max_page = div_ceil(article_list.total_articles, page_size);
-    let return_to = build_return_path(page, tag);
 
     let title = if let Some(tag) = tag {
         String::from("Tag: ") + tag
@@ -120,7 +106,6 @@ fn render_article_list(
             "search_tag": tag.unwrap_or(""),
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
-            "return_to": return_to,
             "body_class": if tag.is_some() { "tag-index" } else { "index" },
         })
     ) {
@@ -189,13 +174,38 @@ pub async fn article_text_route(slug: String, data: SharedData) -> WarpResult {
     }
 }
 
-pub async fn article_route(slug: String, query: HashMap<String, String>, data: SharedData) -> WarpResult {
+fn return_path(blog_host: &str, uri: Option<String>) -> String {
+    lazy_static! {
+        static ref INDEX_PATH: Regex = Regex::new(
+            // matches:
+            //   /index/<page>
+            //   /tag/<tag>
+            //   /tag/<tag>/<page>
+            r"^(/index/\d+)|(/tag/[a-z\-]+(/\d+)?)"
+        ).unwrap();
+    }
+    let default_path = "/".to_string();
+    if uri.is_none() { return default_path; }
+    if let Ok(referer) = uri.unwrap().parse::<Uri>() {
+        if let Some(host) = referer.host() {
+            if host != blog_host { return default_path }
+        }
+        if referer.path() == "/" || INDEX_PATH.is_match(referer.path()) {
+            return referer.path().to_string();
+        }
+    }
+
+    default_path
+}
+
+pub async fn article_route(slug: String, referer: Option<String>, data: SharedData) -> WarpResult {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
 
-    let default_path = "/".to_string();
-    let return_path = query.get("return_to").unwrap_or(&default_path);
+    let return_path = return_path(&data.config.blog_host, referer);
+
+    log::info!("Return path: {}", &return_path);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         let comments = data.comments.get(&slug);

@@ -52,7 +52,7 @@ fn check_args(config: &mut Config) {
                 println!("Passwords do not match.");
                 std::process::exit(1);
             }
-            config.admin_password_hash = Some(
+            config.secrets.admin_password_hash = Some(
                 bcrypt::hash(pw, HASH_COST).expect("Failed to hash password")
             );
 
@@ -98,7 +98,7 @@ async fn main() {
 
     let article = warp::path!("articles" / String)
         .and(warp::get())
-        .and(warp::query::<HashMap<String, String>>())
+        .and(warp::header::optional::<String>("Referer"))
         .and(codata_filter.clone())
         .and_then(article_route);
     let create_article = warp::path!("articles")
