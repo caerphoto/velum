@@ -293,13 +293,13 @@ fn read_file_bytes(filename: &PathBuf, buf: &mut Vec<u8>) -> std::io::Result<Las
 
 pub async fn timestamped_asset_route(timestamped_name: String, data: SharedData) -> WarpResult {
     lazy_static! {
-        static ref DATE_PART: Regex = Regex::new(r"-\d{14}\.").unwrap();
+        static ref DATE_PART: Regex = Regex::new(r"-\d{14}").unwrap();
     }
 
     if !DATE_PART.is_match(&timestamped_name) { return Err(warp::reject::not_found()) }
 
     let data = data.lock().unwrap();
-    let new_name = DATE_PART.replace(&timestamped_name, ".").to_string();
+    let new_name = DATE_PART.replace(&timestamped_name, "").to_string();
     let real_path = PathBuf::from(&data.config.content_dir)
         .join("assets")
         .join(&new_name);
