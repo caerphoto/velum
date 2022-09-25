@@ -3,9 +3,16 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
 use std::io::Read;
+use std::time::Duration;
 use std::net::SocketAddr;
 use std::convert::Infallible;
-use headers::{HeaderMapExt, ContentLength, ContentType, LastModified};
+use headers::{
+    HeaderMapExt,
+    CacheControl,
+    ContentLength,
+    ContentType,
+    LastModified,
+};
 use regex::Regex;
 use std::path::PathBuf;
 use warp::{Reply, http::Uri};
@@ -38,6 +45,7 @@ pub type WarpResult = Result<
 
 const INTERNAL_SERVER_ERROR: u16 = 500;
 pub const BAD_REQUEST: u16 = 400;
+const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
 
 pub fn server_error(msg: &str) -> WarpResult {
     log::error!("{}", msg);
@@ -310,6 +318,7 @@ pub async fn timestamped_asset_route(timestamped_name: String, data: SharedData)
         let len = buf.len() as u64;
         let mut res = warp::http::Response::new(buf.into());
         res.headers_mut().typed_insert(ContentLength(len));
+        res.headers_mut().typed_insert(CacheControl::new().with_max_age(ONE_YEAR));
         res.headers_mut().typed_insert(last_modified);
         res.headers_mut().typed_insert(ContentType::from(ct));
         Ok(res)
