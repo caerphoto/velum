@@ -2,12 +2,13 @@ mod admin;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
+use std::io::Read;
 use std::net::SocketAddr;
 use std::convert::Infallible;
+use headers::{HeaderMapExt, ContentLength, ContentType, LastModified};
 use regex::Regex;
 use std::path::PathBuf;
 use warp::{Reply, http::Uri};
-use mime_guess;
 use serde_json::json;
 use crate::CommonData;
 use crate::comments::Comment;
@@ -273,6 +274,15 @@ pub async fn comment_route(
     }
 }
 
+fn read_file_bytes(filename: &PathBuf, buf: &mut Vec<u8>) -> std::io::Result<LastModified> {
+    let mut f = fs::File::open(filename)?;
+    let meta = f.metadata()?;
+    let modified = meta.modified()?;
+    f.read_to_end(buf)?;
+
+    Ok(LastModified::from(modified))
+}
+
 pub async fn timestamped_asset_route(timestamped_name: String, data: SharedData) -> WarpResult {
     lazy_static! {
         static ref DATE_PART: Regex = Regex::new(r"-\d{14}\.").unwrap();
@@ -285,15 +295,24 @@ pub async fn timestamped_asset_route(timestamped_name: String, data: SharedData)
     let real_path = PathBuf::from(&data.config.content_dir)
         .join("assets")
         .join(&new_name);
-    log::info!("Serving timestamped assset {} from file {}", &timestamped_name, &real_path.to_string_lossy());
-    if let Ok(content) = fs::read_to_string(real_path) {
-        let ct = mime_guess::from_path(&new_name).first_or_text_plain();
-        Ok(warp::http::Response::builder()
-            .status(200)
-            .header("Content-Type", ct.as_ref())
-            .body(content.into())
-            .unwrap()
-        )
+
+    log::info!(
+        "Serving timestamped assset {} from file {}",
+        &timestamped_name,
+        &real_path.to_string_lossy()
+    );
+
+    // This is simplified version of what Warp's private function `file_reply` does. See:
+    // https://github.com/seanmonstar/warp/blob/master/src/filters/fs.rs#L261
+    let mut buf = Vec::new();
+    if let Ok(last_modified) = read_file_bytes(&real_path, &mut buf) {
+        let ct = mime_guess::from_path(&new_name).first_or_octet_stream();
+        let len = buf.len() as u64;
+        let mut res = warp::http::Response::new(buf.into());
+        res.headers_mut().typed_insert(ContentLength(len));
+        res.headers_mut().typed_insert(last_modified);
+        res.headers_mut().typed_insert(ContentType::from(ct));
+        Ok(res)
     } else {
         Err(warp::reject::not_found())
     }
