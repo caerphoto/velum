@@ -2,9 +2,19 @@ mod admin;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
+use std::io::Read;
+use std::time::Duration;
 use std::net::SocketAddr;
 use std::convert::Infallible;
+use headers::{
+    HeaderMapExt,
+    CacheControl,
+    ContentLength,
+    ContentType,
+    LastModified,
+};
 use regex::Regex;
+use std::path::PathBuf;
 use warp::{Reply, http::Uri};
 use serde_json::json;
 use crate::CommonData;
@@ -35,6 +45,7 @@ pub type WarpResult = Result<
 
 const INTERNAL_SERVER_ERROR: u16 = 500;
 pub const BAD_REQUEST: u16 = 400;
+const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
 
 pub fn server_error(msg: &str) -> WarpResult {
     log::error!("{}", msg);
@@ -107,6 +118,7 @@ fn render_article_list(
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
             "body_class": if tag.is_some() { "tag-index" } else { "index" },
+            "content_dir": &data.config.content_dir,
         })
     ) {
         Ok(rendered_page) => {
@@ -219,6 +231,7 @@ pub async fn article_route(slug: String, referer: Option<String>, data: SharedDa
                     "next": article.next,
                     "return_path": return_path,
                     "body_class": "article",
+                    "content_dir": &data.config.content_dir,
                 })
             ).expect("Failed to render article with Handlebars")
         ).into_response());
@@ -267,8 +280,51 @@ pub async fn comment_route(
     } else {
         empty_response(BAD_REQUEST)
     }
+}
 
+fn read_file_bytes(filename: &PathBuf, buf: &mut Vec<u8>) -> std::io::Result<LastModified> {
+    let mut f = fs::File::open(filename)?;
+    let meta = f.metadata()?;
+    let modified = meta.modified()?;
+    f.read_to_end(buf)?;
 
+    Ok(LastModified::from(modified))
+}
+
+pub async fn timestamped_asset_route(timestamped_name: String, data: SharedData) -> WarpResult {
+    lazy_static! {
+        static ref DATE_PART: Regex = Regex::new(r"-\d{14}").unwrap();
+    }
+
+    if !DATE_PART.is_match(&timestamped_name) { return Err(warp::reject::not_found()) }
+
+    let data = data.lock().unwrap();
+    let new_name = DATE_PART.replace(&timestamped_name, "").to_string();
+    let real_path = PathBuf::from(&data.config.content_dir)
+        .join("assets")
+        .join(&new_name);
+
+    log::info!(
+        "Serving timestamped assset {} from file {}",
+        &timestamped_name,
+        &real_path.to_string_lossy()
+    );
+
+    // This is simplified version of what Warp's private function `file_reply` does. See:
+    // https://github.com/seanmonstar/warp/blob/master/src/filters/fs.rs#L261
+    let mut buf = Vec::new();
+    if let Ok(last_modified) = read_file_bytes(&real_path, &mut buf) {
+        let ct = mime_guess::from_path(&new_name).first_or_octet_stream();
+        let len = buf.len() as u64;
+        let mut res = warp::http::Response::new(buf.into());
+        res.headers_mut().typed_insert(ContentLength(len));
+        res.headers_mut().typed_insert(CacheControl::new().with_max_age(ONE_YEAR));
+        res.headers_mut().typed_insert(last_modified);
+        res.headers_mut().typed_insert(ContentType::from(ct));
+        Ok(res)
+    } else {
+        Err(warp::reject::not_found())
+    }
 }
 
 pub async fn file_not_found_route(_: warp::Rejection) -> Result<warp::reply::Response, Infallible> {
