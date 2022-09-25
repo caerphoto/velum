@@ -32,6 +32,7 @@ use routes::{
     do_login_route,
     do_logout_route,
     rebuild_index_route,
+    timestamped_asset_route,
 };
 
 #[macro_use] extern crate lazy_static;
@@ -155,6 +156,10 @@ async fn main() {
     let images = warp::path("content")
         .and(warp::path("images"))
         .and(warp::fs::dir(path.join("images")));
+    let timestamped_asset = warp::path!("assets" / String)
+        .and(codata_filter.clone())
+        .and_then(timestamped_asset_route);
+
     let assets = warp::path("assets").and(warp::fs::dir(path.join("assets")));
 
     let robots_txt = warp::path!("robots.txt").map(|| "");
@@ -201,6 +206,7 @@ async fn main() {
         .or(do_logout)
         .or(rebuild_index)
         .or(images)
+        .or(timestamped_asset) // needs to come before assets, as it might reject
         .or(assets)
         .or(robots_txt)
         .or(favicon16).or(favicon32).or(favicon_apple)

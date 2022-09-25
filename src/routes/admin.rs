@@ -37,7 +37,8 @@ fn render_login_page(data: &SharedData, error_msg: Option<&str>) -> WarpResult {
             "body_class": "login",
             "title": "Admin Login",
             "blog_title": blog_title,
-            "error_msg": error_msg
+            "error_msg": error_msg,
+            "content_dir": &data.config.content_dir,
         })
     );
     match body {
@@ -112,6 +113,7 @@ pub async fn admin_route(session_id: Option<String>, data: SharedData) -> WarpRe
             "title": "Blog Admin",
             "blog_title": blog_title,
             "articles": &data.articles,
+            "content_dir": &data.config.content_dir,
         })
     );
     match body {

@@ -5,7 +5,9 @@ use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
 use std::net::SocketAddr;
 use std::convert::Infallible;
 use regex::Regex;
+use std::path::PathBuf;
 use warp::{Reply, http::Uri};
+use mime_guess;
 use serde_json::json;
 use crate::CommonData;
 use crate::comments::Comment;
@@ -107,6 +109,7 @@ fn render_article_list(
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
             "body_class": if tag.is_some() { "tag-index" } else { "index" },
+            "content_dir": &data.config.content_dir,
         })
     ) {
         Ok(rendered_page) => {
@@ -219,6 +222,7 @@ pub async fn article_route(slug: String, referer: Option<String>, data: SharedDa
                     "next": article.next,
                     "return_path": return_path,
                     "body_class": "article",
+                    "content_dir": &data.config.content_dir,
                 })
             ).expect("Failed to render article with Handlebars")
         ).into_response());
@@ -267,8 +271,32 @@ pub async fn comment_route(
     } else {
         empty_response(BAD_REQUEST)
     }
+}
 
+pub async fn timestamped_asset_route(timestamped_name: String, data: SharedData) -> WarpResult {
+    lazy_static! {
+        static ref DATE_PART: Regex = Regex::new(r"-\d{14}\.").unwrap();
+    }
 
+    if !DATE_PART.is_match(&timestamped_name) { return Err(warp::reject::not_found()) }
+
+    let data = data.lock().unwrap();
+    let new_name = DATE_PART.replace(&timestamped_name, ".").to_string();
+    let real_path = PathBuf::from(&data.config.content_dir)
+        .join("assets")
+        .join(&new_name);
+    log::info!("Serving timestamped assset {} from file {}", &timestamped_name, &real_path.to_string_lossy());
+    if let Ok(content) = fs::read_to_string(real_path) {
+        let ct = mime_guess::from_path(&new_name).first_or_text_plain();
+        Ok(warp::http::Response::builder()
+            .status(200)
+            .header("Content-Type", ct.as_ref())
+            .body(content.into())
+            .unwrap()
+        )
+    } else {
+        Err(warp::reject::not_found())
+    }
 }
 
 pub async fn file_not_found_route(_: warp::Rejection) -> Result<warp::reply::Response, Infallible> {
