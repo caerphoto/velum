@@ -356,7 +356,7 @@ h1 {
 a {
     text-decoration: none;
     color: #579;
-    box-shadow: inset 0 -4px 0 #cccecf;
+    border-bottom: 3px solid #8caccc;
     border-radius: 1px;
     transition:
         border-color 0.5s ease,
@@ -384,11 +384,17 @@ header a b {
 }
 
 a:visited {
-    color: #969;
+    color: #999e9f;
+    border-bottom-color: #cccecf;
 }
 
 a:visited svg {
-    fill: #969;
+    fill: #999;
+}
+
+nav a:visited {
+    color: #579;
+    border-bottom-color: #8caccc;
 }
 
 a:hover {
