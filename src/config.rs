@@ -44,14 +44,7 @@ impl Config {
         Ok(config)
     }
 
-    pub fn save(&self) -> Result<(), std::io::Error> {
-        let config = toml::to_string(&self)
-            .map_err(|e| {
-                log::error!("Failed to serialize config: {:?}", e);
-                let ek = std::io::ErrorKind::InvalidInput;
-                std::io::Error::from(ek)
-            })?;
-
+    pub fn save_secrets(&self) -> Result<(), std::io::Error> {
         let secrets = toml::to_string(&self.secrets)
             .map_err(|e| {
                 log::error!("Failed to serialize secrets: {:?}", e);
@@ -59,7 +52,6 @@ impl Config {
                 std::io::Error::from(ek)
             })?;
 
-        fs::write(CONFIG_FILE, config)?;
         fs::write(SECRETS_FILE, secrets)
     }
 
@@ -80,7 +72,7 @@ impl Config {
             bcrypt::hash(pw, BCRYPT_HASH_COST).expect("Failed to hash password")
         );
 
-        if let Err(e) = self.save() {
+        if let Err(e) = self.save_secrets() {
             panic!("Config save failed: {:?}", e);
         }
     }
