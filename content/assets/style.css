@@ -160,6 +160,7 @@ article p {
 
 .admin-article-list a:visited {
     color: #579;
+    border-color: rgba(0, 0, 0, 0.5);
 }
 
 .admin-article-list a:hover {
@@ -388,12 +389,8 @@ header a b {
 }
 
 a:visited {
-    color: #999e9f;
-    border-bottom-color: #cccecf;
-}
-
-a:visited svg {
-    fill: #999;
+    color: #7d7583;
+    border-bottom-color: #cdc2d5;
 }
 
 nav a:visited {
