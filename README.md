@@ -61,8 +61,10 @@ future there may be options for running daemonised, or as a system service.
 
 ## To Do
 
-1. Image uploader for admin page.
+1. Image uploader/manager for admin page.
 
 2. Ensure there are no duplicate slugs.
 
 3. RSS feeds for main site, and maybe per-tag?
+
+4. Themes!

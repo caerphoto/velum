@@ -411,6 +411,10 @@ a:hover svg {
     fill: #eee;
 }
 
+nav a:hover {
+    color: #eee;
+}
+
 header .link-box {
     grid-row: 1 / 2;
 }
