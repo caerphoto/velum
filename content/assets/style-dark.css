@@ -329,6 +329,12 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     display: block;
 }
 
+#theme-selector {
+    font: inherit;
+    background-color: var(--main-bg);
+    color: var(--normal-color);
+}
+
 #comments {
     background-color: var(--lighter-bg);
     margin: 1em -3em 2em;

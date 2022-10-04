@@ -94,6 +94,7 @@ fn render_article_list(
     page_size: usize,
     data: &CommonData,
     tag: Option<&str>,
+    theme: Option<String>,
 ) -> WarpResult {
     let blog_title = &data.config.blog_title;
     let max_page = div_ceil(article_list.total_articles, page_size);
@@ -118,6 +119,7 @@ fn render_article_list(
             "articles": &article_list.index_views,
             "body_class": if tag.is_some() { "tag-index" } else { "index" },
             "content_dir": &data.config.content_dir,
+            "theme": theme,
         })
     ) {
         Ok(rendered_page) => {
@@ -129,7 +131,7 @@ fn render_article_list(
     }
 }
 
-pub async fn index_page_route(page: usize, data: SharedData) -> WarpResult {
+pub async fn index_page_route(page: usize, theme: Option<String>, data: SharedData) -> WarpResult {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let page_size = data.config.page_size;
@@ -139,7 +141,8 @@ pub async fn index_page_route(page: usize, data: SharedData) -> WarpResult {
         page,
         page_size,
         &data,
-        None
+        None,
+        theme
     );
     log::info!(
         "Rendered article index page {} in {}µs",
@@ -150,7 +153,7 @@ pub async fn index_page_route(page: usize, data: SharedData) -> WarpResult {
     response
 }
 
-pub async fn tag_search_route(tag: String, page: usize, data: SharedData) -> WarpResult {
+pub async fn tag_search_route(tag: String, page: usize, theme: Option<String>, data: SharedData) -> WarpResult {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let page_size = data.config.page_size;
@@ -160,7 +163,8 @@ pub async fn tag_search_route(tag: String, page: usize, data: SharedData) -> War
         page,
         page_size,
         &data,
-        Some(&tag)
+        Some(&tag),
+        theme,
     );
     log::info!(
         "Rendered tag '{}' index page {} in {}µs",
@@ -209,7 +213,7 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
     default_path
 }
 
-pub async fn article_route(slug: String, referer: Option<String>, data: SharedData) -> WarpResult {
+pub async fn article_route(slug: String, referer: Option<String>, theme: Option<String>, data: SharedData) -> WarpResult {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
@@ -231,6 +235,7 @@ pub async fn article_route(slug: String, referer: Option<String>, data: SharedDa
                     "return_path": return_path,
                     "body_class": "article",
                     "content_dir": &data.config.content_dir,
+                    "theme": theme,
                 })
             ).expect("Failed to render article with Handlebars")
         ).into_response());

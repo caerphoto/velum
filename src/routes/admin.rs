@@ -69,7 +69,7 @@ pub async fn do_login_route(form_data: HashMap<String, String>, data: SharedData
 
     let session_id = Uuid::new_v4();
     let cookie = format!(
-        "session_id={}; Path=/; HttpOnly; Max-Age={}",
+        "velum_session_id={}; Path=/; HttpOnly; Max-Age={}",
         session_id,
         THIRTY_DAYS
     );
@@ -89,7 +89,7 @@ pub async fn do_logout_route(data: SharedData) -> WarpResult {
 
     // Note expiry date: setting a date in the past is the spec-compliant way
     // to force the browser to delete the cookie.
-    let cookie = "session_id=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    let cookie = "velum_session_id=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     data.session_id = None;
 
     Ok(warp::http::Response::builder()

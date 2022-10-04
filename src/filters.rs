@@ -34,18 +34,22 @@ pub fn index_filter(codata: SharedData) -> impl Filter<
 > + Clone + 'static {
     let codata_filter = warp::any().map(move || codata.clone());
     let index = warp::path::end().map(|| 1usize)
+        .and(warp::cookie::optional::<String>("theme"))
         .and(codata_filter.clone())
         .and_then(index_page_route);
     let index_at_page = warp::path!("index" / usize)
+        .and(warp::cookie::optional::<String>("theme"))
         .and(codata_filter.clone())
         .and_then(index_page_route);
 
     let with_tag = warp::path!("tag" / String)
         .map(|tag: String| (tag, 1) )
         .untuple_one()
+        .and(warp::cookie::optional::<String>("theme"))
         .and(codata_filter.clone())
         .and_then(tag_search_route);
     let with_tag_at_page = warp::path!("tag" / String / usize)
+        .and(warp::cookie::optional::<String>("theme"))
         .and(codata_filter)
         .and_then(tag_search_route);
 
@@ -60,25 +64,26 @@ pub fn article_filter(codata: SharedData) -> impl Filter<
     let show = warp::path!("articles" / String)
         .and(warp::get())
         .and(warp::header::optional::<String>("Referer"))
+        .and(warp::cookie::optional::<String>("theme"))
         .and(codata_filter.clone())
         .and_then(article_route);
     let create = warp::path!("articles")
         .and(warp::post())
         .and(warp::filters::body::bytes())
         .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
-        .and(warp::cookie::optional::<String>("session_id"))
+        .and(warp::cookie::optional::<String>("velum_session_id"))
         .and(codata_filter.clone())
         .and_then(create_article_route);
     let update = warp::path!("articles" / String)
         .and(warp::put())
         .and(warp::filters::body::bytes())
         .and(warp::body::content_length_limit(MAX_ARTICLE_LENGTH))
-        .and(warp::cookie::optional::<String>("session_id"))
+        .and(warp::cookie::optional::<String>("velum_session_id"))
         .and(codata_filter.clone())
         .and_then(update_article_route);
     let delete = warp::path!("articles" / String)
         .and(warp::delete())
-        .and(warp::cookie::optional::<String>("session_id"))
+        .and(warp::cookie::optional::<String>("velum_session_id"))
         .and(codata_filter.clone())
         .and_then(delete_article_route);
 
@@ -125,7 +130,7 @@ pub fn admin_filter(codata: SharedData) -> impl Filter<
 > + Clone + 'static {
     let codata_filter = warp::any().map(move || codata.clone());
     let page = warp::path!("admin")
-        .and(warp::cookie::optional::<String>("session_id"))
+        .and(warp::cookie::optional::<String>("velum_session_id"))
         .and(codata_filter.clone())
         .and_then(admin_route);
     let login_page = warp::path!("login")
@@ -144,7 +149,7 @@ pub fn admin_filter(codata: SharedData) -> impl Filter<
         .and(warp::body::content_length_limit(0))
         .and_then(do_logout_route);
     let rebuild_index = warp::path!("rebuild")
-        .and(warp::cookie::optional::<String>("session_id"))
+        .and(warp::cookie::optional::<String>("velum_session_id"))
         .and(warp::post())
         .and(warp::body::content_length_limit(0))
         .and(codata_filter)
