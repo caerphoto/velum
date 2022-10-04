@@ -1,5 +1,4 @@
 mod admin;
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::{fs, time::{self, SystemTime, UNIX_EPOCH}};
 use std::io::Read;
@@ -25,6 +24,8 @@ use crate::article::storage::{
     fetch_index_links,
 };
 
+pub use crate::filters::SharedData;
+
 pub use admin::{
     admin_route,
     login_page_route,
@@ -35,8 +36,6 @@ pub use admin::{
     update_article_route,
     delete_article_route,
 };
-
-pub type SharedData = Arc<Mutex<CommonData>>;
 
 pub type WarpResult = Result<
     warp::reply::Response,
