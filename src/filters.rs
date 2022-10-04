@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 use core::convert::TryFrom;
-use std::collections::HashMap;
 
 use warp::{Filter, Reply, http::Uri};
 
@@ -87,18 +86,23 @@ pub fn article_filter(codata: SharedData) -> impl Filter<
         .and(codata_filter)
         .and_then(article_text_route);
 
+
+    show.or(create).or(update).or(delete).or(text)
+}
+
+pub fn legacy_filter() -> impl Filter<
+    Extract = impl warp::Reply,
+    Error=warp::Rejection
+> + Clone + 'static {
     // Only necessary for handling imported articles from Ghost blog.
-    let legacy = warp::path!(String)
-        .and(warp::query::<HashMap<String, String>>())
+    warp::path!(String)
         .and(warp::get())
-        .map(|slug, _| {
+        .map(|slug| {
             let path = Uri::try_from(format!("/articles/{}", slug));
             warp::redirect::redirect(
                 path.unwrap_or_else(|_| Uri::from_static("/"))
             ).into_response()
-        });
-
-    show.or(create).or(update).or(delete).or(text).or(legacy)
+        })
 }
 
 pub fn comment_filter(codata: SharedData) -> impl Filter<

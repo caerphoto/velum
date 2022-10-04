@@ -1,0 +1,344 @@
+:root {
+    --main-bg: #222433;
+    --normal-color: #b5b9d1;
+    --heading-color: #80a0ff;
+    --link-color: #929be5;
+    --link-border-color: #717ac5;
+    --link-color-visited: #a580c1;
+    --link-border-color-visited: #82629b;
+    --accent-color1: #73c1a9;
+    --accent-color2: #ac8b83;
+    --accent-color2-lighter: #e0b482;
+
+    --lighter-bg: #2a2c3f;
+    --light-bg: #464f7f;
+
+    --body-font-family: "IBM Plex Sans";
+    --heading-font-family: "IBM Plex Serif";
+}
+
+html {
+    background-color: var(--main-bg);
+    color: var(--normal-color);
+
+    margin: 0;
+    padding: 0;
+    font-family: var(--body-font-family), serif;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+    border-width: 0 0 2px 0;
+    border-style: solid;
+    border-color: var(--link-border-color);
+}
+
+a:visited {
+    color: var(--link-color-visited);
+    border-color: var(--link-border-color-visited);
+}
+a:hover {
+    color: var(--accent-color2);
+    border-color: var(--accent-color2);
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--heading-font-family), sans-serif;
+    color: var(--heading-color);
+    margin: 0;
+    padding: 0;
+    font-weight: normal;
+}
+
+h2 {
+    margin-bottom: 0.3em;
+}
+
+h3 {
+    color: var(--accent-color1);
+}
+
+header {
+    margin-bottom: 1em;
+    border-bottom: 4px solid var(--accent-color1);
+    padding: 0 1em;
+    display: grid;
+    grid-template-columns: 1fr 35rem 1fr;
+    grid-template-rows: 1fr;
+    height: 4em;
+    align-items: center;
+
+    background-color: var(--light-bg);
+    text-shadow: 0 1px 0 #000;
+    font-weight: normal;
+}
+
+.tag-index header {
+    grid-template-rows: 3.5em 2.5em;
+    height: auto;
+}
+
+header .home {
+    grid-row: 1/3;
+    grid-column: 1 / 2;
+}
+header h1 {
+    grid-row: 1/2;
+    grid-column: 2 / 3;
+}
+header .logout {
+    grid-row: 1/3;
+    grid-column: 3 / 4;
+    text-align: right;
+}
+header h2 {
+    grid-row: 2/3;
+    grid-column: 2/4;
+    margin: 0;
+    align-self: start;
+    font-size: 1.2rem;
+}
+
+.tag-index header h1 {
+    align-self: end;
+}
+
+.tag-index header h1 .subdued {
+    color: var(--normal-color);
+    font-weight: 300;
+}
+
+header a {
+    box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.5);
+}
+header a:visited {
+    color: var(--link-color);
+    border-color: var(--link-color);
+}
+header a:hover {
+    color: var(--accent-color2);
+    border-color: var(--accent-color2);
+}
+
+footer {
+    padding: 1em;
+}
+
+article {
+    max-width: 35rem;
+    margin: 0 auto;
+}
+
+p {
+    margin: 0 0 1em;
+}
+
+.post-content p {
+    line-height: 1.5;
+}
+
+p.content-preview {
+    line-height: 1.2;
+}
+
+ul {
+    margin: 0 0 1em;
+    padding: 0;
+    list-style: none;
+}
+
+ul.tags {
+    font-size: 80%;
+}
+
+ul.tags::before {
+    content: "Tagged with:";
+}
+
+ul.tags li {
+    display: inline-block;
+}
+
+ul.tags li::after {
+    content: " · ";
+}
+
+ul.tags li:last-child::after {
+    content: "";
+}
+
+ul.tags a {
+    border-style: dotted;
+}
+
+ul.tags a:visited {
+    border-color: var(--link-color-visited);
+}
+
+ul.article-list > li {
+    padding-bottom: 1em;
+    margin-bottom: 1em;
+    border-bottom: 2px solid var(--accent-color1);
+}
+
+ul.article-list > li:last-child {
+    border-bottom-width: 0;
+}
+
+nav {
+    display: grid;
+    grid-template-columns: 1fr 8em 1fr;
+    grid-template-rows: 1fr;
+    height: 3em;
+    margin-bottom: 1em;
+    background-color: var(--lighter-bg);
+    border-color: var(--accent-color1);
+    border-width: 1px 0;
+    border-style: dashed;
+    align-items: center;
+    line-height: 1;
+}
+
+nav p {
+    margin: 0;
+}
+
+nav.next-prev {
+    grid-template-rows: 1.6em 1.6em 2em;
+    grid-template-columns: 1fr 2em 1fr;
+    align-items: start;
+    height: auto;
+}
+
+nav .more-articles-text {
+    grid-column: 1 / 4;
+    justify-self: center;
+    align-self: end;
+    margin-bottom: 0.2em;
+}
+
+nav .nav-prev {
+    grid-column: 1 / 2;
+    justify-self: end;
+}
+
+nav .nav-sep {
+    grid-column: 2 / 3;
+    justify-self: center;
+}
+
+nav .nav-next {
+    grid-column: 3 / 4;
+}
+
+nav .footer-home-link-box {
+    grid-column: 1 / 4;
+    justify-self: center;
+    align-self: start;
+}
+
+pre {
+    background-color: var(--lighter-bg);
+    padding: 0.2em 0.3em;
+    border: 1px solid var(--light-bg);
+    overflow-x: scroll;
+}
+
+code {
+    font-weight: normal;
+    font-size: 14px;
+}
+
+p > code {
+    background-color: var(--lighter-bg);
+    border: 1px solid var(--light-bg);
+    padding: 0 0.2em;
+}
+
+hr {
+    border-width: 0 0 1px 0;
+    border-style: solid;
+    border-color: var(--light-bg);
+    margin: 1em 3em;
+}
+
+#comments {
+    background-color: var(--lighter-bg);
+    margin: 1em -3em 2em;
+    padding: 1em 3em;
+    border-color: var(--light-bg);
+    border-width: 1px;
+    border-style: solid;
+}
+
+.comment-item {
+    border-bottom: 1px dotted var(--accent-color1);
+    margin-bottom: 1em;
+}
+
+.comment-author {
+    margin-bottom: 0.3em;
+}
+
+.comment-text {
+    white-space: pre-wrap;
+    margin-bottom: 0.5em;
+}
+
+.comment-age {
+    font-size: 80%;
+    color: var(--accent-color1);
+}
+
+#comment-form {
+    padding-bottom: 1em;
+}
+
+#comment-form label,
+#comment-form input,
+#comment-form textarea {
+    display: block;
+}
+
+#comment-form input,
+#comment-form textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    border: 2px solid var(--accent-color2);
+    background-color: var(--main-bg);
+    font: inherit;
+    outline: none;
+    width: 100%;
+    margin-bottom: 0.5em;
+    color: var(--normal-color);
+    padding: 0.2em 0.5em;
+}
+
+#comment-form input:focus,
+#comment-form textarea:focus {
+    border-radius: 2px;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+#comment-form textarea {
+    height: 10em;
+}
+
+#comment-form button {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--accent-color2);
+    color: var(--main-bg);
+    border: 1px solid var(--accent-color2-lighter);
+    font-size: 1em;
+    font-family: var(--heading-font-family);
+}

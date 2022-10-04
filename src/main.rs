@@ -20,6 +20,7 @@ use commondata::CommonData;
 use filters::{
     index_filter,
     article_filter,
+    legacy_filter,
     comment_filter,
     admin_filter,
     statics_filter,
@@ -74,6 +75,7 @@ async fn main() {
         .or(comment_filter(shared_codata.clone()))
         .or(admin_filter(shared_codata.clone()))
         .or(statics_filter(shared_codata.clone(), &config.content_dir))
+        .or(legacy_filter())
         .recover(file_not_found_route)
         .with(error_logger);
 
