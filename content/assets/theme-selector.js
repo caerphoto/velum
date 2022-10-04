@@ -1,6 +1,9 @@
 (function (D) {
     const selector = D.querySelector('#theme-selector');
     const styleTag = D.querySelector('#main-style-tag');
+
+    if (!selector) return;
+
     const currentTheme = styleTag.getAttribute('href');
 
     const TWO_YEARS = 60*60*24*365*2;
