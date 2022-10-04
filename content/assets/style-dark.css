@@ -26,6 +26,7 @@ html {
     font-family: var(--body-font-family), serif;
     font-size: 18px;
     font-weight: 300;
+    background-image: url("/assets/arabesque-bg.png");
 }
 
 body {
