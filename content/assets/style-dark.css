@@ -74,7 +74,7 @@ header {
     padding: 0.5em 1em;
     display: grid;
     grid-template-columns: 1fr 35.5rem 1fr;
-    grid-template-rows: 1fr;
+    grid-template-rows: 1fr 1fr;
     min-height: 4em;
     align-items: center;
 
@@ -94,7 +94,7 @@ header .home {
     grid-column: 1 / 2;
 }
 header h1 {
-    grid-row: 1/2;
+    grid-row: 1/3;
     grid-column: 2 / 3;
 }
 header .logout {
@@ -255,7 +255,7 @@ pre {
     background-color: var(--lighter-bg);
     padding: 0.2em 0.3em;
     border: 1px solid var(--light-bg);
-    overflow-x: scroll;
+    overflow-x: auto;
 }
 
 code {
@@ -340,6 +340,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 #comments {
+    box-sizing: border-box;
     background-color: var(--lighter-bg);
     margin: 1em -3em 2em;
     padding: 1em 3em;
@@ -360,6 +361,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 .comment-text {
     white-space: pre-wrap;
     margin-bottom: 0.5em;
+    overflow-x: auto;
 }
 
 .comment-age {
@@ -410,4 +412,42 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     border: 1px solid var(--accent-color2-lighter);
     font-size: 1em;
     font-family: var(--heading-font-family);
+}
+
+@media (max-width: 72rem) {
+    header h1 {
+        grid-row: 2/3;
+    }
+
+    header .link-box {
+        grid-row: 1/2;
+    }
+
+    header .home {
+        grid-column: 1/3;
+    }
+    header .logout {
+        grid-column: 2/4;
+    }
+}
+
+@media (max-width: 47rem) {
+    header {
+        grid-template-columns: 5em 1fr 5em;
+        grid-template-rows: 2em 1fr;
+    }
+    header h1 {
+        text-align: center;
+        grid-column: 1/4;
+    }
+    section.content,
+    section.post-content {
+        margin: 0 0.5em;
+    }
+    #comments {
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+    }
 }
