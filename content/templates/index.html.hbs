@@ -6,10 +6,12 @@
       <a href="/" class="index-link">&larr; All articles</a>
     </div>
     <div class="logout link-box">{{{blog_title}}}</div>
+    {{> _theme_selector}}
     <h1 class="with-tag"><span class="subdued">Tag:</span> {{search_tag}}</h1>
     <h2>{{article_count}} articles</h2>
   {{else}}
     <h1>{{blog_title}}</h1>
+    {{> _theme_selector}}
   {{/if}}
 </header>
 
