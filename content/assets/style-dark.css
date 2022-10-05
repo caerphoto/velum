@@ -145,6 +145,15 @@ article {
     margin: 0 auto;
 }
 
+#home-page-info {
+    padding-bottom: 1em;
+    border: 1px dotted var(--accent-color1);
+    background-color: var(--lighter-bg);
+    margin: 2em 0;
+    border-radius: 1px;
+    padding: 0.5em 1em;
+}
+
 p {
     margin: 0 0 1em;
 }

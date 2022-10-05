@@ -90,20 +90,29 @@ fn create_timestamp() -> i64 {
 
 fn render_article_list(
     article_list: LinkList,
-    page: usize,
+    mut page: usize,
     page_size: usize,
     data: &CommonData,
     tag: Option<&str>,
     theme: Option<String>,
 ) -> WarpResult {
     let blog_title = &data.config.blog_title;
-    let max_page = div_ceil(article_list.total_articles, page_size);
+    let last_page = div_ceil(article_list.total_articles, page_size);
 
     let title = if let Some(tag) = tag {
         String::from("Tag: ") + tag
     } else {
         String::from("Article Index")
     };
+
+    // Page '0' is the home page: shows the same article list as the first index
+    // page, but has the additional home page info box.
+    let home_page_info = if page == 0 {
+        Some(&data.config.info_html)
+    } else {
+        None
+    };
+    page = std::cmp::max(page, 1);
 
     match data.hbs.render(
         "index",
@@ -112,14 +121,15 @@ fn render_article_list(
             "title": title,
             "prev_page": if page > 1 { page - 1 } else { 0 },
             "current_page": page,
-            "next_page": if page < max_page { page + 1 } else { 0 },
-            "max_page": max_page,
+            "next_page": if page < last_page { page + 1 } else { 0 },
+            "last_page": last_page,
             "search_tag": tag.unwrap_or(""),
             "article_count": article_list.total_articles,
             "articles": &article_list.index_views,
             "body_class": if tag.is_some() { "tag-index" } else { "index" },
             "content_dir": &data.config.content_dir,
             "theme": theme,
+            "home_page_info": home_page_info,
         })
     ) {
         Ok(rendered_page) => {

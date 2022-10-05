@@ -14,6 +14,7 @@ pub struct Config {
     pub blog_title: String,
     pub blog_host: String,
     pub max_preview_length: usize,
+    pub info_html: String,
 
     #[serde(skip)]
     pub secrets: Secrets

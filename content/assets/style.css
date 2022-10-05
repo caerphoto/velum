@@ -358,6 +358,12 @@ h1 {
     margin: 0.3em 0;
 }
 
+#home-page-info {
+    padding-bottom: 1em;
+    border: 1px dotted #ccc;
+    margin-bottom: 2em;
+}
+
 a {
     text-decoration: none;
     color: #579;

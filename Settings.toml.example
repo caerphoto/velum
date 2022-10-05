@@ -22,3 +22,7 @@ max_preview_length = 400
 # out the 'return to' link on article pages. If it's set incorrectly, return
 # path will default to '/', i.e. the blog home page.
 blog_host = "localhost"
+
+info_html = """
+<p>Welcome to my <a href="https://github.com/caerphoto/velum">Velum</a> blog!</p>
+"""

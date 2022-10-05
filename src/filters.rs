@@ -33,7 +33,7 @@ pub fn index_filter(codata: SharedData) -> impl Filter<
     Error=warp::Rejection
 > + Clone + 'static {
     let codata_filter = warp::any().map(move || codata.clone());
-    let index = warp::path::end().map(|| 1usize)
+    let home = warp::path::end().map(|| 0usize)
         .and(warp::cookie::optional::<String>("theme"))
         .and(codata_filter.clone())
         .and_then(index_page_route);
@@ -53,7 +53,7 @@ pub fn index_filter(codata: SharedData) -> impl Filter<
         .and(codata_filter)
         .and_then(tag_search_route);
 
-    index.or(index_at_page).or(with_tag).or(with_tag_at_page)
+    home.or(index_at_page).or(with_tag).or(with_tag_at_page)
 }
 
 pub fn article_filter(codata: SharedData) -> impl Filter<
