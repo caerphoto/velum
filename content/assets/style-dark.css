@@ -66,6 +66,7 @@ h2 {
 
 h3 {
     color: var(--accent-color1);
+    margin: 0.6em 0 0.4em;
 }
 
 header {
@@ -94,6 +95,7 @@ header .home {
     grid-column: 1 / 2;
 }
 header h1 {
+    max-width: 35rem;
     grid-row: 1/3;
     grid-column: 2 / 3;
 }
@@ -114,6 +116,7 @@ header h2 {
 .tag-index header h1 {
     align-self: end;
     line-height: 1.2;
+    grid-row: 1/2;
 }
 
 .tag-index header h1 .subdued {
@@ -209,6 +212,7 @@ nav {
     border-color: var(--accent-color1);
     border-width: 1px 0;
     border-style: dashed;
+    padding-bottom: 0.5em;
     align-items: center;
     line-height: 1;
 }
@@ -217,8 +221,12 @@ nav p {
     margin: 0;
 }
 
+nav a {
+    line-height: 1.3;
+}
+
 nav.next-prev {
-    grid-template-rows: 1.6em 1.6em 2em;
+    grid-template-rows: 1.6em 1fr 2em;
     grid-template-columns: 1fr 2em 1fr;
     align-items: start;
     height: auto;
@@ -241,6 +249,9 @@ nav .nav-sep {
     justify-self: center;
 }
 
+nav .nav-prev {
+    text-align: right;
+}
 nav .nav-next {
     grid-column: 3 / 4;
 }
@@ -248,7 +259,7 @@ nav .nav-next {
 nav .footer-home-link-box {
     grid-column: 1 / 4;
     justify-self: center;
-    align-self: start;
+    align-self: center;
 }
 
 pre {
@@ -415,8 +426,19 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 @media (max-width: 72rem) {
+    header,
+    .tag-index header {
+        grid-template-rows: 2em 1fr 2em;
+    }
     header h1 {
+        grid-row: 2/4;
+    }
+    .tag-index header h1 {
         grid-row: 2/3;
+    }
+
+    .tag-index header h2 {
+        grid-row: 3/4;
     }
 
     header .link-box {
@@ -432,12 +454,18 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 }
 
 @media (max-width: 47rem) {
-    header {
-        grid-template-columns: 5em 1fr 5em;
-        grid-template-rows: 2em 1fr;
+    header,
+    .tag-index header {
+        grid-template-columns: 5rem 1fr 5rem;
     }
     header h1 {
-        text-align: center;
+        grid-column: 1/4;
+    }
+    .tag-index header h1 {
+        grid-row: 2/3;
+    }
+    header h2 {
+        grid-row: 3/4;
         grid-column: 1/4;
     }
     section.content,
