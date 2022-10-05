@@ -10,8 +10,12 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon_apple.png">
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap">
-    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400&display=swap" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{asset_path "style.css"}}">
+    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400,700&display=swap">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400,700&display=swap" media="print" onload="this.media='all'">
+    {{#if theme}}
+      <link rel="stylesheet" href="{{theme}}" id="main-style-tag">
+    {{else}}
+      <link rel="stylesheet" href="{{asset_path "style.css"}}" id="main-style-tag">
+    {{/if}}
   </head>
   <body class="{{body_class}}">

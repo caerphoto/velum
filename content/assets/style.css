@@ -436,9 +436,13 @@ header .home.link-box {
 }
 
 header .logout.link-box {
-    grid-column: 3 / 4;
+    grid-column: 2 / 4;
     justify-self: end;
     padding-right: 1em;
+}
+
+.link-box label {
+    display: inline-block;
 }
 
 .index-link {
