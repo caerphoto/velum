@@ -157,7 +157,7 @@ pub async fn create_article_route(
                     server_error("Error rebuilding article index")
                 } else {
                     let body = data.hbs.render(
-                        "admin_article_list_item",
+                        "_admin_article_list_item",
                         &view
                     );
                     match body {
