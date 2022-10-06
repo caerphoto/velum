@@ -20,6 +20,11 @@
 {{/if}}
 
 <article>
+  {{#if home_page_info}}
+    {{> _home_page_info}}
+  {{/if}}
+
+  </section>
   <section id="post-index" class="content">
     <ul class="article-list">
       {{#each articles}}
