@@ -66,7 +66,7 @@ h2 {
 
 h3 {
     color: var(--accent-color1);
-    margin: 0.6em 0 0.4em;
+    margin: 0.7em 0 0.4em;
 }
 
 header {
@@ -146,12 +146,11 @@ article {
 }
 
 #home-page-info {
-    padding-bottom: 1em;
-    border: 1px dotted var(--accent-color1);
+    border: 1px solid #000;
     background-color: var(--lighter-bg);
     margin: 2em 0;
     border-radius: 1px;
-    padding: 0.5em 1em;
+    padding: 1em 0.5em 0;
 }
 
 p {
@@ -195,6 +194,7 @@ ul.tags li:last-child::after {
 
 ul.tags a {
     border-style: dotted;
+    line-height: 1.5;
 }
 
 ul.tags a:visited {
