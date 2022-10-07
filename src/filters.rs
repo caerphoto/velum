@@ -91,7 +91,6 @@ pub fn article_filter(codata: SharedData) -> impl Filter<
         .and(codata_filter)
         .and_then(article_text_route);
 
-
     show.or(create).or(update).or(delete).or(text)
 }
 

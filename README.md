@@ -67,4 +67,4 @@ future there may be options for running daemonised, or as a system service.
 
 3. RSS feeds for main site, and maybe per-tag?
 
-4. Themes!
+4. Themes! (partly done - needs improvement)
