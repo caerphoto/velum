@@ -1,4 +1,6 @@
 pub mod index;
+pub mod article;
+pub mod asset;
 
 use std::time::{
     SystemTime,

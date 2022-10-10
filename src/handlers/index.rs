@@ -12,7 +12,7 @@ use crate::article::storage::{
     LinkList,
     fetch_index_links,
 };
-pub use crate::SharedData;
+use crate::SharedData;
 use super::server_error;
 
 // Integer division rounding up, for calculating page count
