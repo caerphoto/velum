@@ -9,15 +9,16 @@ use std::time::{
 };
 
 use axum::{
-    http::StatusCode,
+        http::{StatusCode, Uri},
     response::Html,
 };
+use tower_cookies::Cookies;
 
-const INTERNAL_SERVER_ERROR: u16 = 500;
-pub const BAD_REQUEST: u16 = 400;
-const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
-
-
+pub fn theme(cookies: Cookies) -> Option<String> {
+    cookies
+        .get("theme")
+        .and_then(|c| Some(c.value().to_string()))
+}
 
 fn create_timestamp() -> i64 {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
@@ -28,11 +29,18 @@ fn create_timestamp() -> i64 {
     }
 }
 
-pub fn server_error(msg: &str) -> (StatusCode, Html<String>) {
+pub fn render_not_found(uri: Option<Uri>) -> String {
+    format!("No route found for {:?}", uri)
+}
+
+pub fn render_server_error(msg: &str) -> String {
     log::error!("{}", msg);
-    // Possible TODO: send HTML file
+    format!("Internal server error :(")
+}
+
+pub async fn not_found_handler(uri: Option<Uri>) -> (StatusCode, Html<String>) {
     (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Html("Internal server error :(".into())
+        StatusCode::NOT_FOUND,
+        Html(render_not_found(uri))
     )
 }

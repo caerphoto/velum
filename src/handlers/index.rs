@@ -13,7 +13,10 @@ use crate::article::storage::{
     fetch_index_links,
 };
 use crate::SharedData;
-use super::server_error;
+use super::{
+    render_server_error,
+    theme,
+};
 
 // Integer division rounding up, for calculating page count
 fn div_ceil(lhs: usize, rhs: usize) -> usize {
@@ -24,12 +27,6 @@ fn div_ceil(lhs: usize, rhs: usize) -> usize {
     } else {
         d
     }
-}
-
-fn theme(cookies: Cookies) -> Option<String> {
-    cookies
-        .get("theme")
-        .and_then(|c| Some(c.value().to_string()))
 }
 
 fn render_article_list(
@@ -80,10 +77,11 @@ fn render_article_list(
             (StatusCode::OK, Html(rendered_page))
         },
         Err(e) => {
-            server_error(
-                &format!(
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(render_server_error(&format!(
                     "Failed to render article in index. Error: {:?}", e
-                )
+                )))
             )
         }
     }
@@ -121,14 +119,14 @@ pub async fn index_handler(
         now.elapsed().as_micros()
     );
 
-    response.into_response()
+    response
 }
 
 pub async fn tag_home_handler(
     Path(tag): Path<String>,
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-)-> impl IntoResponse {
+) -> impl IntoResponse {
     tag_handler(Path((tag, 1)), Extension(data), cookies).await
 }
 
