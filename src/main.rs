@@ -52,7 +52,7 @@ async fn main() {
     let listen = SocketAddr::new(listen_ip, listen_port);
 
     axum::Server::bind(&listen)
-        .serve(app.into_make_service())
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 }

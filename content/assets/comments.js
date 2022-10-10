@@ -16,7 +16,11 @@
         form.addEventListener('submit', event => {
             event.preventDefault();
 
-            const formData = new URLSearchParams(new FormData(form));
+            const formData = {
+                author: form.author.value,
+                author_url: form.author_url.value,
+                text: form.text.value,
+            };
 
             const xhr = new XMLHttpRequest();
             xhr.addEventListener('load', () => {
@@ -25,8 +29,8 @@
                 submitBtn.disabled = false;
             });
             xhr.open('POST', form.getAttribute('data-action'));
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.send(formData.toString());
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.send(JSON.stringify(formData));
             submitBtn.disabled = true;
         });
     }

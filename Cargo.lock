@@ -1324,7 +1324,13 @@ dependencies = [
  "http",
  "http-body",
  "http-range-header",
+ "httpdate",
+ "mime",
+ "mime_guess",
+ "percent-encoding",
  "pin-project-lite",
+ "tokio",
+ "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",
@@ -1432,6 +1438,7 @@ dependencies = [
  "tokio",
  "toml",
  "tower-cookies",
+ "tower-http",
  "uuid",
 ]
 

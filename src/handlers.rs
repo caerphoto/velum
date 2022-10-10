@@ -1,11 +1,11 @@
 pub mod index;
 pub mod article;
-pub mod asset;
+pub mod comment;
+pub mod static_files;
 
 use std::time::{
     SystemTime,
     UNIX_EPOCH,
-    Duration,
 };
 
 use axum::{
@@ -20,7 +20,7 @@ pub fn theme(cookies: Cookies) -> Option<String> {
         .and_then(|c| Some(c.value().to_string()))
 }
 
-fn create_timestamp() -> i64 {
+pub fn create_timestamp() -> i64 {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
         // i64 is enough milliseconds for 292 million years, so coercing it like
         // this is probably fine.
@@ -29,6 +29,7 @@ fn create_timestamp() -> i64 {
     }
 }
 
+// TODO: render HTML from file
 pub fn render_not_found(uri: Option<Uri>) -> String {
     format!("No route found for {:?}", uri)
 }

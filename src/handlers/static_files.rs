@@ -6,13 +6,7 @@ use std::{
     },
     fs,
     path::PathBuf,
-    time::{
-        self,
-        Duration,
-        SystemTime,
-        UNIX_EPOCH
-    },
-
+    time::Duration,
 };
 
 use headers::{
@@ -25,10 +19,10 @@ use headers::{
 use regex::Regex;
 
 use axum::{
+    body::{Full, Bytes},
     http::StatusCode,
-    response::{Html, Response, IntoResponse},
     extract::{Path, Extension},
-    body::{Full, Bytes}
+    response::{Html, Response, IntoResponse},
 };
 use tower_cookies::Cookies;
 
@@ -45,28 +39,29 @@ fn read_file_bytes(filename: &PathBuf, buf: &mut Vec<u8>) -> IoResult<LastModifi
 }
 
 pub async fn asset_handler(
-
-    Path(timestamped_name): Path<String>,
+    Path(filename): Path<String>,
     Extension(data): Extension<SharedData>,
     _cookies: Cookies,
-)-> Result<Response<Full<Bytes>>, impl IntoResponse> {
+) -> Result<Response<Full<Bytes>>, impl IntoResponse> {
     lazy_static! {
         static ref DATE_PART: Regex = Regex::new(r"-\d{14}").unwrap();
     }
 
-    if !DATE_PART.is_match(&timestamped_name) {
-        return Err((StatusCode::NOT_FOUND, Html("not found")))
+    let data = data.lock().unwrap();
+    let new_name;
+    if DATE_PART.is_match(&filename) {
+        new_name = DATE_PART.replace(&filename, "").to_string();
+    } else {
+        new_name = filename.clone();
     }
 
-    let data = data.lock().unwrap();
-    let new_name = DATE_PART.replace(&timestamped_name, "").to_string();
     let real_path = PathBuf::from(&data.config.content_dir)
         .join("assets")
         .join(&new_name);
 
     log::info!(
         "Serving timestamped assset {} from file {}",
-        &timestamped_name,
+        &filename,
         &real_path.to_string_lossy()
     );
 
@@ -87,6 +82,6 @@ pub async fn asset_handler(
         headers.typed_insert(ContentType::from(ct));
         Ok(res)
     } else {
-        Err((StatusCode::NOT_FOUND, Html("not found")))
+        Err((StatusCode::NOT_FOUND, Html("couldn't read file")))
     }
 }

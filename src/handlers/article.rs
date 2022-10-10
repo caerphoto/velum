@@ -8,14 +8,12 @@ use axum::{
     response::{Html, IntoResponse},
     extract::{Path, Extension},
 };
+use headers::HeaderMap;
 use tower_cookies::Cookies;
 use serde_json::json;
 use regex::Regex;
 
-use crate::{
-    CommonData,
-    SharedData,
-};
+use crate::SharedData;
 use crate::article::storage::fetch_by_slug;
 use super::{
     render_server_error,
@@ -47,16 +45,31 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
     default_path
 }
 
+pub async fn article_text_handler(
+    Path(slug): Path<String>,
+    Extension(data): Extension<SharedData>,
+) -> impl IntoResponse {
+    let data = data.lock().unwrap();
+    if let Some(article) = fetch_by_slug(&slug, &data.articles) {
+        (StatusCode::OK, article.base_content.clone())
+    } else {
+        (StatusCode::NOT_FOUND, "Article not found".to_string())
+    }
+}
+
 pub async fn article_handler(
     Path(slug): Path<String>,
     Extension(data): Extension<SharedData>,
+    headers: HeaderMap,
     cookies: Cookies,
 ) -> impl IntoResponse {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
 
-    let referer = Some("blah".to_string());
+    let referer = headers
+        .get("Referer")
+        .map(|r| String::from(r.to_str().unwrap_or("")));
 
     let return_path = return_path(&data.config.blog_host, referer);
 
