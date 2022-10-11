@@ -9,10 +9,18 @@ mod routes;
 mod config;
 mod io;
 
-use std::sync::{Arc, Mutex};
-use std::time;
-use std::env;
-use std::net::{IpAddr, SocketAddr};
+use std::{
+    sync::{
+        Arc,
+        Mutex,
+    },
+    time,
+    env,
+    net::{
+        IpAddr,
+        SocketAddr
+    }
+};
 
 
 use crate::config::Config;
