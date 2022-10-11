@@ -1,6 +1,7 @@
 pub mod index;
 pub mod article;
 pub mod comment;
+pub mod admin;
 pub mod static_files;
 
 use std::time::{
@@ -10,7 +11,7 @@ use std::time::{
 
 use axum::{
         http::{StatusCode, Uri},
-    response::Html,
+    response::{Html, Redirect},
 };
 use tower_cookies::Cookies;
 
@@ -37,6 +38,20 @@ pub fn render_not_found(uri: Option<Uri>) -> String {
 pub fn render_server_error(msg: &str) -> String {
     log::error!("{}", msg);
     format!("Internal server error :(")
+}
+
+pub fn server_error(msg: &str) -> Result<(StatusCode, Html<String>), Redirect> {
+    Ok((
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Html(msg.to_string()),
+    ))
+}
+
+pub fn empty_response(code: StatusCode) -> Result<(StatusCode, Html<String>), Redirect> {
+    Ok((
+        code,
+        Html(String::new())
+    ))
 }
 
 pub async fn not_found_handler(uri: Option<Uri>) -> (StatusCode, Html<String>) {

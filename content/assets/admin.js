@@ -17,7 +17,7 @@
             window.location.hash = slug;
             editor.disabled = false;
         });
-        xhr.open('GET', `/articles/${slug}/text`);
+        xhr.open('GET', `/article/${slug}/text`);
         xhr.send();
     }
 
@@ -33,7 +33,7 @@
             li.parentNode.removeChild(li);
             editor.value = '';
         });
-        xhr.open('DELETE', `/articles/${slug}`);
+        xhr.open('DELETE', `/article/${slug}`);
         xhr.send();
     }
 
@@ -83,7 +83,7 @@
 
         const path = saveForm.dataset.method === 'POST' ?
             '/articles' :
-            `/articles/${saveForm.dataset.slug}`;
+            `/article/${saveForm.dataset.slug}`;
         xhr.open(saveForm.dataset.method, path);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(editor.value);
