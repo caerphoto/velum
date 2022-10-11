@@ -48,12 +48,11 @@ pub async fn asset_handler(
     }
 
     let data = data.lock().unwrap();
-    let new_name;
-    if DATE_PART.is_match(&filename) {
-        new_name = DATE_PART.replace(&filename, "").to_string();
+    let new_name = if DATE_PART.is_match(&filename) {
+        DATE_PART.replace(&filename, "").to_string()
     } else {
-        new_name = filename.clone();
-    }
+        filename.clone()
+    };
 
     let real_path = PathBuf::from(&data.config.content_dir)
         .join("assets")

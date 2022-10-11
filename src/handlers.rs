@@ -18,7 +18,7 @@ use tower_cookies::Cookies;
 pub fn theme(cookies: Cookies) -> Option<String> {
     cookies
         .get("theme")
-        .and_then(|c| Some(c.value().to_string()))
+        .map(|c| c.value().to_string())
 }
 
 pub fn create_timestamp() -> i64 {
@@ -37,7 +37,7 @@ pub fn render_not_found(uri: Option<Uri>) -> String {
 
 pub fn render_server_error(msg: &str) -> String {
     log::error!("{}", msg);
-    format!("Internal server error :(")
+    "Internal server error :(".to_string()
 }
 
 pub fn server_error(msg: &str) -> Result<(StatusCode, Html<String>), Redirect> {

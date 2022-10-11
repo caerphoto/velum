@@ -36,3 +36,9 @@ impl CommonData {
             })
     }
 }
+
+impl Default for CommonData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
