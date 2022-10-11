@@ -91,7 +91,7 @@ pub async fn home_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 )-> impl IntoResponse {
-    index_handler(Path(1), Extension(data), cookies).await
+    index_handler(Path(0), Extension(data), cookies).await
 }
 
 pub async fn index_handler(
