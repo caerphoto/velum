@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    time::Duration,
+    path::PathBuf,
+};
 use axum::{
     extract::Extension,
     handler::Handler,
@@ -13,8 +16,13 @@ use axum::{
         put,
     },
 };
+use tower::ServiceBuilder;
 use tower_cookies::CookieManagerLayer;
-use tower_http::services::ServeDir;
+use tower_http::{
+    services::ServeDir,
+    compression::CompressionLayer,
+    timeout::TimeoutLayer,
+};
 
 use crate::handlers::{
     index::{
@@ -53,7 +61,13 @@ async fn error_handler(error: std::io::Error) -> impl IntoResponse {
 
 pub fn init(shared_data: SharedData) -> Router {
     let dir = PathBuf::from(shared_data.lock().unwrap().config.content_dir.clone());
-    let dir_service = ServeDir::new(dir.join("images"));
+    let dir_service = get_service(ServeDir::new(dir.join("images")))
+        .handle_error(error_handler);
+
+    let middleware = ServiceBuilder::new()
+        .layer(CompressionLayer::new())
+        .layer(TimeoutLayer::new(Duration::from_secs(10)))
+        ;
 
     Router::new()
         .route("/",                   get(home_handler))
@@ -76,11 +90,10 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/rebuild_index",      post(rebuild_index_handler))
 
         .route("/assets/:filename",   get(asset_handler))
-        .nest(
-            "/content/images/",
-            get_service(dir_service).handle_error(error_handler)
-        )
+        .nest("/content/images/",    dir_service)
+
         .layer(Extension(shared_data))
         .layer(CookieManagerLayer::new())
+        .layer(middleware)
         .fallback(not_found_handler.into_service())
 }

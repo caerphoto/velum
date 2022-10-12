@@ -29,6 +29,7 @@ use tower_cookies::Cookies;
 use crate::SharedData;
 
 const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
+
 fn read_file_bytes(filename: &PathBuf, buf: &mut Vec<u8>) -> IoResult<LastModified> {
     let mut f = fs::File::open(filename)?;
     let meta = f.metadata()?;
