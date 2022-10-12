@@ -62,8 +62,8 @@ fn render_login_page(
         })
     ) {
         Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
-        Err(e) => server_error(
-            &format!("Failed to render article in index. Error: {:?}", e)
+        Err(e) => Ok(server_error(
+            &format!("Failed to render article in index. Error: {:?}", e))
         )
     }
 }
@@ -147,8 +147,8 @@ pub async fn admin_page_handler(
             StatusCode::OK,
             Html(rendered_page),
         )),
-        Err(e) => server_error(
-            &format!("Failed to render article in index. Error: {:?}", e)
+        Err(e) => Ok(server_error(
+            &format!("Failed to render article in index. Error: {:?}", e))
         )
     }
 }
@@ -163,9 +163,9 @@ pub async fn rebuild_index_handler(
 
     if let Err(e) = data.rebuild() {
         log::error!("Failed to rebuild article index index: {:?}", e);
-        server_error(
+        Ok(server_error(
             &format!("Failed to render article in index. Error: {:?}", e)
-        )
+        ))
     } else {
         redirect_to("/admin")
     }
@@ -185,7 +185,7 @@ pub async fn create_article_handler(
             log::info!("Created article '{}' on disk.", view.slug);
             if let Err(err) = data.rebuild() {
                 log::error!("Failed to rebuild article index: {:?}", err);
-                server_error("Error rebuilding article index")
+                Ok(server_error("Error rebuilding article index"))
             } else {
                 match data.hbs.render(
                     "_admin_article_list_item",
@@ -194,14 +194,14 @@ pub async fn create_article_handler(
                     Ok(b) =>  Ok((StatusCode::OK, Html(b))),
                     Err(e) => {
                         log::error!("Failed to render list item: {:?}", e);
-                        server_error("Error rendering new item for list")
+                        Ok(server_error("Error rendering new item for list"))
                     }
                 }
             }
         },
         Err(err) => {
             log::error!("Failed to create article: {:?}", err);
-            server_error("Error creating article")
+            Ok(server_error("Error creating article"))
         }
     }
 }
@@ -219,14 +219,14 @@ pub async fn update_article_handler(
     if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
         log::error!("Failed to update article: {:?}", err);
         
-        server_error("Error upating article")
+        Ok(server_error("Error upating article"))
     } else {
         log::info!("Updated article '{}' on disk.", &slug);
         if let Err(err) = data.rebuild() {
             log::error!("Failed to rebuild article index: {:?}", err);
-            server_error("Error rebuilding article index")
+            Ok(server_error("Error rebuilding article index"))
         } else {
-            empty_response(StatusCode::OK)
+            Ok(empty_response(StatusCode::OK))
         }
     }
 }
@@ -243,17 +243,17 @@ pub async fn delete_article_handler(
     if let Some(article) = storage::fetch_by_slug(&slug, &data.articles) {
         if let Err(err) = storage::delete_article(article) {
             log::error!("Failed to delete article: {:?}", err);
-            server_error("Error deleting article")
+            Ok(server_error("Error deleting article"))
         } else {
             log::info!("Deleted article '{}' from disk.", &slug);
             if let Err(err) = data.rebuild() {
                 log::error!("Failed to rebuild article index: {:?}", err);
-                server_error("Error rebuilding article index")
+                Ok(server_error("Error rebuilding article index"))
             } else {
-                empty_response(StatusCode::OK)
+                Ok(empty_response(StatusCode::OK))
             }
         }
     } else {
-        empty_response(StatusCode::NOT_FOUND)
+        Ok(empty_response(StatusCode::NOT_FOUND))
     }
 }

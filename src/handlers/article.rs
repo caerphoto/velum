@@ -16,8 +16,8 @@ use regex::Regex;
 use crate::SharedData;
 use crate::article::storage::fetch_by_slug;
 use super::{
-    render_server_error,
-    render_not_found,
+    server_error,
+    not_found,
     theme,
 };
 
@@ -101,16 +101,11 @@ pub async fn article_handler(
                 reply
             },
             Err(e) => {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Html(render_server_error(&format!(
-                        "Failed to render article. Error: {:?}", e
-                    )))
-                )
+                server_error(&format!( "Failed to render article. Error: {:?}", e))
             }
         }
     } else {
-        (StatusCode::NOT_FOUND, Html(render_not_found(None)))
+        not_found(None)
     }
 }
 

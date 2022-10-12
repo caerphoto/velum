@@ -10,10 +10,12 @@ use std::time::{
 };
 
 use axum::{
-        http::{StatusCode, Uri},
-    response::{Html, Redirect},
+    http::{StatusCode, Uri},
+    response::Html,
 };
 use tower_cookies::Cookies;
+
+pub type HtmlResponse = (StatusCode, Html<String>);
 
 pub fn theme(cookies: Cookies) -> Option<String> {
     cookies
@@ -31,32 +33,37 @@ pub fn create_timestamp() -> i64 {
 }
 
 // TODO: render HTML from file
-pub fn render_not_found(uri: Option<Uri>) -> String {
-    format!("No route found for {:?}", uri)
+pub fn render_error_page<T: std::fmt::Display>(status: StatusCode, additional_text: Option<T>) -> String {
+    if additional_text.is_some() {
+        format!("Error {:?}: {}", status, additional_text.unwrap())
+    } else {
+        format!("Error {:?}", status)
+
+    }
 }
 
-pub fn render_server_error(msg: &str) -> String {
-    log::error!("{}", msg);
-    "Internal server error :(".to_string()
-}
-
-pub fn server_error(msg: &str) -> Result<(StatusCode, Html<String>), Redirect> {
-    Ok((
+pub fn server_error(msg: &str) -> HtmlResponse {
+    log::error!("Server error: {}", msg);
+    (
         StatusCode::INTERNAL_SERVER_ERROR,
         Html(msg.to_string()),
-    ))
+    )
 }
 
-pub fn empty_response(code: StatusCode) -> Result<(StatusCode, Html<String>), Redirect> {
-    Ok((
+pub fn empty_response(code: StatusCode) -> HtmlResponse {
+    (
         code,
         Html(String::new())
-    ))
+    )
 }
 
-pub async fn not_found_handler(uri: Option<Uri>) -> (StatusCode, Html<String>) {
+pub fn not_found(uri: Option<Uri>) -> HtmlResponse {
     (
         StatusCode::NOT_FOUND,
-        Html(render_not_found(uri))
+        Html(render_error_page(StatusCode::NOT_FOUND, uri))
     )
+}
+
+pub async fn not_found_handler(uri: Option<Uri>) -> HtmlResponse {
+    not_found(uri)
 }

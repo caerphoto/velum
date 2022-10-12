@@ -89,7 +89,7 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/admin",              get(admin_page_handler))
         .route("/rebuild_index",      post(rebuild_index_handler))
 
-        .route("/assets/:filename",   get(asset_handler))
+        .route("/assets/:path",      get(asset_handler))
         .nest("/content/images/",    dir_service)
 
         .layer(Extension(shared_data))
