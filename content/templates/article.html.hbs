@@ -26,7 +26,7 @@
   <p class="more-articles-text">More articles:</p>
   {{#if prev}}
   <div class="nav-prev">
-    <a href="/articles/{{prev.slug}}">&larr; {{prev.title}}</a>
+    <a href="/article/{{prev.slug}}">&larr; {{prev.title}}</a>
   </div>
   {{else}}
   <span class="empty"></span>
@@ -34,7 +34,7 @@
   <span class="nav-sep">&middot;</span>
   {{#if next}}
   <div class="nav-next">
-    <a href="/articles/{{next.slug}}">{{next.title}} &rarr;</a>
+    <a href="/article/{{next.slug}}">{{next.title}} &rarr;</a>
   </div>
   {{else}}
   <span class="empty"></span>

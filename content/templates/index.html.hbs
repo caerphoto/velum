@@ -29,7 +29,7 @@
     <ul class="article-list">
       {{#each articles}}
       <li class="article-list_item">
-        <h2><a href="/articles/{{this.slug}}">{{this.title}}</a></h2>
+        <h2><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
         <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
         <p class="content-preview">{{this.preview}}</p>
         {{> _tag_list search_tag=../search_tag}}

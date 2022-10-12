@@ -3,29 +3,30 @@ mod article;
 mod hb;
 mod comments;
 mod errors;
+mod handlers;
 mod routes;
-mod filters;
+// mod filters;
 mod config;
 mod io;
 
-use std::sync::{Arc, Mutex};
-use std::time;
-use std::env;
-use std::net::IpAddr;
+use std::{
+    sync::{
+        Arc,
+        Mutex,
+    },
+    time,
+    env,
+    net::{
+        IpAddr,
+        SocketAddr
+    }
+};
 
-use warp::Filter;
 
 use crate::config::Config;
 use commondata::CommonData;
-use filters::{
-    index_filter,
-    article_filter,
-    legacy_filter,
-    comment_filter,
-    admin_filter,
-    statics_filter,
-};
-use routes::file_not_found_route;
+
+pub type SharedData = Arc<Mutex<CommonData>>;
 
 #[macro_use] extern crate lazy_static;
 
@@ -51,40 +52,15 @@ async fn main() {
 
     check_args(&mut config);
 
-    let error_logger = warp::filters::log::custom(|info| {
-        let s = info.status();
-        let msg = format!(
-            "{} `{}` {}",
-            info.method(),
-            info.path(),
-            info.status()
-        );
-        if s.is_client_error() {
-            log::info!("{}", msg);
-        } else if s.is_server_error() {
-            log::error!("{}", msg);
-        } else if let Some(r) = info.referer() {
-            if !r.contains("blog.andyf.me") {
-                log::info!("Referer: {}", r);
-            }
-        }
-    });
-
-    let routes = index_filter(shared_codata.clone())
-        .or(article_filter(shared_codata.clone()))
-        .or(comment_filter(shared_codata.clone()))
-        .or(admin_filter(shared_codata.clone()))
-        .or(statics_filter(shared_codata.clone(), &config.content_dir))
-        .or(legacy_filter())
-        .recover(file_not_found_route)
-        .with(error_logger);
+    let app = routes::init(shared_codata.clone());
 
     let listen_ip = config.listen_ip.parse::<IpAddr>()
         .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", &config.listen_ip));
     let listen_port = config.listen_port;
+    let listen = SocketAddr::new(listen_ip, listen_port);
 
-    warp::serve(routes)
-        .run((listen_ip, listen_port))
-        .await;
-
+    axum::Server::bind(&listen)
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+        .await
+        .unwrap();
 }
