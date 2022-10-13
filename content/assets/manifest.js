@@ -1,5 +1,6 @@
 //=prism
 //=exif
+//=captioneer
 //=dimma
 //=exif-popover
 //=simple_typography
