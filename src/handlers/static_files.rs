@@ -93,7 +93,6 @@ fn read_manifest_file_bytes(manifest_path: PathBuf, buf: &mut Vec<u8>) -> Result
     let paths = paths.iter()
         .map(|p| prefix.join(p))
         .collect();
-    log::info!("Extracted file paths: {:?}", &paths);
     let last_modified = concat_files(paths, buf)
         .map_err(|_| server_error("Failed to concatenate files"))?;
     buf.append(&mut Vec::from(manifest_js.as_bytes()));
