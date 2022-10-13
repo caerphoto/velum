@@ -7,7 +7,7 @@
         {{#if (eq current_page 2)}}
           <a href="/">&larr; previous</a>
         {{else}}
-          <a href="/index/{{prev_page}}">&larr; previous</a>
+          <a href="/articles/{{prev_page}}">&larr; previous</a>
         {{/if}}
       {{/if}}
     </div>
@@ -21,7 +21,7 @@
       {{#if search_tag}}
         <a href="/tag/{{search_tag}}/{{next_page}}">next &rarr;</a>
       {{else}}
-        <a href="/index/{{next_page}}">next &rarr;</a>
+        <a href="/articles/{{next_page}}">next &rarr;</a>
       {{/if}}
     </div>
   {{else}}

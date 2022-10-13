@@ -359,7 +359,7 @@ h1 {
 }
 
 #home-page-info {
-    padding-bottom: 1em;
+    padding: 1em 0.5em 0.3em;
     border: 1px dotted #ccc;
     margin-bottom: 2em;
 }

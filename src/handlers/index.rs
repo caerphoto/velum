@@ -14,7 +14,7 @@ use crate::article::storage::{
 };
 use crate::SharedData;
 use super::{
-    render_server_error,
+    server_error,
     theme,
 };
 
@@ -76,14 +76,7 @@ fn render_article_list(
         Ok(rendered_page) => {
             (StatusCode::OK, Html(rendered_page))
         },
-        Err(e) => {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Html(render_server_error(&format!(
-                    "Failed to render article in index. Error: {:?}", e
-                )))
-            )
-        }
+        Err(e) =>  server_error(&format!("Failed to render article in index. Error: {:?}", e))
     }
 }
 
