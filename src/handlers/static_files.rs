@@ -101,6 +101,21 @@ fn read_manifest_file_bytes(manifest_path: PathBuf, buf: &mut Vec<u8>) -> Result
     Ok(last_modified)
 }
 
+fn build_response(filename: &str, last_modified: LastModified, buf: Vec<u8>) -> Response<Full<Bytes>> {
+    let ct = mime_guess::from_path(&filename).first_or_octet_stream();
+    let len = buf.len() as u64;
+    let mut res = Response::builder()
+        .status(200)
+        .body(Full::from(buf))
+        .unwrap();
+    let headers = res.headers_mut();
+    headers.typed_insert(ContentLength(len));
+    headers.typed_insert(CacheControl::new().with_max_age(ONE_YEAR));
+    headers.typed_insert(last_modified);
+    headers.typed_insert(ContentType::from(ct));
+    res
+}
+
 pub async fn asset_handler(
     Path(filename): Path<String>,
     Extension(data): Extension<SharedData>,
@@ -142,16 +157,5 @@ pub async fn asset_handler(
             })?;
     }
 
-    let ct = mime_guess::from_path(&new_name).first_or_octet_stream();
-    let len = buf.len() as u64;
-    let mut res = Response::builder()
-        .status(200)
-        .body(Full::from(buf))
-        .unwrap();
-    let headers = res.headers_mut();
-    headers.typed_insert(ContentLength(len));
-    headers.typed_insert(CacheControl::new().with_max_age(ONE_YEAR));
-    headers.typed_insert(last_modified);
-    headers.typed_insert(ContentType::from(ct));
-    Ok(res)
+    Ok(build_response(&new_name, last_modified, buf))
 }
