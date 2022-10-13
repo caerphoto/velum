@@ -1,8 +1,10 @@
 (function (D) {
     function setupComments() {
         const commentList = D.querySelector('#comments-list');
+        if (!commentList) return;
         const form = D.querySelector('#comment-form');
         const submitBtn = form.querySelector('[type="submit"]');
+
 
         function appendComment(html) {
             const tpl = D.createElement('template');

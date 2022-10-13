@@ -13,25 +13,21 @@
         });
     }
 
-    function appendClass(element, className) {
-        element.className += ' ' + className;
-    }
-
-    var images = Array.prototype.slice.call(D.querySelectorAll('p > img'));
-    var loneImages = images.filter(function (image) {
+    const images = Array.from(D.querySelectorAll('p > img'));
+    const loneImages = images.filter(function (image) {
         return image.parentNode.children.length === 1;
     });
 
     getParents(images).forEach(function (element) {
-        appendClass(element, 'img');
+        element.classList.add('img');
     });
 
     loneImages.forEach(function (image) {
-        var figure = D.createElement('figure');
-        var caption = D.createElement('figcaption');
+        const figure = D.createElement('figure');
+        const caption = D.createElement('figcaption');
 
-        var parent = image.parentNode;
-        var text = image.getAttribute('alt');
+        const parent = image.parentNode;
+        const text = image.getAttribute('alt');
 
         image.setAttribute('data-action', 'zoom');
 

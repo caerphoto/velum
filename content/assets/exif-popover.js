@@ -1,9 +1,9 @@
 (function () {
-  var exifPopover;
+  let exifPopover;
 
   function positionFromImage(img) {
-    var clientRect = img.getBoundingClientRect();
-    var popoverRect = exifPopover.getBoundingClientRect();
+    const clientRect = img.getBoundingClientRect();
+    const popoverRect = exifPopover.getBoundingClientRect();
 
     return {
       left: clientRect.left + window.scrollX,
@@ -13,27 +13,26 @@
   }
 
   function showExifOnImage(event) {
-    var popoverPosition;
-    var img = event.target;
+    const img = event.target;
 
     if (img.nodeName !== 'IMG') {
       return;
     }
     exifPopover.classList.add('active');
     exifPopover.classList.add('loading');
-    popoverPosition = positionFromImage(img);
+    const popoverPosition = positionFromImage(img);
 
     exifPopover.style.top = popoverPosition.top + 'px';
     exifPopover.style.left = popoverPosition.left + 'px';
 
     window.EXIF.getData(img, function () {
-      var data = this.exifdata;
+      const data = this.exifdata;
       if (Object.keys(data).length === 0) {
         return;
       }
-      var model = data.LensModel || '(lens name unavailable)';
-      var length = Math.round(data.FocalLength) || '--';
-      var aperture = data.FNumber || '--';
+      let model = data.LensModel || '(lens name unavailable)';
+      const length = Math.round(data.FocalLength) || '--';
+      const aperture = data.FNumber || '--';
 
       model = model.replace('Fujifilm Fujinon', '');
 
