@@ -111,6 +111,7 @@ pub async fn asset_handler(
     }
 
     let data = data.lock().unwrap();
+    let filename = filename.trim_start_matches('/').to_string();
     let new_name = if DATE_PART.is_match(&filename) {
         DATE_PART.replace(&filename, "").to_string()
     } else {
