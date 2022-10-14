@@ -26,11 +26,21 @@ use headers::{
 use regex::Regex;
 
 use axum::{
-    body::{Full, Bytes},
+    body::{
+        boxed,
+        Body,
+        Full as FullBody,
+        BoxBody
+    },
     extract::{Path, Extension},
-    response::Response,
+    http::{Request, StatusCode},
+    response::{IntoResponse, Response},
+    routing::get_service,
 };
+use axum_macros::debug_handler;
 use tower_cookies::Cookies;
+use tower_http::services::ServeFile;
+use tower::ServiceExt;
 
 use crate::SharedData;
 use super::{
@@ -49,24 +59,6 @@ fn read_file_bytes<P: AsRef<FsPath>>(filename: P, buf: &mut Vec<u8>) -> IoResult
     Ok(LastModified::from(modified))
 }
 
-fn extract_filepaths<P: AsRef<FsPath>>(manifest_path: P) -> Result<(Vec<PathBuf>, String), HtmlResponse> {
-
-    let mut filepaths: Vec<PathBuf> = Vec::new();
-    let manifest = fs::File::open(manifest_path)
-        .map_err(|_| server_error("Failed to open manifest file"))?;
-    let mut manifest_code: Vec<String> = Vec::new();
-    for line in BufReader::new(manifest).lines() {
-        if line.is_err() { continue; }
-        let line = line.unwrap();
-        if let Some(p) = line.strip_prefix("//=") {
-            filepaths.push((p.to_string() + ".js").into())
-        } else {
-            manifest_code.push(line.into())
-        }
-    }
-    Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
-}
-
 fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, mut buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
     let init = LastModified::from(UNIX_EPOCH);
     let last_modified = paths.iter()
@@ -83,7 +75,29 @@ fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, mut buf: &mut Vec<u8>) -> Resul
     Ok(last_modified)
 }
 
-fn read_manifest_file_bytes(manifest_path: PathBuf, buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
+fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), HtmlResponse> {
+
+    let mut filepaths: Vec<PathBuf> = Vec::new();
+    let manifest = fs::File::open(manifest_path)
+        .map_err(|_| server_error(
+            &format!(
+                "Failed to open manifest file {}",
+                manifest_path.to_string_lossy()
+            )))?;
+    let mut manifest_code: Vec<String> = Vec::new();
+    for line in BufReader::new(manifest).lines() {
+        if line.is_err() { continue; }
+        let line = line.unwrap();
+        if let Some(p) = line.strip_prefix("//=") {
+            filepaths.push((p.to_string() + ".js").into())
+        } else {
+            manifest_code.push(line.into())
+        }
+    }
+    Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
+}
+
+fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
     let prefix = match manifest_path.parent() {
         Some(p) => p.to_path_buf(),
         None => PathBuf::from("/")
@@ -100,12 +114,12 @@ fn read_manifest_file_bytes(manifest_path: PathBuf, buf: &mut Vec<u8>) -> Result
     Ok(last_modified)
 }
 
-fn build_response(filename: &str, last_modified: LastModified, buf: Vec<u8>) -> Response<Full<Bytes>> {
+fn build_response(filename: &PathBuf, last_modified: LastModified, buf: Vec<u8>) -> Response<BoxBody> {
     let ct = mime_guess::from_path(&filename).first_or_octet_stream();
     let len = buf.len() as u64;
     let mut res = Response::builder()
         .status(200)
-        .body(Full::from(buf))
+        .body(boxed(FullBody::from(buf)))
         .unwrap();
     let headers = res.headers_mut();
     headers.typed_insert(ContentLength(len));
@@ -115,46 +129,60 @@ fn build_response(filename: &str, last_modified: LastModified, buf: Vec<u8>) -> 
     res
 }
 
-pub async fn asset_handler(
-    Path(filename): Path<String>,
-    Extension(data): Extension<SharedData>,
-    _cookies: Cookies,
-) -> Result<Response<Full<Bytes>>, HtmlResponse> {
+fn normalize_path(path: &str) -> PathBuf {
     lazy_static! {
         static ref DATE_PART: Regex = Regex::new(r"-\d{14}").unwrap();
     }
 
-    let data = data.lock().unwrap();
-    let filename = filename.trim_start_matches('/').to_string();
-    let new_name = if DATE_PART.is_match(&filename) {
-        DATE_PART.replace(&filename, "").to_string()
+    let npath = path.trim_start_matches('/');
+    if DATE_PART.is_match(npath) {
+        // Note: replace returns Cow<str>, not &str
+        PathBuf::from(DATE_PART.replace(npath, "").as_ref())
     } else {
-        filename.clone()
-    };
+        PathBuf::from(npath)
+    }
+}
 
-    let real_path = PathBuf::from(&data.config.content_dir)
+async fn error_handler(error: std::io::Error) -> impl IntoResponse {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("Unhandled internal error: {}", error),
+    )
+}
+
+fn js_manifest_response(path: &PathBuf) -> Result<Response<BoxBody>, HtmlResponse> {
+    let mut buf = Vec::new();
+    let last_modified = compile_manifest(&path, &mut buf)?;
+    Ok(build_response(&path, last_modified, buf))
+}
+
+#[debug_handler]
+pub async fn asset_handler(
+    Path(path): Path<String>,
+    Extension(data): Extension<SharedData>,
+    _cookies: Cookies,
+    req: Request<Body>,
+) -> Result<Response<BoxBody>, HtmlResponse> {
+    // Need to clone to ensure a reference is not held across an await.
+    let dir = data.lock().unwrap().config.content_dir.clone();
+
+    let npath = normalize_path(&path);
+    let real_path = PathBuf::from(dir)
         .join("assets")
-        .join(&new_name);
+        .join(&npath);
 
     log::info!(
-        "Serving timestamped assset {} from file {}",
-        &filename,
+        "Serving assset {} from file {}",
+        &path,
         &real_path.to_string_lossy()
     );
 
-    // This is simplified version of what Warp's private function `file_reply` does. See:
-    // https://github.com/seanmonstar/warp/blob/master/src/filters/fs.rs#L261
-    let mut buf = Vec::new();
-    let last_modified;
-    if real_path.ends_with("manifest.js") {
-        last_modified = read_manifest_file_bytes(real_path, &mut buf)?;
-    } else{
-        last_modified = read_file_bytes(&real_path, &mut buf)
-            .map_err(|_| {
-                log::error!("Failed to read bytes of {:?}", real_path);
-                server_error("Failed to read bytes of file")
-            })?;
+    if npath.ends_with("manifest.js") {
+        js_manifest_response(&real_path)
+    } else {
+        let service = get_service(ServeFile::new(real_path))
+            .handle_error(error_handler);
+        let result = service.oneshot(req).await;
+        Ok(result.unwrap())
     }
-
-    Ok(build_response(&new_name, last_modified, buf))
 }
