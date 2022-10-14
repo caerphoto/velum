@@ -59,12 +59,12 @@ fn read_file_bytes<P: AsRef<FsPath>>(filename: P, buf: &mut Vec<u8>) -> IoResult
     Ok(LastModified::from(modified))
 }
 
-fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, mut buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
+fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
     let init = LastModified::from(UNIX_EPOCH);
     let last_modified = paths.iter()
         .map(|p| {
 
-            if let Ok(last_modified) = read_file_bytes(p, &mut buf) {
+            if let Ok(last_modified) = read_file_bytes(p, buf) {
                 last_modified
             } else {
                 init
@@ -91,7 +91,7 @@ fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), 
         if let Some(p) = line.strip_prefix("//=") {
             filepaths.push((p.to_string() + ".js").into())
         } else {
-            manifest_code.push(line.into())
+            manifest_code.push(line)
         }
     }
     Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
@@ -152,8 +152,8 @@ async fn error_handler(error: std::io::Error) -> impl IntoResponse {
 
 fn js_manifest_response(path: &PathBuf) -> Result<Response<BoxBody>, HtmlResponse> {
     let mut buf = Vec::new();
-    let last_modified = compile_manifest(&path, &mut buf)?;
-    Ok(build_response(&path, last_modified, buf))
+    let last_modified = compile_manifest(path, &mut buf)?;
+    Ok(build_response(path, last_modified, buf))
 }
 
 #[debug_handler]
