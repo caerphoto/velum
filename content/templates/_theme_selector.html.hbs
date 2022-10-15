@@ -1,7 +1,8 @@
 <div id="theme-selector-box" class="logout link-box">
   <label for="theme-selector">Theme:</label>
   <select id="theme-selector">
-    <option value="{{asset_path "style.css"}}">Topo (light)</option>
-    <option value="{{asset_path "style-dark.css"}}">Pastel Night (dark)</option>
+    {{#each themes}}
+      <option value="{{filename}}">{{name}}</option>
+    {{/each}}
   </select>
 </div>
