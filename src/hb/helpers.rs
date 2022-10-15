@@ -95,9 +95,9 @@ handlebars_helper!(return_text: |path: String| {
 });
 
 // Usage:
-// asset_path "styles.css" "content"
+// asset_path "styles.css"
 //   -> "/assets/styles-20220925145205.css"
-// asset_path "admin/ui.min.js" "content"
+// asset_path "admin/ui.min.js"
 //   -> "/assets/admin/ui.min-20220925145205.js"
 handlebars_helper!(asset_path: |filename: String| {
     lazy_static! {

@@ -1,22 +1,16 @@
-use std::time;
-use serde_json::json;
 use axum::{
+    extract::{Extension, Path},
     http::StatusCode,
     response::{Html, IntoResponse},
-    extract::{Path, Extension},
 };
+use serde_json::json;
+use std::time;
 use tower_cookies::Cookies;
 
+use super::{server_error, theme};
+use crate::article::storage::{fetch_index_links, LinkList};
 use crate::CommonData;
-use crate::article::storage::{
-    LinkList,
-    fetch_index_links,
-};
 use crate::SharedData;
-use super::{
-    server_error,
-    theme,
-};
 
 // Integer division rounding up, for calculating page count
 fn div_ceil(lhs: usize, rhs: usize) -> usize {
@@ -69,21 +63,23 @@ fn render_article_list(
             "articles": &article_list.index_views,
             "body_class": if tag.is_some() { "tag-index" } else { "index" },
             "content_dir": &data.config.content_dir,
+            "themes": &data.config.theme_list,
             "theme": theme,
             "home_page_info": home_page_info,
-        })
+        }),
     ) {
-        Ok(rendered_page) => {
-            (StatusCode::OK, Html(rendered_page))
-        },
-        Err(e) =>  server_error(&format!("Failed to render article in index. Error: {:?}", e))
+        Ok(rendered_page) => (StatusCode::OK, Html(rendered_page)),
+        Err(e) => server_error(&format!(
+            "Failed to render article in index. Error: {:?}",
+            e
+        )),
     }
 }
 
 pub async fn home_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-)-> impl IntoResponse {
+) -> impl IntoResponse {
     index_handler(Path(0), Extension(data), cookies).await
 }
 
@@ -91,21 +87,14 @@ pub async fn index_handler(
     Path(page): Path<usize>,
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-)-> impl IntoResponse {
+) -> impl IntoResponse {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
 
     let page_size = data.config.page_size;
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
 
-    let response = render_article_list(
-        article_list,
-        page,
-        page_size,
-        &data,
-        None,
-        theme(cookies),
-    );
+    let response = render_article_list(article_list, page, page_size, &data, None, theme(cookies));
     log::info!(
         "Rendered article index page {} in {}µs",
         page,

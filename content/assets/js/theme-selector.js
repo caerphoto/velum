@@ -6,11 +6,14 @@
 
     const currentTheme = styleTag.getAttribute('href');
 
-    const TWO_YEARS = 60*60*24*365*2;
+    const TEN_YEARS = 60*60*24*365*2;
 
     function changeTheme() {
-        styleTag.setAttribute('href', selector.value);
-        D.cookie = `theme=${selector.value}; path=/; max-age=${TWO_YEARS}`;
+        // Append timestamp to query string to prvent cache. When page is next
+        // loaded, the proper timestamped version will be used.
+        const themeUrl = `/assets/themes/${selector.value}?_=${Date.now()}`;
+        styleTag.setAttribute('href', themeUrl);
+        D.cookie = `theme=${selector.value}; path=/; max-age=${TEN_YEARS}`;
     }
 
     selector.addEventListener('change', changeTheme);
