@@ -87,6 +87,7 @@ pub async fn article_handler(
                 "return_path": return_path,
                 "body_class": "article",
                 "content_dir": &data.config.content_dir,
+                "themes": &data.config.theme_list,
                 "theme": theme(cookies),
             })
         ) {

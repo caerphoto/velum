@@ -4,7 +4,11 @@ pub mod comment;
 pub mod index;
 pub mod static_files;
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    fs,
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use axum::{
     http::{StatusCode, Uri},
@@ -34,10 +38,22 @@ pub fn render_error_page<T: std::fmt::Display>(
     status: StatusCode,
     additional_text: Option<T>,
 ) -> String {
-    if additional_text.is_some() {
-        format!("Error {:?}: {}", status, additional_text.unwrap())
+    lazy_static! {
+        static ref ERRORS_DIR: PathBuf = {
+            let c = crate::config::Config::load().expect("Failed to load config");
+            PathBuf::from(c.content_dir).join("errors")
+        };
+    }
+    let message = if additional_text.is_some() {
+        format!("HTTP error {:?}: {}", status, additional_text.unwrap())
     } else {
-        format!("Error {:?}", status)
+        format!("HTTP error {:?}", status)
+    };
+    let filename = ERRORS_DIR.join(status.as_u16().to_string() + ".html");
+    if let Ok(content) = fs::read_to_string(&filename) {
+        content.replace("####", &message)
+    } else {
+        message
     }
 }
 

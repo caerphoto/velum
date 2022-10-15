@@ -4,7 +4,13 @@
 
     if (!selector) return;
 
-    const currentTheme = styleTag.getAttribute('href');
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    const currentTheme = getCookie('theme');
 
     const TEN_YEARS = 60*60*24*365*2;
 
