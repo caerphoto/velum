@@ -52,9 +52,23 @@
 
   if (window.EXIF) {
     exifPopover = document.createElement('div');
+    exifPopover.innerHTML = "--<br>--";
     exifPopover.id = 'exif-popover';
     document.body.appendChild(exifPopover);
     document.body.addEventListener('mouseover', showExifOnImage);
     document.body.addEventListener('mouseout', hideExif);
+
+    document.body.addEventListener('click', function (event) {
+      setTimeout(function () {
+        if (this.target.nodeName !== 'IMG') return;
+        if (this.target.classList.contains('focus')) {
+          if (exifPopover.classList.contains('active')) {
+            hideExif();
+          } else {
+            showExifOnImage(this);
+          }
+        }
+      }.bind(event), 0);
+    })
   }
 }());

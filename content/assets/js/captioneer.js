@@ -28,10 +28,12 @@
 
         const parent = image.parentNode;
         const text = image.getAttribute('alt');
+        const br = D.createElement('br');
 
         image.setAttribute('data-action', 'zoom');
 
         caption.appendChild(D.createTextNode(text));
+        caption.appendChild(br);
 
         figure.appendChild(image);
         figure.appendChild(caption);

@@ -29,7 +29,9 @@
     <a href="/article/{{prev.slug}}">&larr; {{prev.title}}</a>
   </div>
   {{else}}
-  <span class="empty"></span>
+  <div class="nav-prev">
+    <span>↻ no more articles</span>
+  </div>
   {{/if}}
   <span class="nav-sep">&middot;</span>
   {{#if next}}
@@ -37,7 +39,9 @@
     <a href="/article/{{next.slug}}">{{next.title}} &rarr;</a>
   </div>
   {{else}}
-  <span class="empty"></span>
+  <div class="nav-next">
+    <span>no more articles ↺</span>
+  </div>
   {{/if}}
   <p class="footer-home-link-box">
   <a href="{{return_path}}" class="index-link">↰ {{{return_text return_path}}}</a>

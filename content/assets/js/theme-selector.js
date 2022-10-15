@@ -10,7 +10,8 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
     }
 
-    const currentTheme = getCookie('theme');
+    // TODO: don't hard-code default selection
+    const currentTheme = getCookie('theme') || 'topo.css';
 
     const TEN_YEARS = 60*60*24*365*2;
 

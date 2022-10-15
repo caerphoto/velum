@@ -13,7 +13,13 @@ use std::{
     time::{
         UNIX_EPOCH,
         Duration,
+        SystemTime,
     },
+};
+
+use filetime::{
+    FileTime,
+    set_file_mtime,
 };
 
 use headers::{
@@ -50,21 +56,23 @@ use super::{
 
 const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
 
-fn read_file_bytes<P: AsRef<FsPath>>(filename: P, buf: &mut Vec<u8>) -> IoResult<LastModified> {
+fn read_file_bytes<P: AsRef<FsPath>>(filename: P, buf: &mut Vec<u8>) -> IoResult<SystemTime> {
     let mut f = fs::File::open(filename)?;
     let meta = f.metadata()?;
     let modified = meta.modified()?;
     f.read_to_end(buf)?;
 
-    Ok(LastModified::from(modified))
+    Ok(modified)
 }
 
-fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
-    let init = LastModified::from(UNIX_EPOCH);
+fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<SystemTime, HtmlResponse> {
+    let init = SystemTime::from(UNIX_EPOCH);
+    let separator = b';';
     let last_modified = paths.iter()
         .map(|p| {
 
             if let Ok(last_modified) = read_file_bytes(p, buf) {
+                buf.push(separator);
                 last_modified
             } else {
                 init
@@ -76,7 +84,6 @@ fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<La
 }
 
 fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), HtmlResponse> {
-
     let mut filepaths: Vec<PathBuf> = Vec::new();
     let manifest = fs::File::open(manifest_path)
         .map_err(|_| server_error(
@@ -97,7 +104,7 @@ fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), 
     Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
 }
 
-fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<LastModified, HtmlResponse> {
+fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<SystemTime, HtmlResponse> {
     let prefix = match manifest_path.parent() {
         Some(p) => p.to_path_buf(),
         None => PathBuf::from("/")
@@ -110,11 +117,14 @@ fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<LastMo
     let last_modified = concat_files(paths, buf)
         .map_err(|_| server_error("Failed to concatenate files"))?;
     buf.append(&mut Vec::from(manifest_js.as_bytes()));
+    if let Err(e) = set_file_mtime(manifest_path, FileTime::from_system_time(last_modified)) {
+        log::error!("Failed to update last modified time on JS manifest: {:?}", e);
+    }
 
     Ok(last_modified)
 }
 
-fn build_response(filename: &PathBuf, last_modified: LastModified, buf: Vec<u8>) -> Response<BoxBody> {
+fn build_response(filename: &PathBuf, last_modified: SystemTime, buf: Vec<u8>) -> Response<BoxBody> {
     let ct = mime_guess::from_path(&filename).first_or_octet_stream();
     let len = buf.len() as u64;
     let mut res = Response::builder()
@@ -124,7 +134,7 @@ fn build_response(filename: &PathBuf, last_modified: LastModified, buf: Vec<u8>)
     let headers = res.headers_mut();
     headers.typed_insert(ContentLength(len));
     headers.typed_insert(CacheControl::new().with_max_age(ONE_YEAR));
-    headers.typed_insert(last_modified);
+    headers.typed_insert(LastModified::from(last_modified));
     headers.typed_insert(ContentType::from(ct));
     res
 }
