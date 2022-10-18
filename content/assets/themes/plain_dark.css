@@ -256,13 +256,14 @@ nav {
     border-top: 1px dotted var(--plain-text);
     padding-top: 1em;
     grid-template-columns: 1fr 1em 1fr;
-    grid-template-rows: 2em 1fr 2em;
+    grid-template-rows: auto auto auto;
 }
 
 nav .more-articles-text {
     text-align: center;
     grid-row: 1/2;
     grid-column: 1/4;
+    margin: 0;
 }
 
 nav .nav-prev {
