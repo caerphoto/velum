@@ -44,7 +44,7 @@ header {
 }
 
 .index header {
-    grid-template-rows: 1fr;
+    grid-template-rows: auto auto;
 }
 
 .tag-index header {
@@ -54,6 +54,13 @@ header {
 article > section {
     display: grid;
     grid-template-columns: 1fr 35rem 1fr;
+}
+
+article > #home-page-info {
+    grid-template-columns: 1fr;
+    max-width: 35rem;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 article > section > * {
@@ -73,19 +80,13 @@ footer {
 }
 
 .logout.link-box {
-    grid-column: 3/4;
+    grid-column: 1/4;
     justify-self: end;
     text-align: right;
-}
-
-.index .logout.link-box {
+    grid-row: 1/2;
     align-self: center;
 }
 
-.tag-index .logout.link-box,
-.article .logout.link-box {
-    grid-column: 2/4;
-}
 
 #home-page-info {
     margin: 1em 0;
@@ -96,10 +97,6 @@ h1 {
     grid-row: 2/3;
     grid-column: 2/3;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
-}
-
-.index h1 {
-    grid-row: 1/2;
 }
 
 h2 {

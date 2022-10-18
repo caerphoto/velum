@@ -104,7 +104,6 @@ header .logout {
     grid-row: 1/3;
     grid-column: 3 / 4;
     justify-self: end;
-    text-align: right;
 }
 header h2 {
     grid-row: 2/3;
@@ -145,6 +144,12 @@ footer {
 article > section {
     display: grid;
     grid-template-columns: 1fr 35rem 1fr;
+}
+
+article > #home-page-info {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding-bottom: 1em;
 }
 
 article > section > * {
@@ -367,8 +372,14 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 
 #theme-selector {
     font: inherit;
+    font-size: 80%;
     background-color: var(--main-bg);
     color: var(--normal-color);
+    -webkit-appearance: none;
+    border: 2px solid var(--accent-color2);
+    appearance: none;
+    border-radius: 0.5em;
+    color: var(--accent-color2-lighter);
 }
 
 #comments {
