@@ -293,6 +293,7 @@ pre {
     padding: 0.2em 0.3em;
     border: 1px solid var(--light-bg);
     overflow-x: auto;
+    line-height: 1.2;
 }
 
 code {

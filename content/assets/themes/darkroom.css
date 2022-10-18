@@ -186,6 +186,7 @@ pre {
     margin: 0 0 1em;
     padding: 0.5em;
     background-color: var(--darker-bg) !important; /* prevent Prism from overriding */
+    line-height: 1.2;
 
     filter: brightness(75%);
 }
