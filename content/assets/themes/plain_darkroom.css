@@ -78,6 +78,7 @@ footer {
 .logout.link-box {
     grid-column: 3/4;
     justify-self: end;
+    text-align: right;
 }
 
 .index .logout.link-box {

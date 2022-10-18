@@ -450,6 +450,7 @@ header .logout.link-box {
     grid-column: 2 / 4;
     justify-self: end;
     padding-right: 1em;
+    text-align: right;
 }
 
 .link-box label {
