@@ -288,10 +288,6 @@ nav .footer-home-link-box {
     align-self: center;
 }
 
-article pre[class*="language-"] {
-    font-size: 14px;
-}
-
 pre {
     background-color: var(--lighter-bg);
     padding: 0.2em 0.3em;

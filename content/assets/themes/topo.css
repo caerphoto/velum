@@ -622,10 +622,6 @@ p {
     padding: 0;
 }
 
-article pre[class*="language-"] {
-    font-size: 14px;
-}
-
 pre {
     overflow-x: scroll;
     max-width: 100%;
