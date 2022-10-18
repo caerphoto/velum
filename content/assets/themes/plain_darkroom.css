@@ -187,6 +187,10 @@ ul.tags li:last-child a::after {
     content: "";
 }
 
+article pre[class*="language-"] {
+    font-size: 14px;
+}
+
 pre {
     overflow-x: auto;
     margin: 0 0 1em;
@@ -195,7 +199,6 @@ pre {
 }
 
 code {
-    font-size: 14px;
     color: var(--code);
 }
 
