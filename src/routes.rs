@@ -3,10 +3,10 @@ use std::{
     path::PathBuf,
 };
 use axum::{
-    extract::Extension,
+    extract::{Extension, Path},
     handler::Handler,
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Redirect},
     Router,
     routing::{
         delete,
@@ -71,10 +71,13 @@ pub fn init(shared_data: SharedData) -> Router {
 
     Router::new()
         .route("/",                   get(home_handler))
-        .route("/articles/:page",     get(index_handler))
+        .route("/:legacy_slug",       get(|Path(slug): Path<String>| async move {
+            Redirect::permanent(&(String::from("/article/") + &slug))
+        }))
         .route("/articles",           post(create_article_handler))
-        .route("/article/:slug",      put(update_article_handler))
+        .route("/articles/:page_or_slug",     get(index_handler))
         .route("/article/:slug",      get(article_handler))
+        .route("/article/:slug",      put(update_article_handler))
         .route("/article/:slug",      delete(delete_article_handler))
         .route("/article/:slug/text", get(article_text_handler))
 

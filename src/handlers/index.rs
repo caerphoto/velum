@@ -1,7 +1,7 @@
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Redirect},
 };
 use serde_json::json;
 use std::time;
@@ -80,14 +80,22 @@ pub async fn home_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    index_handler(Path(0), Extension(data), cookies).await
+    index_handler(Path(String::from("0")), Extension(data), cookies).await
 }
 
 pub async fn index_handler(
-    Path(page): Path<usize>,
+    Path(page_or_slug): Path<String>,
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> impl IntoResponse {
+    // Handle legacy article route, i.e. /articles/:slug
+    // NOTE: eventually this should be removed, once the requests for the old route taper off
+    let parse_result = page_or_slug.parse::<usize>();
+    if parse_result.is_err() {
+        return Err(Redirect::permanent(&(String::from("/article/") + &page_or_slug)))
+    }
+    let page = parse_result.unwrap();
+
     let now = time::Instant::now();
     let data = data.lock().unwrap();
 
@@ -101,7 +109,7 @@ pub async fn index_handler(
         now.elapsed().as_micros()
     );
 
-    response
+    Ok(response)
 }
 
 pub async fn tag_home_handler(

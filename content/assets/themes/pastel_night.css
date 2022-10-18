@@ -103,7 +103,7 @@ header h1 {
 header .logout {
     grid-row: 1/3;
     grid-column: 3 / 4;
-    text-align: right;
+    justify-self: end;
 }
 header h2 {
     grid-row: 2/3;
@@ -141,9 +141,13 @@ footer {
     padding: 1em;
 }
 
-article {
-    max-width: 35rem;
-    margin: 0 auto;
+article > section {
+    display: grid;
+    grid-template-columns: 1fr 35rem 1fr;
+}
+
+article > section > * {
+    grid-column: 2/3;
 }
 
 #home-page-info {
@@ -210,6 +214,12 @@ ul.article-list > li {
 
 ul.article-list > li:last-child {
     border-bottom-width: 0;
+}
+
+.article p,
+.article ul {
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 nav {
@@ -298,11 +308,7 @@ hr {
 }
 
 p.img {
-    position: relative;
-    left: 50%;
-    width: 98vw;
-    max-width: 100vw;
-    margin-left: -49vw;
+    grid-column: 1/4;
     margin-bottom: 2em;
     padding-top: 1vh;
 }
@@ -363,10 +369,10 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 #comments {
     box-sizing: border-box;
     background-color: var(--lighter-bg);
-    margin: 1em -3em 2em;
+    margin: 1em 0 2em;
     padding: 1em 3em;
     border-color: var(--light-bg);
-    border-width: 1px;
+    border-width: 1px 0;
     border-style: solid;
 }
 
@@ -419,6 +425,7 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
 #comment-form textarea:focus {
     border-radius: 2px;
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    color: var(--accent-color2-lighter);
 }
 
 #comment-form textarea {
@@ -477,6 +484,9 @@ body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
     header h2 {
         grid-row: 3/4;
         grid-column: 1/4;
+    }
+    article > section {
+        grid-template-columns: 0.5em auto 0.5em;
     }
     section.content,
     section.post-content {

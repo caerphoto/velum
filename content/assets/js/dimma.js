@@ -18,7 +18,7 @@
             currentFocus.classList.remove("focus");
         }
         currentFocus = evt.target;
-        currentFocus.classList.remove("focus");
+        currentFocus.classList.add("focus");
         B.classList.add("dimmed");
 
         currentFocus.parentNode.scrollIntoView({ behavior: "smooth", block: "center" });

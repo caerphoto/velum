@@ -93,6 +93,7 @@ impl Config {
                 filename,
             })
         });
+        themes.sort_by(|t1, t2| t1.name.cmp(&t2.name));
         themes
     }
 
