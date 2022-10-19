@@ -1,5 +1,5 @@
 use crate::errors::{ParseError, ParseResult};
-use pulldown_cmark::{self as cmark, Event};
+use pulldown_cmark::{self as cmark, Event, Tag};
 use regex::Regex;
 use std::io::{self, ErrorKind};
 use std::path::{PathBuf, Path};
@@ -14,6 +14,11 @@ fn safe_truncate(s: &str, max_chars: usize) -> &str {
         None => s,
         Some((idx, _)) => &s[..idx],
     }
+}
+
+struct Typograph {
+    r: Regex,
+    s: &'static str,
 }
 
 // Struct for creating and managing article data
@@ -116,11 +121,81 @@ impl Builder {
         if truncated.len() < max_len { truncated } else { truncated + "…" }
     }
 
+    fn typogrify<'a>(text: &'a str) -> String {
+        lazy_static! {
+            static ref REPLACEMENTS: Vec<Typograph> = vec![
+                Typograph { r: Regex::new("``").unwrap(), s: "“"},
+                Typograph { r: Regex::new("''").unwrap(), s: "”" },
+
+                // Decades, e.g. ’80s - may sometimes be wrong if it encounters a quote
+                // that starts with a decade, e.g. '80s John Travolta was awesome.'
+                Typograph { r: Regex::new(r"['‘](\d\d)s").unwrap(),  s: "’$1s" },
+
+                // Order of these is imporant – opening quotes need to be done first.
+                Typograph { r: Regex::new("`").unwrap(), s: "‘" },
+                Typograph { r: Regex::new(r#"(^|\s|\()""#).unwrap(), s: "$1“" }, // ldquo
+                Typograph { r: Regex::new(r#"""#).unwrap(),          s: "”" },   // rdquo
+
+                Typograph { r: Regex::new(r"(^|\s|\()'").unwrap(),   s: "$1‘" }, // lsquo
+                Typograph { r: Regex::new("'").unwrap(),             s: "’" },   // rsquo
+
+                // Dashes
+                // \u2009 = thin space
+                // \u200a = hair space
+                // \u2013 = en dash
+                // \u2014 = em dash
+                Typograph { r: Regex::new(r"\b–\b").unwrap(),   s: "\u{200a}\u{2013}\u{200a}" },
+                Typograph { r: Regex::new(r"\b—\b").unwrap(),   s: "\u{200a}\u{2014}\u{200a}" },
+                Typograph { r: Regex::new(" — ").unwrap(),      s: "\u{200a}\u{2014}\u{200a}" },
+                Typograph { r: Regex::new("---").unwrap(),      s: "\u{200a}\u{2014}\u{200a}" },
+                Typograph { r: Regex::new(" - | -- ").unwrap(), s: "\u{2009}\u{2013}\u{2009}" },
+                Typograph { r: Regex::new("--").unwrap(),       s: "\u{200a}\u{2013}\u{200a}" },
+
+                Typograph { r: Regex::new(r"\.\.\.").unwrap(), s: "…" } // hellip
+            ];
+        }
+
+        let mut new_text = String::from(text);
+        for typograph in REPLACEMENTS.iter() {
+            new_text = typograph.r.replace_all(&new_text, typograph.s).into_owned();
+        }
+
+        new_text
+    }
+
     pub fn parsed_content(&self) -> String {
         let content = self.main_content();
         let parser = cmark::Parser::new(&content);
+        let mut in_code_block = false;
+        let typographic_parser = parser.map(|event| {
+            match event {
+                Event::Start(tag) => {
+                    if let Tag::CodeBlock(_) = tag {
+                        in_code_block = true;
+                    }
+                    Event::Start(tag)
+
+                },
+                Event::End(tag) => {
+                    if let Tag::CodeBlock(_) = tag {
+                        if in_code_block {
+                            in_code_block = false;
+                        }
+                    }
+                    Event::End(tag)
+                }
+                Event::Text(text) => {
+                    if in_code_block {
+                        Event::Text(text)
+                    } else {
+                        Event::Text(Builder::typogrify(&text).into())
+                    }
+                },
+                _ => event
+            }
+        });
         let mut parsed = String::new();
-        cmark::html::push_html(&mut parsed, parser);
+        cmark::html::push_html(&mut parsed, typographic_parser);
         parsed
     }
 }

@@ -5,11 +5,10 @@
 // replacement to that element.
 
 function getPreNodes(root) {
-    var i, l;
-    var nodes = [];
-    var nodeList = root.querySelectorAll("pre");
+    const nodes = [];
+    const nodeList = root.querySelectorAll("pre");
 
-    for (i = 0, l = nodeList.length; i < l; i += 1) {
+    for (let i = 0, l = nodeList.length; i < l; i += 1) {
         nodes.push(nodeList[i]);
     }
 
@@ -35,17 +34,17 @@ function skipWhitespaceOnly(node) {
 function getTextNodes(root) {
     // Return an array of text nodes, except those that are inside <pre>,
     // <style> or <script> elements, or contain only whitespace.
-    var nodes = [];
-    var node;
-    var parentNodeName;
-    var walker = document.createTreeWalker(
+    const nodes = [];
+    let node;
+    let parentNodeName;
+    const walker = document.createTreeWalker(
             root,
             NodeFilter.SHOW_TEXT,
             //{ acceptNode: skipWhitespaceOnly },
             skipWhitespaceOnly,
             false
         );
-    var preNodes = getPreNodes(root);
+    const preNodes = getPreNodes(root);
 
     while (walker.nextNode()) {
         node = walker.currentNode;
@@ -63,7 +62,7 @@ function getTextNodes(root) {
 }
 
 function transformText() {
-    var replacements = [
+    const replacements = [
         { r: /``/g, s: "“" },
         { r: /''/g, s: "”" },
 
@@ -98,7 +97,7 @@ function transformText() {
 
         { r: /\.\.\./g, s: "…" } // hellip
     ];
-    var inlineElements = [
+    const inlineElements = [
         "A",
         "SPAN",
         "EM",
@@ -108,17 +107,16 @@ function transformText() {
         "SUP",
         "SUB"
     ];
-    var textNodes;
-    var root = typeof ROOT_ELEMENT === "undefined" ? null : ROOT_ELEMENT;
+    const root = typeof ROOT_ELEMENT === "undefined" ? null : ROOT_ELEMENT;
 
     if (typeof root === "string") {
         root = window.document.querySelector(root);
     }
-    textNodes = getTextNodes(root || window.document);
+    const textNodes = getTextNodes(root || window.document);
 
     textNodes.forEach(function (node) {
-        var text = node.nodeValue;
-        var prev = node.previousSibling;
+        const text = node.nodeValue;
+        const prev = node.previousSibling;
 
         // Insert zero-width space character before node text if node
         // immediately follows an inline element, to handle cases like:
@@ -140,9 +138,9 @@ function transformText() {
 }
 
 function removeFontStyles() {
-    var elements = document.body.querySelectorAll('[style]');
+    const elements = document.body.querySelectorAll('[style]');
     [].forEach.call(elements, function (el) {
-        var styles = el.style.cssText.split(';');
+        const styles = el.style.cssText.split(';');
         el.style.cssText = styles.filter(function (style) {
             return !(/font-family|font-size/.test(style));
         }).join(';');
@@ -152,7 +150,7 @@ function removeFontStyles() {
 (function () {
     "use strict";
 
-    var D = window.document;
+    const D = window.document;
 
     if (D.readyState === "loading") {
         D.addEventListener('DOMContentLoaded', function () {
