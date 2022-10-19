@@ -100,10 +100,13 @@ h1, h2, h3 {
 
 h1 {
     margin: 0.2em 0 0.5em;
-    grid-row: 2/3;
-    grid-column: 2/3;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
     color: var(--plain-text);
+}
+
+header h1 {
+    grid-row: 2/3;
+    grid-column: 2/3;
 }
 
 h2 {

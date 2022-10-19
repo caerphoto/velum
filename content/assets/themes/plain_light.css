@@ -74,9 +74,10 @@ footer {
 }
 
 h1 {
-    background-color: var(--plain-text);
-    color: var(--main-bg);
     margin: 0.2em 0 0.5em;
+}
+
+header h1 {
     grid-row: 2/3;
     grid-column: 2/3;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
