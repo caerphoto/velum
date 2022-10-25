@@ -10,3 +10,6 @@
     --link-index-visited: #5c3868; /* slightly darker than normal links */
     --code: #844;
 }
+.theme-selector-icon {
+    background-image: url('/assets/bulb-icon-red.svg');
+}

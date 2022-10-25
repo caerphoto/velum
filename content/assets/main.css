@@ -60,16 +60,27 @@ footer {
     align-self: center;
 }
 
+.theme-selector-icon {
+    display: inline-block;
+    width: 17px;
+    height: 18px;
+    vertical-align: middle;
+}
+
+.theme-selector-icon.dim {
+    transform: scale(60%);
+}
+
 #theme-selector-box input {
     display: none;
-    /*appearance: none;
-    width: 0;*/
 }
 
 #theme-selector-box label::after {
     display: inline-block;
-    border: 2px solid var(--alt-text);
+    box-sizing: border-box;
+    border: 2px solid var(--plain-text);
     border-radius: 50%;
+    background-color: var(--alt-bg);
     width: 1em;
     height: 1em;
     content: "";
@@ -144,7 +155,6 @@ a:visited {
 header a,
 footer a {
     color: var(--link-header);
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
 }
 
 header a:visited,

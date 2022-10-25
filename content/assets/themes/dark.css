@@ -1,5 +1,5 @@
 :root {
-    --main-bg: #333;
+    --main-bg: #222;
     --alt-bg: #000;
     --input-bg: #000;
     --plain-text: #ccc;
@@ -11,3 +11,6 @@
     --code: #444;
 }
 
+.theme-selector-icon {
+    background-image: url('/assets/bulb-icon-dark.svg');
+}
