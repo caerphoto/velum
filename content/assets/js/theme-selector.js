@@ -1,6 +1,6 @@
 (function (D) {
     const selector = D.querySelector('#theme-selector-box');
-    const styleTag = D.querySelector('#theme-style-tag');
+    const root = D.documentElement;
 
     if (!selector) return;
 
@@ -11,23 +11,23 @@
     }
 
     // TODO: don't hard-code default selection
-    const currentTheme = getCookie('theme') || 'light.css';
+    const currentTheme = getCookie('theme') || 'light';
 
     const TEN_YEARS = 60*60*24*365*2;
 
     function changeTheme(event) {
         const theme = event.target.value;
-        // Append timestamp to query string to prvent cache. When page is next
-        // loaded, the proper timestamped version will be used.
-        const themeUrl = `/assets/themes/${theme}?_=${Date.now()}`;
-        styleTag.setAttribute('href', themeUrl);
+        root.className = theme;
         D.cookie = `theme=${theme}; path=/; max-age=${TEN_YEARS}; SameSite=strict`;
     }
 
     selector.addEventListener('change', changeTheme);
     if (currentTheme) {
         const option = selector.querySelector(`[value="${currentTheme}"]`)
-        if (option) { option.setAttribute("checked", "true"); }
+        if (option) {
+            option.setAttribute("checked", "true");
+            changeTheme({ target: option });
+        }
     }
 
 }(window.document));
