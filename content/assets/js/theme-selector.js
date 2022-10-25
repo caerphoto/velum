@@ -1,6 +1,6 @@
 (function (D) {
-    const selector = D.querySelector('#theme-selector');
-    const styleTag = D.querySelector('#main-style-tag');
+    const selector = D.querySelector('#theme-selector-box');
+    const styleTag = D.querySelector('#theme-style-tag');
 
     if (!selector) return;
 
@@ -11,22 +11,23 @@
     }
 
     // TODO: don't hard-code default selection
-    const currentTheme = getCookie('theme') || 'topo.css';
+    const currentTheme = getCookie('theme') || 'light.css';
 
     const TEN_YEARS = 60*60*24*365*2;
 
-    function changeTheme() {
+    function changeTheme(event) {
+        const theme = event.target.value;
         // Append timestamp to query string to prvent cache. When page is next
         // loaded, the proper timestamped version will be used.
-        const themeUrl = `/assets/themes/${selector.value}?_=${Date.now()}`;
+        const themeUrl = `/assets/themes/${theme}?_=${Date.now()}`;
         styleTag.setAttribute('href', themeUrl);
-        D.cookie = `theme=${selector.value}; path=/; max-age=${TEN_YEARS}`;
+        D.cookie = `theme=${theme}; path=/; max-age=${TEN_YEARS}; SameSite=strict`;
     }
 
     selector.addEventListener('change', changeTheme);
     if (currentTheme) {
         const option = selector.querySelector(`[value="${currentTheme}"]`)
-        if (option) { option.selected = true; }
+        if (option) { option.setAttribute("checked", "true"); }
     }
 
 }(window.document));

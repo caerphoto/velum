@@ -1,15 +1,5 @@
-/* Plain Light */
-:root {
-    --main-bg: #eee;
-    --darker-bg: #ddd;
-    --input-bg: #fff;
-    --plain-text: #444;
-    --link-normal: #0064c1;
-    --link-visited: #8b7195;
-    --link-header: #33acf2;
-}
-
 html {
+    background-color: #000; /* default, reduces flash */
     margin: 0;
     padding: 0;
     background-color: var(--main-bg);
@@ -26,8 +16,8 @@ body {
 
 header,
 footer {
-    background-color: var(--plain-text);
-    color: var(--main-bg);
+    background-color: var(--alt-bg);
+    color: var(--alt-text);
     padding: 0.5em 0.5rem;
     margin: 0 -0.5rem 1em;
     box-shadow:
@@ -36,6 +26,7 @@ footer {
 }
 
 header {
+    color: var(--alt-text);
     display: grid;
     grid-template-columns: 1fr 35em 1fr;
     grid-template-rows: auto auto;
@@ -61,12 +52,38 @@ footer {
     grid-column: 1/2;
 }
 
-.logout.link-box {
+.theme.link-box {
     grid-column: 1/4;
     grid-row: 1/2;
     text-align: right;
     justify-self: end;
     align-self: center;
+}
+
+#theme-selector-box input {
+    display: none;
+    /*appearance: none;
+    width: 0;*/
+}
+
+#theme-selector-box label::after {
+    display: inline-block;
+    border: 2px solid var(--alt-text);
+    border-radius: 50%;
+    width: 1em;
+    height: 1em;
+    content: "";
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+#ts-nightsight + label::after {
+    border-color: #800;
+}
+
+#theme-selector-box input:checked + label::after {
+    background-color: var(--alt-text);
+    content: "";
 }
 
 #home-page-info {
@@ -173,7 +190,7 @@ pre {
     overflow-x: auto;
     margin: 0 0 1em;
     padding: 0.5em;
-    background-color: var(--darker-bg);
+    background-color: var(--alt-bg);
     line-height: 1.2;
 }
 
@@ -182,7 +199,7 @@ code {
 }
 
 p > code {
-    background-color: var(--darker-bg);
+    background-color: var(--alt-bg);
     padding: 0 0.3em;
 }
 

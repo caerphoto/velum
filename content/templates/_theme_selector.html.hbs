@@ -1,8 +1,7 @@
-<div id="theme-selector-box" class="logout link-box">
-  <label for="theme-selector">Theme:</label>
-  <select id="theme-selector">
-    {{#each themes}}
-      <option value="{{filename}}">{{name}}</option>
-    {{/each}}
-  </select>
+<div id="theme-selector-box" class="theme link-box">
+  <span class="theme-selector-icon">*</span>
+  <input type="radio" name="theme" id="ts-nightsight" value="nightsight.css"><label for="ts-nightsight"></label
+  >─<input type="radio" name="theme" id="ts-dark"       value="dark.css"><label for="ts-dark"></label
+  >─<input type="radio" name="theme" id="ts-light"      value="light.css"><label for="ts-light"></label>
+  <span class="theme-selector-icon">@</span>
 </div>

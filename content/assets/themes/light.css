@@ -1,0 +1,13 @@
+:root {
+    --main-bg: #eee;
+    --alt-bg: #ccc;
+    --input-bg: #fff;
+    --plain-text: #444;
+    --alt-text: #000;
+    --link-normal: #0064c1;
+    --link-visited: #8b7195;
+    --link-header: #33acf2;
+    --link-header-visited: #33acf2;
+    --code: #444;
+}
+
