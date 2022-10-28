@@ -1,6 +1,10 @@
 (function (D) {
     const selector = D.querySelector('#theme-selector-box');
     const root = D.documentElement;
+    const validThemes = Array.from(selector.querySelectorAll('input'))
+        .map(i => i.value)
+        .reduce((obj, val) => {obj[val] = true; return obj}, {});
+    const DEFAULT_THEME = 'light';
 
     if (!selector) return;
 
@@ -11,7 +15,8 @@
     }
 
     // TODO: don't hard-code default selection
-    const currentTheme = getCookie('theme') || 'light';
+    let currentTheme = getCookie('theme') || DEFAULT_THEME;
+    if (!validThemes[currentTheme]) currentTheme = DEFAULT_THEME;
 
     const TEN_YEARS = 60*60*24*365*2;
 
