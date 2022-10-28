@@ -65,7 +65,7 @@ html.nightsight {
     --plain-text: #b00;
     --alt-text: #d55;
     --link-normal: #414c72;
-    --link-visited: #7b418f;
+    --link-visited: #3d1e48;
     --link-header: #414c72;
     --link-index-visited: #5c3868; /* slightly darker than normal links */
     --code: #844;
@@ -190,13 +190,6 @@ h2 {
 article > section {
     display: grid;
     grid-template-columns: 1fr 35rem 1fr;
-}
-
-article > #home-page-info {
-    grid-template-columns: 1fr;
-    max-width: 35rem;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 article > section > * {
