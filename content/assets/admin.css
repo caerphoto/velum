@@ -127,6 +127,9 @@ textarea {
 
 #article-editor-input {
     grid-column: 1/4;
+    font-family: monospace;
+    font-size: 77%;
+    padding: 0.2rem 0.4rem;
 }
 
 .new #article-editor-input {
