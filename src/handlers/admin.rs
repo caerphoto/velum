@@ -15,7 +15,6 @@ use crate::article::storage;
 use super::{
     server_error,
     empty_response,
-    theme,
 };
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
@@ -46,19 +45,17 @@ pub fn redirect_to(path: &'static str) -> HtmlOrRedirect {
 fn render_login_page(
     data: &SharedData,
     error_msg: Option<&str>,
-    theme: Option<String>,
 ) -> HtmlOrRedirect  {
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
     match data.hbs.render(
         "login",
         &json!({
-            "body_class": "login",
+            "body_class": "admin",
             "title": "Admin Login",
             "blog_title": blog_title,
             "error_msg": error_msg,
             "content_dir": &data.config.content_dir,
-            "theme": theme,
         })
     ) {
         Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
@@ -70,15 +67,13 @@ fn render_login_page(
 
 pub async fn login_page_handler(
     Extension(data): Extension<SharedData>,
-    cookies: Cookies,
 ) -> impl IntoResponse {
-    render_login_page(&data, None, theme(cookies))
+    render_login_page(&data, None)
 }
 
 pub async fn do_login_handler(
     Form(form_data): Form<LoginFormData>,
     Extension(data): Extension<SharedData>,
-    cookies: Cookies,
 ) -> Result<Response<Full<Bytes>>, impl IntoResponse> {
     let mut mdata = data.lock().unwrap();
 
@@ -87,7 +82,7 @@ pub async fn do_login_handler(
     let verified = bcrypt::verify(&form_data.password, hash).unwrap_or(false);
 
     if !verified {
-        return Err(render_login_page(&data, Some("Incorrect password"), theme(cookies)));
+        return Err(render_login_page(&data, Some("Incorrect password")));
     }
 
     let session_id = Uuid::new_v4();

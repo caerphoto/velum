@@ -1,5 +1,9 @@
 <!DOCTYPE html>
+{{#if (eq body_class "admin") }}
+<html class="admin">
+{{else}}
 <html class="{{ theme }}">
+{{/if}}
   <head>
     <title>{{{title}}} &middot; {{{blog_title}}}</title>
     <meta name="HandheldFriendly" content="True">
@@ -13,6 +17,9 @@
     <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400,700&display=swap">
     <link rel="stylesheet"         href="//fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,700|IBM+Plex+Sans:300,300i,400,700&display=swap" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{{asset_path "main.css"}}" id="main-style-tag">
+    {{#if (eq body_class "admin") }}
+      <link rel="stylesheet" href="{{asset_path "admin.css"}}" id="admin-style-tag">
+    {{/if}}
     <link rel="stylesheet" href="{{asset_path "prism.css"}}">
   </head>
   <body class="{{body_class}}">

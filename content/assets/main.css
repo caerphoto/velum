@@ -7,9 +7,26 @@ html {
     font-size: 18px;
 }
 
+html.admin {
+    font-family: "IBM Plex Sans", sans-serif;
+}
+
 html.light {
     --main-bg: #eee;
     --alt-bg: #ccc;
+    --input-bg: #fff;
+    --plain-text: #444;
+    --alt-text: #000;
+    --link-normal: #0064c1;
+    --link-visited: #8b7195;
+    --link-header: #0064c1;
+    --link-header-visited: #0064c1;
+    --code: #444;
+}
+
+html.admin {
+    --main-bg: #ddd;
+    --alt-bg: #bbb;
     --input-bg: #fff;
     --plain-text: #444;
     --alt-text: #000;

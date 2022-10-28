@@ -1,0 +1,40 @@
+#login-form {
+    margin: 0 0 2em;
+}
+
+#login-form label {
+    display: block;
+}
+
+body.admin {
+    margin: 0;
+    padding: 0;
+    display: grid;
+    height: 100vh;
+    grid-template-rows: min-content 1fr min-content;
+}
+
+body.admin header,
+body.admin footer {
+    margin: 0;
+}
+
+.link-box.logout {
+    grid-column: 3/4;
+    justify-self: end;
+}
+
+header h1 {
+    margin: 0;
+}
+
+footer p {
+    margin: 0;
+}
+
+input,
+button,
+textarea {
+    font: inherit;
+}
+
