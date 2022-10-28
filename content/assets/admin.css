@@ -1,22 +1,34 @@
-#login-form {
-    margin: 0 0 2em;
+:root {
+    --control-bg: #aaa;
+    --new-article-border-color: #080;
+    --new-article-input-bg: #efe;
+    --new-article-heading-color: #0a0;
+    --new-article-text-color: #070;
 }
-
-#login-form label {
-    display: block;
-}
-
 body.admin {
     margin: 0;
     padding: 0;
     display: grid;
     height: 100vh;
     grid-template-rows: min-content 1fr min-content;
+    grid-template-columns: 2rem 1fr 1fr 2rem;
+    grid-template-areas:
+        "header header header header"
+        "sidebar-l sidebar-l sidebar-r sidebar-r"
+        "footer footer footer footer"
 }
 
 body.admin header,
 body.admin footer {
     margin: 0;
+}
+
+body.admin header {
+    grid-area: header;
+}
+
+body.admin footer {
+    grid-area: footer;
 }
 
 .link-box.logout {
@@ -26,10 +38,21 @@ body.admin footer {
 
 header h1 {
     margin: 0;
+    text-align: center;
 }
 
-footer p {
+p {
     margin: 0;
+}
+
+#login-form {
+    grid-column: 2/4;
+    justify-self: center;
+    margin-top: 1em;
+}
+
+#login-form label {
+    display: block;
 }
 
 input,
@@ -38,3 +61,75 @@ textarea {
     font: inherit;
 }
 
+#admin-article-manager {
+    grid-area: sidebar-l;
+    /*border-left: 2rem solid var(--control-bg);*/
+    display: grid;
+    grid-template-columns: auto max-content max-content;
+    grid-template-rows: min-content auto;
+    padding: 1rem 0.5rem;
+}
+
+#admin-article-manager h2 {
+    grid-column: 1/2;
+}
+
+#admin-rebuild-index {
+    grid-column: 2/3;
+    align-self: center;
+}
+
+#admin-new-article {
+    grid-column: 3/4;
+    align-self: center;
+}
+
+.admin-article-list {
+    grid-column: 1/4;
+}
+
+#admin-article-editor {
+    padding: 1rem 0.5rem;
+    grid-area: sidebar-r;
+    display: grid;
+    grid-template-columns: auto max-content max-content;
+    grid-template-rows: min-content auto;
+}
+
+#admin-article-editor.new  {
+    color: var(--new-article-text-color);
+}
+
+#admin-article-editor.new h2  {
+    color: var(--new-article-heading-color);
+}
+
+.if-new {
+    display: none;
+}
+
+.new .if-new {
+    display: inline;
+}
+
+#save-article,
+#save-success {
+    align-self: center;
+}
+
+#save-success {
+    margin-right: 1rem;
+    opacity: 0;
+}
+#save-success.visible {
+    opacity: 1;
+}
+
+#article-editor-input {
+    grid-column: 1/4;
+}
+
+.new #article-editor-input {
+    background-color: var(--new-article-input-bg);
+    border-color: var(--new-article-border-color);
+}

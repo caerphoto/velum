@@ -15,7 +15,7 @@
 <section id="admin-article-manager" class="admin-main-section">
   <h2>Articles:</h2>
 
-  <form action="/rebuild_index" method="POST" class="main-section-form">
+  <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
     <button type="submit">Rebuild article index</button>
   </form>
 
@@ -38,7 +38,7 @@
     <button type="submit">Save</button>
   </form>
 
-  <textarea class="article-editor" disabled></textarea>
+  <textarea id="article-editor-input" disabled></textarea>
 </section>
 
 <script src="{{asset_path "js/admin.js"}}"></script>

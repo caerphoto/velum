@@ -3,7 +3,7 @@
     const articleList = D.querySelector('#admin-article-manager ol');
     const createNew = D.querySelector('#admin-new-article');
     const editorSection = D.querySelector('#admin-article-editor');
-    const editor = D.querySelector('.article-editor');
+    const editor = D.querySelector('#article-editor-input');
     const saveBtn = D.querySelector('#save-article button');
     const successMsg = D.querySelector('#save-success');
 

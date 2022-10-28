@@ -7,17 +7,15 @@
   <h1>Blog Admin Login</h1>
 </header>
 
-<article>
-  <section id="login-form" class="content">
-    {{#if error_msg}}
-      <p class="error-message">{{error_msg}}</p>
-    {{/if}}
-    <form action="login" method="POST">
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password">
-      <button type="submit">Log in</button>
-    </form>
-  </section>
-</article>
+<section id="login-form" class="content">
+  {{#if error_msg}}
+    <p class="error-message">{{error_msg}}</p>
+  {{/if}}
+  <form action="login" method="POST">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password">
+    <button type="submit">Log in</button>
+  </form>
+</section>
 
 {{> _footer}}
