@@ -27,6 +27,12 @@ pub struct LoginFormData {
     password: String,
 }
 
+macro_rules! ensure_logged_in {
+    ($d:ident, $c:ident) => {
+        if needs_to_log_in(&$d, $c) { return redirect_to("/login"); }
+    };
+}
+
 fn needs_to_log_in(data: &SharedData, cookies: Cookies) -> bool {
     let data = data.lock().unwrap();
     let session_id = cookies
@@ -124,7 +130,7 @@ pub async fn admin_page_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
@@ -152,7 +158,7 @@ pub async fn rebuild_index_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
@@ -171,7 +177,7 @@ pub async fn create_article_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
@@ -207,13 +213,12 @@ pub async fn update_article_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
     if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
         log::error!("Failed to update article: {:?}", err);
-        
         Ok(server_error("Error upating article"))
     } else {
         log::info!("Updated article '{}' on disk.", &slug);
@@ -231,7 +236,7 @@ pub async fn delete_article_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 

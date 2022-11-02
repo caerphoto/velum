@@ -66,7 +66,6 @@ fn read_file_bytes<P: AsRef<FsPath>>(filename: P, buf: &mut Vec<u8>) -> IoResult
 }
 
 fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<SystemTime, HtmlResponse> {
-    let init = SystemTime::from(UNIX_EPOCH);
     let separator = b';';
     let last_modified = paths.iter()
         .map(|p| {
@@ -75,10 +74,10 @@ fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<Sy
                 buf.push(separator);
                 last_modified
             } else {
-                init
+                UNIX_EPOCH
             }
         })
-        .fold(init, std::cmp::max);
+        .fold(UNIX_EPOCH, std::cmp::max);
 
     Ok(last_modified)
 }

@@ -121,7 +121,7 @@ impl Builder {
         if truncated.len() < max_len { truncated } else { truncated + "…" }
     }
 
-    fn typogrify<'a>(text: &'a str) -> String {
+    fn typogrify(text: &str) -> String {
         lazy_static! {
             static ref REPLACEMENTS: Vec<Typograph> = vec![
                 Typograph { r: Regex::new("``").unwrap(), s: "“"},
