@@ -22,6 +22,7 @@ html.light {
     --link-header: #0064c1;
     --link-header-visited: #0064c1;
     --code: #444;
+    --separator-color: rgba(0, 0, 0, 0.2);
 }
 
 html.admin {
@@ -52,6 +53,7 @@ html.dark {
     --link-header: #0084d1;
     --link-index-visited: #0084d1;
     --code: #444;
+    --separator-color: rgba(255, 255, 255, 0.3);
 }
 
 html.dark .theme-selector-icon {
@@ -69,6 +71,7 @@ html.nightsight {
     --link-header: #414c72;
     --link-index-visited: #5c3868; /* slightly darker than normal links */
     --code: #844;
+    --separator-color: rgba(255, 0, 0, 0.6);
 }
 
 html.nightsight .theme-selector-icon {
@@ -97,6 +100,7 @@ header {
     display: grid;
     grid-template-columns: 1fr 35em 1fr;
     grid-template-rows: auto auto;
+    border-bottom: 1px solid var(--separator-color);
 }
 
 .index header {
@@ -222,6 +226,10 @@ footer a:visited {
     color: var(--link-header);
 }
 
+#article-body {
+    border-bottom: 1px solid var(--separator-color);
+}
+
 ul.article-list,
 ul.tags {
     list-style: none;
@@ -298,7 +306,17 @@ p.img img {
     margin: 0 auto;
 }
 
-#article-body figcaption, #article-body img + em {
+.nightsight #article-body img {
+    filter: brightness(50%);
+}
+
+.nightsight #article-body img.focus {
+    filter: brightness(100%);
+}
+
+
+#article-body figcaption,
+#article-body img + em {
     text-align: center;
     font-size: 0.9em;
     display: block;
@@ -307,8 +325,9 @@ p.img img {
     font-style: italic;
 }
 
-body.dimmed img.focus + figcaption, body.dimmed img.focus + em {
-    color: #ddd;
+.nightsight #article-body figcaption::after {
+    content: "(Click or tap image to show it at full brightness.)";
+    font-style: normal;
 }
 
 #exif-popover {
@@ -340,8 +359,6 @@ nav {
 }
 
 .article nav {
-    border-top: 1px dotted var(--plain-text);
-    padding-top: 1em;
     grid-template-columns: 1fr 1em 1fr;
     grid-template-rows: auto auto auto;
 }
@@ -373,10 +390,10 @@ nav .footer-home-link-box {
 }
 
 #comments {
-    margin-top: 1em;
-    border-top: 1px dotted rgba(0, 0, 0, 0.4);
-    padding-top: 1em;
+    margin-top: 1.5em;
     margin-bottom: 1em;
+    padding-bottom: 1.5em;
+    border-bottom: 1px solid var(--separator-color);
 }
 
 #comments ul {
