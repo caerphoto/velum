@@ -373,6 +373,9 @@ nav .footer-home-link-box {
 }
 
 #comments {
+    margin-top: 1em;
+    border-top: 1px dotted rgba(0, 0, 0, 0.4);
+    padding-top: 1em;
     margin-bottom: 1em;
 }
 
