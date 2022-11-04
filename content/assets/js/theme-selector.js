@@ -1,5 +1,7 @@
 (function (D) {
     const selector = D.querySelector('#theme-selector-box');
+    if (!selector) return;
+
     const root = D.documentElement;
     const validThemes = Array.from(selector.querySelectorAll('input'))
         .map(i => i.value)
