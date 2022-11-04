@@ -7,10 +7,6 @@ html {
     font-size: 18px;
 }
 
-html.admin {
-    font-family: "IBM Plex Sans", sans-serif;
-}
-
 html.light {
     --main-bg: #eee;
     --alt-bg: #ccc;
@@ -19,23 +15,11 @@ html.light {
     --alt-text: #000;
     --link-normal: #0064c1;
     --link-visited: #8b7195;
+    --link-hover: #009ac9;
     --link-header: #0064c1;
     --link-header-visited: #0064c1;
     --code: #444;
     --separator-color: rgba(0, 0, 0, 0.2);
-}
-
-html.admin {
-    --main-bg: #ddd;
-    --alt-bg: #bbb;
-    --input-bg: #fff;
-    --plain-text: #444;
-    --alt-text: #000;
-    --link-normal: #0064c1;
-    --link-visited: #8b7195;
-    --link-header: #0064c1;
-    --link-header-visited: #0064c1;
-    --code: #444;
 }
 
 html.light .theme-selector-icon {
@@ -50,6 +34,7 @@ html.dark {
     --alt-text: #aaa;
     --link-normal: #618bb3;
     --link-visited: #8d7097;
+    --link-hover: #009ac9;
     --link-header: #0084d1;
     --link-index-visited: #0084d1;
     --code: #444;
@@ -68,6 +53,7 @@ html.nightsight {
     --alt-text: #d55;
     --link-normal: #414c72;
     --link-visited: #3d1e48;
+    --link-hover: #26313e;
     --link-header: #414c72;
     --link-index-visited: #5c3868; /* slightly darker than normal links */
     --code: #844;
@@ -214,6 +200,10 @@ a {
 
 a:visited {
     color: var(--link-visited);
+}
+
+a:hover {
+    color: var(--link-hover);
 }
 
 header a,
