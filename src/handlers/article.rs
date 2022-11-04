@@ -16,6 +16,7 @@ use regex::Regex;
 use crate::SharedData;
 use crate::article::storage::fetch_by_slug;
 use super::{
+    log_elapsed,
     server_error,
     not_found,
     theme,
@@ -93,12 +94,7 @@ pub async fn article_handler(
         ) {
             Ok(rendered_page) => {
                 let reply = (StatusCode:: OK, Html(rendered_page));
-
-                log::info!(
-                    "Rendered article `{}` in {}µs",
-                    &slug,
-                    now.elapsed().as_micros()
-                );
+                log_elapsed("article", Some(&slug), None, now);
                 reply
             },
             Err(e) => {

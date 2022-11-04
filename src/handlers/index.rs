@@ -7,7 +7,12 @@ use serde_json::json;
 use std::time;
 use tower_cookies::Cookies;
 
-use super::{server_error, theme};
+use super::{
+    log_elapsed,
+    server_error,
+    theme
+};
+
 use crate::article::storage::{fetch_index_links, LinkList};
 use crate::CommonData;
 use crate::SharedData;
@@ -103,11 +108,7 @@ pub async fn index_handler(
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
 
     let response = render_article_list(article_list, page, page_size, &data, None, theme(cookies));
-    log::info!(
-        "Rendered article index page {} in {}µs",
-        page,
-        now.elapsed().as_micros()
-    );
+    log_elapsed("article index", None, Some(page), now);
 
     Ok(response)
 }
@@ -139,11 +140,6 @@ pub async fn tag_handler(
         Some(&tag),
         theme(cookies),
     );
-    log::info!(
-        "Rendered tag '{}' index page {} in {}µs",
-        &tag,
-        page,
-        now.elapsed().as_micros()
-    );
+    log_elapsed("tag index", Some(&tag), Some(page), now);
     response
 }

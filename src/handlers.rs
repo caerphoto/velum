@@ -7,7 +7,7 @@ pub mod static_files;
 use std::{
     fs,
     path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH, Instant},
 };
 
 use axum::{
@@ -31,6 +31,35 @@ pub fn theme(cookies: Cookies) -> Option<String> {
     cookies.get("theme").map(|c| {
         format!("themes/{}", c.value())
     })
+}
+
+pub fn log_elapsed(thing: &str, thing_name: Option<&str>, page: Option<usize>, from: Instant) {
+    let elapsed = from.elapsed().as_micros();
+    let (elapsed, unit) = if elapsed < 1000 {
+        (elapsed, 'µ')
+    } else {
+        (elapsed / 1000, 'm')
+    };
+
+    let thing_name = match thing_name {
+        Some(t) => format!(" `{}`", t),
+        None => "".to_string(),
+    };
+
+    if let Some(page) = page {
+        log::info!(
+            "Rendered {}{} ({}) in {}{}s",
+            thing, thing_name, page,
+            elapsed, unit
+        );
+    } else {
+        log::info!(
+            "Rendered {}{} in {}{}s",
+            thing, thing_name,
+            elapsed, unit
+        );
+    }
+
 }
 
 // TODO: render HTML from file
