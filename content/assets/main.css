@@ -224,6 +224,7 @@ footer a:visited {
 
 #article-body {
     border-bottom: 1px solid var(--separator-color);
+    padding-bottom: 1em;
 }
 
 ul.article-list,
