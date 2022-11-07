@@ -302,6 +302,8 @@ p.img img {
     max-height: 95vh;
     height: auto;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 .nightsight #article-body img {
@@ -327,6 +329,8 @@ p.img img {
     border-style: solid;
     margin-bottom: 0.5em;
     background-color: var(--caption-bg);
+    position: relative;
+    z-index: 0;
 }
 
 .nightsight #article-body figcaption::after {
