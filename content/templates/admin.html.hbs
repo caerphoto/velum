@@ -12,36 +12,34 @@
   <h1>Blog Admin</h1>
 </header>
 
-<article>
-  <section id="admin-article-manager" class="admin-main-section">
-    <h2>Articles:</h2>
+<section id="admin-article-manager" class="admin-main-section">
+  <h2>Articles:</h2>
 
-    <form action="/rebuild_index" method="POST" class="main-section-form">
-      <button type="submit">Rebuild article index</button>
-    </form>
+  <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
+    <button type="submit">Rebuild article index</button>
+  </form>
 
-    <form id="admin-new-article" action="#new">
-      <button type="submit">Create new article</button>
-    </form>
+  <form id="admin-new-article" action="#new">
+    <button type="submit">Create new article</button>
+  </form>
 
-    <ol class="admin-article-list" reversed>
-      {{#each articles}}
-        {{> _admin_article_list_item }}
-      {{/each}}
-    </ol>
-  </section>
+  <ol class="admin-article-list" reversed>
+    {{#each articles}}
+      {{> _admin_article_list_item }}
+    {{/each}}
+  </ol>
+</section>
 
-  <section id="admin-article-editor" class="admin-main-section">
-    <h2>Edit <span class="if-new">new</span> article:</h2>
+<section id="admin-article-editor" class="admin-main-section">
+  <h2>Edit <span class="if-new">new</span> article:</h2>
 
-    <p id="save-success">Saved!</p>
-    <form action="/article" data-method="PUT" id="save-article" class="main-section-form">
-      <button type="submit">Save</button>
-    </form>
+  <p id="save-success">Saved!</p>
+  <form action="/article" data-method="PUT" id="save-article" class="main-section-form">
+    <button type="submit">Save</button>
+  </form>
 
-    <textarea class="article-editor" disabled></textarea>
-  </section>
-</article>
+  <textarea id="article-editor-input" disabled></textarea>
+</section>
 
 <script src="{{asset_path "js/admin.js"}}"></script>
 {{> _footer}}

@@ -1,0 +1,16 @@
+:root {
+    --main-bg: #222;
+    --alt-bg: #000;
+    --input-bg: #000;
+    --plain-text: #ccc;
+    --alt-text: #aaa;
+    --link-normal: #618bb3;
+    --link-visited: #8d7097;
+    --link-header: #0084d1;
+    --link-index-visited: #0084d1;
+    --code: #444;
+}
+
+.theme-selector-icon {
+    background-image: url('/assets/bulb-icon-dark.svg');
+}

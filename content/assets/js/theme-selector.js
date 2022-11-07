@@ -1,6 +1,12 @@
 (function (D) {
-    const selector = D.querySelector('#theme-selector');
-    const styleTag = D.querySelector('#main-style-tag');
+    const selector = D.querySelector('#theme-selector-box');
+    if (!selector) return;
+
+    const root = D.documentElement;
+    const validThemes = Array.from(selector.querySelectorAll('input'))
+        .map(i => i.value)
+        .reduce((obj, val) => {obj[val] = true; return obj}, {});
+    const DEFAULT_THEME = 'light';
 
     if (!selector) return;
 
@@ -11,22 +17,24 @@
     }
 
     // TODO: don't hard-code default selection
-    const currentTheme = getCookie('theme') || 'topo.css';
+    let currentTheme = getCookie('theme') || DEFAULT_THEME;
+    if (!validThemes[currentTheme]) currentTheme = DEFAULT_THEME;
 
     const TEN_YEARS = 60*60*24*365*2;
 
-    function changeTheme() {
-        // Append timestamp to query string to prvent cache. When page is next
-        // loaded, the proper timestamped version will be used.
-        const themeUrl = `/assets/themes/${selector.value}?_=${Date.now()}`;
-        styleTag.setAttribute('href', themeUrl);
-        D.cookie = `theme=${selector.value}; path=/; max-age=${TEN_YEARS}`;
+    function changeTheme(event) {
+        const theme = event.target.value;
+        root.className = theme;
+        D.cookie = `theme=${theme}; path=/; max-age=${TEN_YEARS}; SameSite=strict`;
     }
 
     selector.addEventListener('change', changeTheme);
     if (currentTheme) {
         const option = selector.querySelector(`[value="${currentTheme}"]`)
-        if (option) { option.selected = true; }
+        if (option) {
+            option.setAttribute("checked", "true");
+            changeTheme({ target: option });
+        }
     }
 
 }(window.document));

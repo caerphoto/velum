@@ -1,0 +1,225 @@
+:root {
+    --main-bg: #ddd;
+    --alt-bg: #bbb;
+    --input-bg: #fff;
+    --plain-text: #444;
+    --alt-text: #000;
+    --link-normal: #0064c1;
+    --link-hover: #009ac9;
+    --link-visited: #8b7195;
+    --link-header: #0064c1;
+    --link-header-visited: #0064c1;
+    --code: #444;
+
+    --control-bg: #f4f4f4;
+    --button-border: #aaa;
+    --button-bg: #eee;
+    --danger-control-border: #c00;
+    --danger-control-text: #800;
+    --new-article-border-color: #080;
+    --new-article-input-bg: #efe;
+    --new-article-heading-color: #0a0;
+    --new-article-text-color: #070;
+    --separator: #aaa;
+    --box-border: #ccc;
+}
+
+html.admin {
+    font-family: "IBM Plex Sans", sans-serif;
+}
+
+body.admin {
+    margin: 0;
+    padding: 0;
+    display: grid;
+    height: 100vh;
+    grid-template-rows: 5rem 1fr 2.5rem;
+    grid-template-columns: 2rem 1fr 1fr 2rem;
+    grid-template-areas:
+        "header header header header"
+        "sidebar-l sidebar-l sidebar-r sidebar-r"
+        "footer footer footer footer"
+}
+
+body.admin header,
+body.admin footer {
+    margin: 0;
+}
+
+body.admin header {
+    grid-area: header;
+}
+
+body.admin footer {
+    grid-area: footer;
+}
+
+.link-box.logout {
+    grid-column: 3/4;
+    justify-self: end;
+}
+
+a:hover {
+    color: var(--link-hover);
+}
+
+header h1 {
+    margin: 0;
+    text-align: center;
+}
+
+p {
+    margin: 0;
+}
+
+#login-form {
+    grid-column: 2/4;
+    justify-self: center;
+    margin-top: 1em;
+}
+
+#login-form label {
+    display: block;
+}
+
+input,
+button,
+textarea {
+    font: inherit;
+    font-size: 90%;
+}
+
+button {
+    appearance: none;
+    border: 1px solid var(--button-border);
+    border-radius: 2px;
+    background-color: var(--button-bg);
+    box-shadow: 0 3px 2px -2px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+    box-shadow: 0 3px 3px -2px rgba(0, 0, 0, 0.4);
+}
+
+#admin-article-manager,
+#admin-article-editor {
+    display: grid;
+    grid-template-columns: auto 12rem 12rem;
+    grid-template-rows: 2.5rem calc(100vh - 12rem);
+    padding: 1rem 0.5rem 0.5rem;
+}
+
+#admin-article-manager {
+    grid-area: sidebar-l;
+}
+
+.admin-main-section form {
+    justify-self: end;
+}
+
+#admin-article-manager h2 {
+    grid-column: 1/2;
+}
+
+#admin-rebuild-index {
+    grid-column: 2/3;
+    align-self: center;
+}
+
+#admin-new-article {
+    grid-column: 3/4;
+    align-self: center;
+}
+
+.admin-article-list {
+    grid-column: 1/4;
+    overflow-y: scroll;
+    margin: 0;
+    border: 1px solid var(--box-border);
+    list-style: none;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+    background-color: var(--control-bg);
+}
+
+.admin-article-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px dotted var(--separator);
+    position: relative;
+    margin: 0;
+}
+
+.admin-article-list li .delete {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    box-sizing: border-box;
+    height: 1.8em;
+    margin-top: -0.9em;
+    font-size: 80%;
+    color: var(--danger-control-text);
+    border: 1px solid var(--danger-control-border);
+}
+
+.admin-article-list a[data-slug] {
+    text-decoration: none;
+    color: var(--link-normal);
+}
+
+.admin-article-list a[data-slug]:hover {
+    color: var(--link-hover);
+}
+
+.admin-article-list .admin-open-article-link {
+    position: absolute;
+    top: 50%;
+    height: 1rem;
+    right: 5rem;
+    margin-top: -0.5rem;
+
+    font-size: 80%;
+}
+
+#admin-article-editor {
+    grid-area: sidebar-r;
+}
+
+#admin-article-editor.new  {
+    color: var(--new-article-text-color);
+}
+
+#admin-article-editor.new h2  {
+    color: var(--new-article-heading-color);
+}
+
+.if-new {
+    display: none;
+}
+
+.new .if-new {
+    display: inline;
+}
+
+#save-article,
+#save-success {
+    align-self: center;
+}
+
+#save-success {
+    margin-right: 1rem;
+    opacity: 0;
+}
+#save-success.visible {
+    opacity: 1;
+}
+
+#article-editor-input {
+    grid-column: 1/4;
+    font-family: monospace;
+    font-size: 77%;
+    padding: 0.2rem 0.4rem;
+}
+
+.new #article-editor-input {
+    background-color: var(--new-article-input-bg);
+    border-color: var(--new-article-border-color);
+}

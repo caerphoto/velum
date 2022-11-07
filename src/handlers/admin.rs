@@ -15,7 +15,6 @@ use crate::article::storage;
 use super::{
     server_error,
     empty_response,
-    theme,
 };
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
@@ -26,6 +25,12 @@ type HtmlOrRedirect = Result<(StatusCode, Html<String>), Redirect>;
 #[derive(Deserialize)]
 pub struct LoginFormData {
     password: String,
+}
+
+macro_rules! ensure_logged_in {
+    ($d:ident, $c:ident) => {
+        if needs_to_log_in(&$d, $c) { return redirect_to("/login"); }
+    };
 }
 
 fn needs_to_log_in(data: &SharedData, cookies: Cookies) -> bool {
@@ -46,19 +51,17 @@ pub fn redirect_to(path: &'static str) -> HtmlOrRedirect {
 fn render_login_page(
     data: &SharedData,
     error_msg: Option<&str>,
-    theme: Option<String>,
 ) -> HtmlOrRedirect  {
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
     match data.hbs.render(
         "login",
         &json!({
-            "body_class": "login",
+            "body_class": "admin",
             "title": "Admin Login",
             "blog_title": blog_title,
             "error_msg": error_msg,
             "content_dir": &data.config.content_dir,
-            "theme": theme,
         })
     ) {
         Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
@@ -70,15 +73,13 @@ fn render_login_page(
 
 pub async fn login_page_handler(
     Extension(data): Extension<SharedData>,
-    cookies: Cookies,
 ) -> impl IntoResponse {
-    render_login_page(&data, None, theme(cookies))
+    render_login_page(&data, None)
 }
 
 pub async fn do_login_handler(
     Form(form_data): Form<LoginFormData>,
     Extension(data): Extension<SharedData>,
-    cookies: Cookies,
 ) -> Result<Response<Full<Bytes>>, impl IntoResponse> {
     let mut mdata = data.lock().unwrap();
 
@@ -87,7 +88,7 @@ pub async fn do_login_handler(
     let verified = bcrypt::verify(&form_data.password, hash).unwrap_or(false);
 
     if !verified {
-        return Err(render_login_page(&data, Some("Incorrect password"), theme(cookies)));
+        return Err(render_login_page(&data, Some("Incorrect password")));
     }
 
     let session_id = Uuid::new_v4();
@@ -129,7 +130,7 @@ pub async fn admin_page_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let data = data.lock().unwrap();
     let blog_title = &data.config.blog_title;
@@ -157,7 +158,7 @@ pub async fn rebuild_index_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
@@ -176,7 +177,7 @@ pub async fn create_article_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
@@ -212,13 +213,12 @@ pub async fn update_article_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
     if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
         log::error!("Failed to update article: {:?}", err);
-        
         Ok(server_error("Error upating article"))
     } else {
         log::info!("Updated article '{}' on disk.", &slug);
@@ -236,7 +236,7 @@ pub async fn delete_article_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
-    if needs_to_log_in(&data, cookies) { return redirect_to("/login"); }
+    ensure_logged_in!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
