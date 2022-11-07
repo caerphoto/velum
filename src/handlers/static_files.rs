@@ -124,7 +124,7 @@ fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<System
 }
 
 fn build_response(filename: &PathBuf, last_modified: SystemTime, buf: Vec<u8>) -> Response<BoxBody> {
-    let ct = mime_guess::from_path(&filename).first_or_octet_stream();
+    let ct = mime_guess::from_path(filename).first_or_octet_stream();
     let len = buf.len() as u64;
     let mut res = Response::builder()
         .status(200)

@@ -68,7 +68,7 @@ pub struct IndexRenderView<'a> {
     home_page_info: Option<&'a str>,
 }
 
-impl <'a>IndexRenderView<'a> {
+impl<'a> IndexRenderView<'a> {
     pub fn new(
         article_list: LinkList,
         tag: Option<&'a str>,
@@ -79,8 +79,8 @@ impl <'a>IndexRenderView<'a> {
     ) -> Self {
         let last_page = div_ceil(article_list.total_articles, page_size);
 
-        let title = if let Some(ref tag) = tag {
-            String::from("Tag: ") + &tag
+        let title = if let Some(tag) = tag {
+            String::from("Tag: ") + tag
         } else {
             String::from("Article Index")
         };
@@ -125,7 +125,7 @@ pub struct ArticleRenderView<'a> {
     theme: String,
 }
 
-impl <'a>ArticleRenderView<'a> {
+impl<'a> ArticleRenderView<'a> {
     pub fn new(
         article: &'a ContentView,
         return_path: String,
