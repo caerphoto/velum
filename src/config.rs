@@ -1,17 +1,9 @@
-use crate::io::paths_with_ext_in_dir;
 use serde::{Deserialize, Serialize};
-use std::io::{Error, ErrorKind};
-use std::{fs, path::PathBuf};
+use std::fs;
 
 const CONFIG_FILE: &str = "./Settings.toml";
 const SECRETS_FILE: &str = "./Secrets.toml";
 const BCRYPT_HASH_COST: u32 = 8;
-
-#[derive(Serialize, Clone)]
-pub struct Theme {
-    filename: String,
-    name: String,
-}
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Config {
@@ -26,8 +18,6 @@ pub struct Config {
 
     #[serde(skip)]
     pub secrets: Secrets,
-    #[serde(skip)]
-    pub theme_list: Vec<Theme>,
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -49,52 +39,7 @@ impl Config {
             config.prompt_for_password()
         }
 
-        config.theme_list = Config::find_themes(&config.content_dir);
-
         Ok(config)
-    }
-
-    fn extract_theme_name(path: &PathBuf) -> std::io::Result<String> {
-        let content = fs::read_to_string(path)?;
-        let first_line = content
-            .lines()
-            .next()
-            .map(|l| {
-                l.trim_start_matches("/*")
-                    .trim_end_matches("*/")
-                    .trim()
-                    .to_string()
-            })
-            .ok_or_else(|| {
-                Error::new(
-                    ErrorKind::InvalidData,
-                    format!("Unable to extract theme name from file {:?}", path),
-                )
-            });
-
-        first_line
-    }
-
-    fn find_themes(content_dir: &str) -> Vec<Theme> {
-        let dir = PathBuf::from(content_dir).join("assets").join("themes");
-        let mut themes = Vec::new();
-        paths_with_ext_in_dir("css", &dir, |path| {
-            let filename = path.file_name();
-            if filename.is_none() {
-                return;
-            }
-            let filename = String::from(filename.unwrap().to_string_lossy());
-            let name = Config::extract_theme_name(&path.to_path_buf());
-            if name.is_err() {
-                return;
-            }
-            themes.push(Theme {
-                name: name.unwrap(),
-                filename,
-            })
-        });
-        themes.sort_by(|t1, t2| t1.name.cmp(&t2.name));
-        themes
     }
 
     pub fn save_secrets(&self) -> Result<(), std::io::Error> {

@@ -10,11 +10,13 @@ use axum::{
 };
 use headers::HeaderMap;
 use tower_cookies::Cookies;
-use serde_json::json;
 use regex::Regex;
 
 use crate::SharedData;
-use crate::article::storage::fetch_by_slug;
+use crate::article::{
+    storage::fetch_by_slug,
+    view::ArticleRenderView,
+};
 use super::{
     log_elapsed,
     server_error,
@@ -66,7 +68,6 @@ pub async fn article_handler(
 ) -> impl IntoResponse {
     let now = time::Instant::now();
     let data = data.lock().unwrap();
-    let blog_title = &data.config.blog_title;
 
     let referer = headers
         .get("Referer")
@@ -75,23 +76,13 @@ pub async fn article_handler(
     let return_path = return_path(&data.config.blog_host, referer);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
-        let comments = data.comments.get(&slug);
-        match  data.hbs.render(
-            "article",
-            &json!({
-                "title": &article.title,
-                "blog_title": blog_title,
-                "article": article,
-                "comments": comments,
-                "prev": article.prev,
-                "next": article.next,
-                "return_path": return_path,
-                "body_class": "article",
-                "content_dir": &data.config.content_dir,
-                "themes": &data.config.theme_list,
-                "theme": theme(cookies),
-            })
-        ) {
+        let render_data = ArticleRenderView::new(
+            article,
+            return_path,
+            theme(cookies),
+            &data,
+        );
+        match  data.hbs.render("article", &render_data) {
             Ok(rendered_page) => {
                 let reply = (StatusCode:: OK, Html(rendered_page));
                 log_elapsed("article", Some(&slug), None, now);

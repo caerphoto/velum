@@ -64,6 +64,39 @@ handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
     this_tag == search_tag
 });
 
+handlebars_helper!(render_tags: |tags: Vec<String>, search_tag: Option<String>| {
+    let mut html = String::from("<ul class=\"tags\">");
+    if let Some(search_tag) = search_tag {
+        for tag in tags {
+            html.push_str("<li>");
+            if tag == search_tag {
+                html.push_str("<span class=\"current-tag\">");
+                html.push_str(&tag);
+                html.push_str("</span>");
+            } else {
+                html.push_str("<a href=\"/tag/");
+                html.push_str(&tag);
+                html.push_str("\">");
+                html.push_str(&tag);
+                html.push_str("</a>");
+            }
+            html.push_str("</li>");
+        }
+        html.push_str("</ul>");
+    } else {
+        for tag in tags {
+            html.push_str("<li><a href=\"/tag/");
+            html.push_str(&tag);
+            html.push_str("\">");
+            html.push_str(&tag);
+            html.push_str("</a></li>");
+        }
+        html.push_str("</ul>");
+    }
+
+    html
+});
+
 handlebars_helper!(return_text: |path: String| {
     let default_text = "Home".to_string();
     let path_parts: Vec<&str> = path
@@ -132,6 +165,7 @@ pub fn register_helpers(mut hb: Handlebars) -> Handlebars {
     hb.register_helper("age_from_timestamp", Box::new(age_from_timestamp));
     hb.register_helper("return_text", Box::new(return_text));
     hb.register_helper("asset_path", Box::new(asset_path));
+    hb.register_helper("render_tags", Box::new(render_tags));
 
     hb
 }
