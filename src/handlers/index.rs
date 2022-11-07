@@ -3,7 +3,6 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
 };
-use serde_json::json;
 use std::time;
 use tower_cookies::Cookies;
 
@@ -13,66 +12,31 @@ use super::{
     theme
 };
 
-use crate::article::storage::{fetch_index_links, LinkList};
+use crate::article::{
+    storage::{fetch_index_links, LinkList},
+    view::IndexRenderView,
+};
 use crate::CommonData;
 use crate::SharedData;
 
-// Integer division rounding up, for calculating page count
-fn div_ceil(lhs: usize, rhs: usize) -> usize {
-    let d = lhs / rhs;
-    let r = lhs % rhs;
-    if r > 0 && rhs > 0 {
-        d + 1
-    } else {
-        d
-    }
-}
-
 fn render_article_list(
     article_list: LinkList,
-    mut page: usize,
-    page_size: usize,
-    data: &CommonData,
     tag: Option<&str>,
-    theme: Option<String>,
+    page: usize,
+    page_size: usize,
+    theme: String,
+    data: &CommonData,
 ) -> (StatusCode, Html<String>) {
-    let blog_title = &data.config.blog_title;
-    let last_page = div_ceil(article_list.total_articles, page_size);
+    let render_data = IndexRenderView::new(
+        article_list,
+        tag,
+        page,
+        page_size,
+        theme,
+        data
+    );
 
-    let title = if let Some(tag) = tag {
-        String::from("Tag: ") + tag
-    } else {
-        String::from("Article Index")
-    };
-
-    // Page '0' is the home page: shows the same article list as the first index
-    // page, but has the additional home page info box.
-    let home_page_info = if page == 0 {
-        Some(&data.config.info_html)
-    } else {
-        None
-    };
-    page = std::cmp::max(page, 1);
-
-    match data.hbs.render(
-        "index",
-        &json!({
-            "blog_title": blog_title,
-            "title": title,
-            "prev_page": if page > 1 { page - 1 } else { 0 },
-            "current_page": page,
-            "next_page": if page < last_page { page + 1 } else { 0 },
-            "last_page": last_page,
-            "search_tag": tag.unwrap_or(""),
-            "article_count": article_list.total_articles,
-            "articles": &article_list.index_views,
-            "body_class": if tag.is_some() { "tag-index" } else { "index" },
-            "content_dir": &data.config.content_dir,
-            "themes": &data.config.theme_list,
-            "theme": theme,
-            "home_page_info": home_page_info,
-        }),
-    ) {
+    match data.hbs.render( "index", &render_data) {
         Ok(rendered_page) => (StatusCode::OK, Html(rendered_page)),
         Err(e) => server_error(&format!(
             "Failed to render article in index. Error: {:?}",
@@ -107,7 +71,14 @@ pub async fn index_handler(
     let page_size = data.config.page_size;
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
 
-    let response = render_article_list(article_list, page, page_size, &data, None, theme(cookies));
+    let response = render_article_list(
+        article_list,
+        None,
+        page,
+        page_size,
+        theme(cookies),
+        &data,
+    );
     log_elapsed("article index", None, Some(page), now);
 
     Ok(response)
@@ -127,6 +98,7 @@ pub async fn tag_handler(
     cookies: Cookies,
 ) -> impl IntoResponse {
     let now = time::Instant::now();
+    let tag_copy = tag.clone();
     let data = data.lock().unwrap();
     let page_size = data.config.page_size;
 
@@ -134,12 +106,12 @@ pub async fn tag_handler(
 
     let response = render_article_list(
         article_result,
+        Some(&tag),
         page,
         page_size,
-        &data,
-        Some(&tag),
         theme(cookies),
+        &data,
     );
-    log_elapsed("tag index", Some(&tag), Some(page), now);
+    log_elapsed("tag index", Some(&tag_copy), Some(page), now);
     response
 }

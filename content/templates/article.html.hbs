@@ -12,9 +12,7 @@
 <article>
   <section id="article-body" class="post-content">
     <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
-    {{#with article}}
-      {{> _tag_list search_tag="" }}
-    {{/with}}
+    {{{render_tags article.tags None}}}
     {{{article.parsed_content}}}
   </section>
 

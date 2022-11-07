@@ -32,7 +32,8 @@
         <h2><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
         <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
         <p class="content-preview">{{this.preview}}</p>
-        {{> _tag_list search_tag=../search_tag}}
+        {{{render_tags this.tags ../search_tag}}}
+
       </li>
       {{/each}}
     </ul>
