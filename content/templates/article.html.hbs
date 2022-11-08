@@ -22,9 +22,9 @@
 
 <nav class="next-prev">
   <p class="more-articles-text">More articles:</p>
-  {{#if prev}}
+  {{#if article.prev}}
   <div class="nav-prev">
-    <a href="/article/{{prev.slug}}">&larr; {{prev.title}}</a>
+    <a href="/article/{{article.prev.slug}}">&larr; {{article.prev.title}}</a>
   </div>
   {{else}}
   <div class="nav-prev">
@@ -32,9 +32,9 @@
   </div>
   {{/if}}
   <span class="nav-sep">&middot;</span>
-  {{#if next}}
+  {{#if article.next}}
   <div class="nav-next">
-    <a href="/article/{{next.slug}}">{{next.title}} &rarr;</a>
+    <a href="/article/{{article.next.slug}}">{{article.next.title}} &rarr;</a>
   </div>
   {{else}}
   <div class="nav-next">
