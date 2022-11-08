@@ -28,9 +28,10 @@ pub fn create_timestamp() -> i64 {
 }
 
 pub fn theme(cookies: Cookies) -> String {
-    cookies.get("theme").map(|c| {
-        format!("themes/{}", c.value())
-    }).unwrap_or_else(|| "light".to_string())
+    cookies
+        .get("theme")
+        .map(|c| c.value().to_string())
+        .unwrap_or_else(|| "light".to_string())
 }
 
 pub fn log_elapsed(thing: &str, thing_name: Option<&str>, page: Option<usize>, from: Instant) {
