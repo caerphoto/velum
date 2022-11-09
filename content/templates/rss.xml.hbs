@@ -11,6 +11,7 @@
             <title>{{this.title}}</title>
             <link>{{blog_url}}/article/{{this.slug}}</link>
             <description>{{{this.content}}}</description>
+            <pubDate>{{rfc822_date this.timestamp}}</pubdate>
         </item>
         {{/each}}
     </channel>

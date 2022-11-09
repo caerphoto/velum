@@ -60,6 +60,11 @@ handlebars_helper!(age_from_timestamp: |ts: i64| {
     }
 });
 
+handlebars_helper!(rfc822_date: |ts: i64| {
+    let dt = Utc.timestamp_millis(ts);
+    dt.to_rfc2822()
+});
+
 handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
     this_tag == search_tag
 });
@@ -161,8 +166,9 @@ handlebars_helper!(asset_path: |filename: String| {
 pub fn register_helpers(mut hb: Handlebars) -> Handlebars {
     // Not sure there's a way to automate this bit
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
-    hb.register_helper("is_current_tag", Box::new(is_current_tag));
     hb.register_helper("age_from_timestamp", Box::new(age_from_timestamp));
+    hb.register_helper("rfc822_date", Box::new(rfc822_date));
+    hb.register_helper("is_current_tag", Box::new(is_current_tag));
     hb.register_helper("return_text", Box::new(return_text));
     hb.register_helper("asset_path", Box::new(asset_path));
     hb.register_helper("render_tags", Box::new(render_tags));

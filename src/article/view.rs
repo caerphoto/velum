@@ -65,6 +65,7 @@ impl ContentView {
             title: self.title.as_ref(),
             slug: self.slug.as_ref(),
             content: String::from(modified_content),
+            timestamp: self.timestamp,
         }
     }
 }
@@ -135,6 +136,7 @@ pub struct RssArticleView<'a> {
     title: &'a str,
     slug: &'a str,
     content: String,
+    timestamp: i64,
 }
 
 #[derive(Serialize)]
