@@ -40,6 +40,14 @@ to expand on. Making comments editable means implementing a whole system of
 user accounts, login, etc., and I'm just not sure it's worth the extra
 complication for what's supposed to be a lightweight blog engine.
 
+## RSS Feed
+
+There's a link in the page footer for an RSS feed, that lists the most recent 10
+articles. Images and links in articles that use relative URLs, e.g.
+"/content/images/example.jpg" will be rewritten dynamically to include the full
+blog URL, e.g. "https://blog.andyf.me/content/images/example.jpg", so that
+images display properly and links open properly in RSS feed readers.
+
 ## Getting started
 
 Assuming you have a functional Rust environment, you can compile and run the
@@ -64,7 +72,3 @@ future there may be options for running daemonised, or as a system service.
 1. Image uploader/manager for admin page.
 
 2. Ensure there are no duplicate slugs.
-
-3. RSS feeds for main site, and maybe per-tag?
-
-4. Themes! (partly done - needs improvement)
