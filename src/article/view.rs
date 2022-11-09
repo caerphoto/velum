@@ -53,13 +53,13 @@ impl ContentView {
 
     pub fn to_rss_view(&self, blog_url: &str) -> RssArticleView {
         lazy_static! {
-            static ref RELATIVE_IMG_URL: Regex = Regex::new(r#"<img( .*)* src="/([^"]+)""#).unwrap();
+            static ref RELATIVE_IMG_URL: Regex = Regex::new(r#"<(img|a)( .*)* (src|href)="/([^"]+)""#).unwrap();
         }
 
         let trimmed_url = blog_url.trim_end_matches('/');
         let modified_content = RELATIVE_IMG_URL.replace_all(
             &self.parsed_content,
-            format!(r#"<img$1 src="{}/$2""#, trimmed_url)
+            format!(r#"<$1$2 $3="{}/$4""#, trimmed_url)
         );
         RssArticleView {
             title: self.title.as_ref(),
