@@ -1,7 +1,7 @@
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
-    response::{Html, IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect, Response},
 };
 use std::time;
 use tower_cookies::Cookies;
@@ -14,7 +14,12 @@ use super::{
 
 use crate::article::{
     storage::{fetch_index_links, LinkList},
-    view::IndexRenderView,
+    view::{
+        ContentView,
+        IndexRenderView,
+        RssIndexView,
+        RssArticleView,
+    },
 };
 use crate::CommonData;
 use crate::SharedData;
@@ -82,6 +87,41 @@ pub async fn index_handler(
     log_elapsed("article index", None, Some(page), now);
 
     Ok(response)
+}
+
+fn build_rss_articles<'a>(data: &'a CommonData) -> Vec<RssArticleView<'a>> {
+    let end_index = std::cmp::min(10, data.articles.len());
+    data.articles[..end_index].iter().map(|a| a.to_rss_view(&data.config.blog_url)).collect()
+}
+
+pub async fn rss_handler(
+    Extension(data): Extension<SharedData>,
+) -> impl IntoResponse {
+    let data = data.lock().unwrap();
+    let articles = build_rss_articles(&data);
+    let render_data = RssIndexView {
+        blog_title: &data.config.blog_title,
+        blog_url: &data.config.blog_url,
+        blog_description: &data.config.blog_description,
+        articles,
+    };
+
+    let res = Response::builder()
+        .header("Content-Type", "application/rss+xml;charset=utf-8");
+
+    match data.hbs.render("rss", &render_data) {
+        Ok(rendered_doc) => {
+            res.status(StatusCode::OK)
+                .body(rendered_doc)
+                .unwrap()
+        },
+        Err(e) => {
+            log::error!("Error rendering RSS feed: {:?}", e);
+            res.status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Error rendering RSS feed".to_string())
+                .unwrap()
+        },
+    }
 }
 
 pub async fn tag_home_handler(

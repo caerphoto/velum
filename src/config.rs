@@ -12,6 +12,8 @@ pub struct Config {
     pub content_dir: String,
     pub page_size: usize,
     pub blog_title: String,
+    pub blog_url: String,
+    pub blog_description: String,
     pub blog_host: String,
     pub max_preview_length: usize,
     pub info_html: String,
