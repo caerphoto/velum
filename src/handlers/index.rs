@@ -15,7 +15,6 @@ use super::{
 use crate::article::{
     storage::{fetch_index_links, LinkList},
     view::{
-        ContentView,
         IndexRenderView,
         RssIndexView,
         RssArticleView,
@@ -89,7 +88,7 @@ pub async fn index_handler(
     Ok(response)
 }
 
-fn build_rss_articles<'a>(data: &'a CommonData) -> Vec<RssArticleView<'a>> {
+fn build_rss_articles(data: &CommonData) -> Vec<RssArticleView> {
     let end_index = std::cmp::min(10, data.articles.len());
     data.articles[..end_index].iter().map(|a| a.to_rss_view(&data.config.blog_url)).collect()
 }
