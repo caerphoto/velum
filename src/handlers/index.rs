@@ -96,6 +96,7 @@ fn build_rss_articles(data: &CommonData) -> Vec<RssArticleView> {
 pub async fn rss_handler(
     Extension(data): Extension<SharedData>,
 ) -> impl IntoResponse {
+    let now = time::Instant::now();
     let data = data.lock().unwrap();
     let articles = build_rss_articles(&data);
     let render_data = RssIndexView {
@@ -110,6 +111,7 @@ pub async fn rss_handler(
 
     match data.hbs.render("rss", &render_data) {
         Ok(rendered_doc) => {
+            log_elapsed("RSS feed", None, None, now);
             res.status(StatusCode::OK)
                 .body(rendered_doc)
                 .unwrap()
