@@ -121,8 +121,8 @@ handlebars_helper!(return_text: |path: String| {
                     format!("{} (page {})", text, path_parts[2])
                 }
             },
-            "index" => {
-                if path == "/index/1" {
+            "articles" => {
+                if path == "/articles/1" {
                     default_text
                 } else {
                     format!("Articles (page {})", path_parts[1])
