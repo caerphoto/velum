@@ -12,6 +12,13 @@ content_dir = "content"
 # What your blog is called.
 blog_title = "Velum Blog"
 
+# The root URL of your blog, used when expanding relative URLs to full ones
+# in RSS feeds
+blog_url = "https://blog.andyf.me/"
+
+# Short description of your blog, used in RSS feeds
+blog_description = "The super cool blog of Jane Doe"
+
 # How many posts to show per page on the index pages.
 page_size = 15
 
@@ -23,6 +30,7 @@ max_preview_length = 400
 # path will default to '/', i.e. the blog home page.
 blog_host = "localhost"
 
+# Some HTML that's inserted on the home page, i.e. the the root path
 info_html = """
 <p>Welcome to my <a href="https://github.com/caerphoto/velum">Velum</a> blog!</p>
 """
