@@ -1,3 +1,4 @@
+use regex::Regex;
 use serde::Serialize;
 use crate::{
     CommonData,
@@ -47,6 +48,24 @@ impl ContentView {
             slug: self.slug.clone(),
             timestamp: self.timestamp,
             tags: self.tags.clone(),
+        }
+    }
+
+    pub fn to_rss_view(&self, blog_url: &str) -> RssArticleView {
+        lazy_static! {
+            static ref RELATIVE_IMG_URL: Regex = Regex::new(r#"<(img|a)( .*)* (src|href)="/([^"]+)""#).unwrap();
+        }
+
+        let trimmed_url = blog_url.trim_end_matches('/');
+        let modified_content = RELATIVE_IMG_URL.replace_all(
+            &self.parsed_content,
+            format!(r#"<$1$2 $3="{}/$4""#, trimmed_url)
+        );
+        RssArticleView {
+            title: self.title.as_ref(),
+            slug: self.slug.as_ref(),
+            content: String::from(modified_content),
+            timestamp: self.timestamp,
         }
     }
 }
@@ -110,6 +129,22 @@ impl<'a> IndexRenderView<'a> {
             home_page_info,
         }
     }
+}
+
+#[derive(Serialize)]
+pub struct RssArticleView<'a> {
+    title: &'a str,
+    slug: &'a str,
+    content: String,
+    timestamp: i64,
+}
+
+#[derive(Serialize)]
+pub struct RssIndexView<'a> {
+    pub blog_title: &'a str,
+    pub blog_url: &'a str,
+    pub blog_description: &'a str,
+    pub articles: Vec<RssArticleView<'a>>,
 }
 
 #[derive(Serialize)]

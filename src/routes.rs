@@ -28,6 +28,7 @@ use crate::handlers::{
     index::{
         home_handler,
         index_handler,
+        rss_handler,
         tag_home_handler,
         tag_handler,
     },
@@ -83,6 +84,7 @@ pub fn init(shared_data: SharedData) -> Router {
 
         .route("/tag/:tag",           get(tag_home_handler))
         .route("/tag/:tag/:page",     get(tag_handler))
+        .route("/rss",                get(rss_handler))
 
         .route("/comment/:slug",      post(comment_handler))
 

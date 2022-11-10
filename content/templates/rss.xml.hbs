@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+    <channel>
+        <title>{{blog_title}}</title>
+        <link>{{blog_url}}</link>
+        <description>{{blog_description}}</description>
+        <ttl>240</ttl>
+        <language>en-gb</language>
+        {{#each articles}}
+        <item>
+            <title>{{this.title}}</title>
+            <link>{{article_full_url ../blog_url this.slug}}</link>
+            <description>{{{this.content}}}</description>
+            <pubDate>{{rfc822_date this.timestamp}}</pubDate>
+        </item>
+        {{/each}}
+    </channel>
+
+</rss>

@@ -60,8 +60,14 @@ handlebars_helper!(age_from_timestamp: |ts: i64| {
     }
 });
 
-handlebars_helper!(is_current_tag: |this_tag: String, search_tag: String| {
-    this_tag == search_tag
+handlebars_helper!(rfc822_date: |ts: i64| {
+    let dt = Utc.timestamp_millis(ts);
+    dt.to_rfc2822()
+});
+
+handlebars_helper!(article_full_url: |blog_url: String, slug: String| {
+    let trimmed_blog_url = blog_url.trim_end_matches('/');
+    String::from(trimmed_blog_url) + "/" + "article/" + &slug
 });
 
 handlebars_helper!(render_tags: |tags: Vec<String>, search_tag: Option<String>| {
@@ -115,8 +121,8 @@ handlebars_helper!(return_text: |path: String| {
                     format!("{} (page {})", text, path_parts[2])
                 }
             },
-            "index" => {
-                if path == "/index/1" {
+            "articles" => {
+                if path == "/articles/1" {
                     default_text
                 } else {
                     format!("Articles (page {})", path_parts[1])
@@ -161,8 +167,9 @@ handlebars_helper!(asset_path: |filename: String| {
 pub fn register_helpers(mut hb: Handlebars) -> Handlebars {
     // Not sure there's a way to automate this bit
     hb.register_helper("date_from_timestamp", Box::new(date_from_timestamp));
-    hb.register_helper("is_current_tag", Box::new(is_current_tag));
     hb.register_helper("age_from_timestamp", Box::new(age_from_timestamp));
+    hb.register_helper("rfc822_date", Box::new(rfc822_date));
+    hb.register_helper("article_full_url", Box::new(article_full_url));
     hb.register_helper("return_text", Box::new(return_text));
     hb.register_helper("asset_path", Box::new(asset_path));
     hb.register_helper("render_tags", Box::new(render_tags));
