@@ -1,8 +1,8 @@
 
-use std::path::PathBuf;
+use std::{path::PathBuf, collections::HashMap, ffi::OsStr};
 
 use uuid::Uuid;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use serde_json::json;
 use glob::glob;
 
@@ -29,6 +29,36 @@ type HtmlOrRedirect = Result<(StatusCode, Html<String>), Redirect>;
 #[derive(Deserialize)]
 pub struct LoginFormData {
     password: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ImageListDir {
+    pub dir: String,
+    pub file_names: Vec<String>,
+}
+
+impl ImageListDir {
+    fn parts(path: PathBuf) -> (Option<String>, Option<String>) {
+        let mut p: Option<String> = None;
+        let mut f: Option<String> = None;
+        if let Some(parent) = path.parent() {
+            p = Some(parent.to_string_lossy().to_string());
+        }
+        if let Some(file_name) = path.file_name() {
+            f = Some(file_name.to_string_lossy().to_string());
+        }
+        (p, f)
+    }
+
+    pub fn new(parent: &str, file_name: &str) -> Self {
+        Self {
+            dir: parent.to_string(),
+            file_names: vec![file_name.to_string()],
+        }
+    }
+    pub fn push(&mut self, file_name: String) {
+        self.file_names.push(file_name);
+    }
 }
 
 macro_rules! ensure_logged_in {
@@ -263,12 +293,21 @@ pub async fn delete_article_handler(
     }
 }
 
-pub fn get_image_list(data: &CommonData) -> Vec<PathBuf> {
+pub fn get_image_list(data: &CommonData) -> HashMap<String, ImageListDir> {
     let pattern = PathBuf::from(&data.config.content_dir).join("images/**/*.jpg");
-    let mut filenames = Vec::new();
+    let mut filenames: HashMap<String, ImageListDir> = HashMap::new();
     for entry in glob(&pattern.to_string_lossy()).expect("Failed to parse imag list glob") {
         match entry {
-            Ok(path) => filenames.push(path),
+            Ok(path) => {
+                if let (Some(parent), Some(file_name)) = ImageListDir::parts(path) {
+                    if let Some(ild) = filenames.get_mut(&parent) {
+                        ild.push(file_name);
+                    } else {
+                        let ild = ImageListDir::new(&parent, &file_name);
+                        filenames.insert(parent, ild);
+                    }
+                }
+            },
             Err(e) => log::error!("Unable to add entry to image list: {:?}", e),
         }
     }
@@ -276,6 +315,10 @@ pub fn get_image_list(data: &CommonData) -> Vec<PathBuf> {
     log::info!("{:?}", filenames);
 
     filenames
+}
+
+fn covert_to_thumbnail_filename(path: PathBuf) {
+
 }
 
 pub async fn image_list_handler(

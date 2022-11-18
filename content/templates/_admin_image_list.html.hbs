@@ -1,0 +1,13 @@
+<ul class="image-list">
+  {{#each images}}
+  <li class="image-list_dir">
+    <h4>{{this.dir}}</h4>
+    <ul class="image-list_images">
+      {{#each this.file_names}}
+      <li class="image-list_images--image"><img src="/{{../this.dir}}/{{this}}"></li>
+      {{/each}}
+    </ul>
+  </li>
+  {{/each}}
+</ul>
+

@@ -184,6 +184,55 @@ button:hover {
     padding: 0 0.5rem;
 }
 
+#admin-image-manager {
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
+    padding: 0.5rem 0.5rem 0;
+}
+
+.image-list {
+    overflow-y: auto;
+    border: 1px solid var(--box-border);
+    margin: 0;
+    padding: 0;
+}
+
+.image-list,
+.image-list ul {
+    list-style: none;
+}
+
+.image-list h4 {
+    margin: 0 0 2px;
+    padding: 0.2rem 0.2rem;
+    background-color: var(--main-bg);
+    font-weight: normal;
+}
+
+.image-list_images {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    row-gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0 2px;
+}
+
+.image-list_images li {
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    box-sizing: border-box;
+    width: 25%;
+    padding: 0 1px;
+}
+
+.image-list img {
+    display: block;
+    max-width: 100%;
+    max-height: 100px;
+}
+
 .admin-main-section form {
     align-self: center;
 }

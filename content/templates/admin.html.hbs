@@ -14,11 +14,11 @@
 
 <section id="admin-list-sections" class="admin-main-section">
   <ul id="admin-list-sections-tabs" class="tabs">
-    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
-    <li class="tab"><a href="#admin-image-manager">Images</a></li>
+    <li class="tab"><a href="#admin-article-manager">Articles</a></li>
+    <li class="tab active"><a href="#admin-image-manager">Images</a></li>
   </ul>
 
-  <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content active">
+  <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content">
     <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
       <button type="submit">Rebuild index</button>
     </form>
@@ -34,8 +34,7 @@
     </ol>
   </section>
 
-  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
-    <h3>Images</h3>
+  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content active">
     {{> _admin_image_list}}
   </section>
 
