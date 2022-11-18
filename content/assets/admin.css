@@ -22,6 +22,10 @@
     --new-article-text-color: #070;
     --separator: #aaa;
     --box-border: #ccc;
+
+    --tab-border: #888;
+    --tab-inactive-bg: #e4e4e4;
+    --tab-active-bg: #f4f4ff;
 }
 
 html.admin {
@@ -33,8 +37,8 @@ body.admin {
     padding: 0;
     display: grid;
     height: 100vh;
-    grid-template-rows: 5rem 1fr 2.5rem;
-    grid-template-columns: 2rem 1fr 1fr 2rem;
+    grid-template-rows: 3.5rem 1fr 2.5rem;
+    grid-template-columns: 2rem 0.55fr auto 2rem;
     grid-template-areas:
         "header header header header"
         "sidebar-l sidebar-l sidebar-r sidebar-r"
@@ -48,6 +52,12 @@ body.admin footer {
 
 body.admin header {
     grid-area: header;
+    grid-template-rows: auto;
+}
+
+.admin header h1 {
+    grid-row: 1/2;
+
 }
 
 body.admin footer {
@@ -66,6 +76,10 @@ a:hover {
 header h1 {
     margin: 0;
     text-align: center;
+}
+
+.admin h2 {
+    margin: 0;
 }
 
 p {
@@ -101,44 +115,95 @@ button:hover {
     box-shadow: 0 3px 3px -2px rgba(0, 0, 0, 0.4);
 }
 
-#admin-article-manager,
+#admin-list-sections,
 #admin-article-editor {
     display: grid;
-    grid-template-columns: auto 12rem 12rem;
-    grid-template-rows: 2.5rem calc(100vh - 12rem);
-    padding: 1rem 0.5rem 0.5rem;
+}
+
+#admin-list-sections {
+    grid-template-rows: 2.5rem calc(100vh - 7rem);
+    grid-template-columns: 1fr;
+    grid-area: sidebar-l;
+    padding: 0 0 0.5rem 0;
+    margin-top: 0.5rem;
+}
+
+.tabs {
+    margin: 0;
+    padding: 0 0.5rem;
+    box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--tab-border);
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    z-index: 1;
+}
+
+.tab {
+    display: grid; /* just so labels can be vertically centred */
+    box-sizing: border-box;
+    flex-basis: 33%;
+    align-content: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 0.2rem 0.2rem 0 0;
+    border-width: 1px 0 0 1px;
+    border-style: solid;
+    border-color: var(--tab-border);
+    background-color: var(--tab-inactive-bg);
+    text-align: center;
+}
+
+.tab.active {
+    background-color: var(--tab-active-bg);
+}
+
+.tab:last-child {
+    border-right-width: 1px;
+}
+
+.tab a {
+    text-decoration: none;
+    display: block;
+}
+
+.tab-content {
+    display: none;
+    border-right: 1px solid var(--tab-border);
+    background-color: var(--control-bg);
+}
+
+.tab-content.active {
+    display: grid;
 }
 
 #admin-article-manager {
-    grid-area: sidebar-l;
+    grid-template-rows: 2rem 1fr;
+    grid-template-columns: 50% 50%;
+    padding: 0 0.5rem;
 }
 
 .admin-main-section form {
-    justify-self: end;
-}
-
-#admin-article-manager h2 {
-    grid-column: 1/2;
+    align-self: center;
 }
 
 #admin-rebuild-index {
-    grid-column: 2/3;
-    align-self: center;
+    grid-column: 1/2;
 }
 
 #admin-new-article {
-    grid-column: 3/4;
-    align-self: center;
+    grid-column: 2/3;
 }
 
 .admin-article-list {
-    grid-column: 1/4;
+    grid-column: 1/3;
+    grid-row: 2/3;
     overflow-y: scroll;
     margin: 0;
     border: 1px solid var(--box-border);
     list-style: none;
     padding: 0.5rem 0.5rem 0.5rem 1rem;
-    background-color: var(--control-bg);
 }
 
 .admin-article-list li {
@@ -155,7 +220,7 @@ button:hover {
     box-sizing: border-box;
     height: 1.8em;
     margin-top: -0.9em;
-    font-size: 80%;
+    font-size: 70%;
     color: var(--danger-control-text);
     border: 1px solid var(--danger-control-border);
 }
@@ -170,25 +235,37 @@ button:hover {
 }
 
 .admin-article-list .admin-open-article-link {
-    position: absolute;
-    top: 50%;
-    height: 1rem;
-    right: 5rem;
-    margin-top: -0.5rem;
-
     font-size: 80%;
 }
 
+.admin-article-list .admin-open-article-link::before {
+    content: "[";
+}
+
+.admin-article-list .admin-open-article-link::after {
+    content: "]";
+}
+
 #admin-article-editor {
+    grid-template-rows: 2.5rem calc(100vh - 7rem);
+    grid-template-columns: auto 5rem 5rem;
     grid-area: sidebar-r;
+    padding: 0.5rem 0.5rem 0.5rem 0.25rem;
 }
 
 #admin-article-editor.new  {
     color: var(--new-article-text-color);
 }
 
+#admin-article-editor h2 {
+}
+
 #admin-article-editor.new h2  {
     color: var(--new-article-heading-color);
+}
+
+#admin-article-editor form {
+    justify-self: end;
 }
 
 .if-new {

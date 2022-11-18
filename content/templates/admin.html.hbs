@@ -12,22 +12,32 @@
   <h1>Blog Admin</h1>
 </header>
 
-<section id="admin-article-manager" class="admin-main-section">
-  <h2>Articles:</h2>
+<section id="admin-list-sections" class="admin-main-section">
+  <ul id="admin-list-sections-tabs" class="tabs">
+    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
+    <li class="tab"><a href="#admin-image-manager">Images</a></li>
+  </ul>
 
-  <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
-    <button type="submit">Rebuild article index</button>
-  </form>
+  <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content active">
+    <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
+      <button type="submit">Rebuild index</button>
+    </form>
 
-  <form id="admin-new-article" action="#new">
-    <button type="submit">Create new article</button>
-  </form>
+    <form id="admin-new-article" action="#new">
+      <button type="submit">Create new article</button>
+    </form>
 
-  <ol class="admin-article-list" reversed>
-    {{#each articles}}
-      {{> _admin_article_list_item }}
-    {{/each}}
-  </ol>
+    <ol class="admin-article-list" reversed>
+      {{#each articles}}
+        {{> _admin_article_list_item }}
+      {{/each}}
+    </ol>
+  </section>
+
+  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
+    <h3>Images</h3>
+  </section>
+
 </section>
 
 <section id="admin-article-editor" class="admin-main-section">
@@ -41,5 +51,10 @@
   <textarea id="article-editor-input" disabled></textarea>
 </section>
 
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
 <script src="{{asset_path "js/admin.js"}}"></script>
-{{> _footer}}
+  </body>
+</html>

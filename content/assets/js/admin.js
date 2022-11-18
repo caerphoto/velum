@@ -6,6 +6,9 @@
     const editor = D.querySelector('#article-editor-input');
     const saveBtn = D.querySelector('#save-article button');
     const successMsg = D.querySelector('#save-success');
+    const listSectionTabContaner = D.querySelector('#admin-list-sections-tabs');
+    const listSectionTabs = Array.from(D.querySelectorAll('#admin-list-sections-tabs li'));
+    const listSections = Array.from(D.querySelectorAll('.tab-content[data-tab-set="admin-list-section"]'));
 
     function fetchArticleText(slug) {
         const xhr = new XMLHttpRequest();
@@ -97,5 +100,17 @@
         const slug = window.location.hash.replace(/^#/, '');
         fetchArticleText(slug);
     }
+
+    listSectionTabContaner.addEventListener('click', event => {
+        if (event.target.nodeName !== 'A') return;
+        event.preventDefault();
+        const sectionId = event.target.getAttribute('href');
+
+        listSections.forEach(s => s.classList.remove('active'));
+        D.querySelector(sectionId).classList.add('active');
+
+        listSectionTabs.forEach(t => t.classList.remove('active'));
+        event.target.parentNode.classList.add('active');
+    })
 }(window.document));
 
