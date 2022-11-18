@@ -36,6 +36,7 @@
 
   <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
     <h3>Images</h3>
+    {{> _admin_image_list}}
   </section>
 
 </section>
@@ -51,9 +52,11 @@
   <textarea id="article-editor-input" disabled></textarea>
 </section>
 
+<!--
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+-->
 
 <script src="{{asset_path "js/admin.js"}}"></script>
   </body>

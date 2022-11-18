@@ -1,6 +1,10 @@
+
+use std::path::PathBuf;
+
 use uuid::Uuid;
 use serde::Deserialize;
 use serde_json::json;
+use glob::glob;
 
 use axum::{
     body::{Full, Bytes},
@@ -10,7 +14,7 @@ use axum::{
 };
 use tower_cookies::Cookies;
 
-use crate::SharedData;
+use crate::{SharedData, commondata::CommonData};
 use crate::article::storage;
 use super::{
     server_error,
@@ -142,6 +146,7 @@ pub async fn admin_page_handler(
             "blog_title": blog_title,
             "articles": &data.articles,
             "content_dir": &data.config.content_dir,
+            "images": get_image_list(&data),
         })
     ) {
         Ok(rendered_page) => Ok((
@@ -255,5 +260,40 @@ pub async fn delete_article_handler(
         }
     } else {
         Ok(empty_response(StatusCode::NOT_FOUND))
+    }
+}
+
+pub fn get_image_list(data: &CommonData) -> Vec<PathBuf> {
+    let pattern = PathBuf::from(&data.config.content_dir).join("images/**/*.jpg");
+    let mut filenames = Vec::new();
+    for entry in glob(&pattern.to_string_lossy()).expect("Failed to parse imag list glob") {
+        match entry {
+            Ok(path) => filenames.push(path),
+            Err(e) => log::error!("Unable to add entry to image list: {:?}", e),
+        }
+    }
+
+    log::info!("{:?}", filenames);
+
+    filenames
+}
+
+pub async fn image_list_handler(
+    Extension(data): Extension<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrRedirect {
+    ensure_logged_in!(data, cookies);
+    let data = data.lock().unwrap();
+    let filenames = get_image_list(&data);
+    match data.hbs.render(
+        "_admin_image_list",
+        &json!({
+            "images": filenames,
+        })
+    ) {
+        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Err(e) => Ok(server_error(
+            &format!("Failed to render image list. Error: {:?}", e))
+        )
     }
 }

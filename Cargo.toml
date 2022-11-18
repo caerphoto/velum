@@ -15,6 +15,7 @@ headers = "0.3.8"
 mime_guess = "2.0"
 tower-cookies = "0.7"
 axum-macros = "0.2"
+glob = "0.3"
 
 config = { version = "0.13.2", features = ["toml"] }
 log = "0.4.0"

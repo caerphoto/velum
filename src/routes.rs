@@ -46,6 +46,7 @@ use crate::handlers::{
         create_article_handler,
         update_article_handler,
         delete_article_handler,
+        image_list_handler,
     },
     static_files::asset_handler,
     not_found_handler,
@@ -75,11 +76,8 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/:legacy_slug",       get(|Path(slug): Path<String>| async move {
             Redirect::permanent(&(String::from("/article/") + &slug))
         }))
-        .route("/articles",           post(create_article_handler))
         .route("/articles/:page_or_slug",     get(index_handler))
         .route("/article/:slug",      get(article_handler))
-        .route("/article/:slug",      put(update_article_handler))
-        .route("/article/:slug",      delete(delete_article_handler))
         .route("/article/:slug/text", get(article_text_handler))
 
         .route("/tag/:tag",           get(tag_home_handler))
@@ -93,6 +91,10 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/logout",             post(do_logout_handler))
         .route("/admin",              get(admin_page_handler))
         .route("/rebuild_index",      post(rebuild_index_handler))
+        .route("/articles",           post(create_article_handler))
+        .route("/article/:slug",      put(update_article_handler))
+        .route("/article/:slug",      delete(delete_article_handler))
+        .route("/all_images",         get(image_list_handler))
 
         .route("/assets/*path",       get(asset_handler))
         .nest("/content/images/",     dir_service)
