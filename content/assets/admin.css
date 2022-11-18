@@ -212,25 +212,26 @@ button:hover {
 .image-list_images {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
-    row-gap: 0.5rem;
+    justify-content: flex-start;
+    row-gap: 2px;
     margin-bottom: 0.5rem;
     padding: 0 2px;
 }
 
 .image-list_images li {
-    display: grid;
-    align-items: center;
-    justify-items: center;
+    display: flex;
+    justify-content: center;
     box-sizing: border-box;
     width: 25%;
+    height: 125px;
     padding: 0 1px;
 }
 
 .image-list img {
     display: block;
+    object-fit: scale-down;
     max-width: 100%;
-    max-height: 100px;
+    cursor: e-resize;
 }
 
 .admin-main-section form {
