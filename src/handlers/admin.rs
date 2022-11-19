@@ -1,10 +1,10 @@
-
-use std::{path::PathBuf, collections::HashMap, ffi::OsStr};
+use std::{path::{Path as OsPath, PathBuf}, collections::HashMap};
 
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
-use glob::glob;
+use walkdir::{DirEntry, WalkDir};
+use image::{GenericImageView, ImageFormat, imageops::{resize, FilterType}};
 
 use axum::{
     body::{Full, Bytes},
@@ -23,6 +23,8 @@ use super::{
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
 const SEE_OTHER: u16 = 303;
+const THUMBNAIL_SUFFIX: &str = "_thumbnail";
+const THUMB_SIZE: u32 = 150;
 
 type HtmlOrRedirect = Result<(StatusCode, Html<String>), Redirect>;
 
@@ -38,14 +40,28 @@ pub struct ImageListDir {
 }
 
 impl ImageListDir {
-    fn parts(path: PathBuf) -> (Option<String>, Option<String>) {
+    fn thumbnail_file_name(file_name: &OsPath) -> Option<PathBuf> {
+        if let (Some(stem), Some(ext)) = (file_name.file_stem(), file_name.extension()) {
+            Some(PathBuf::from(
+                stem.to_string_lossy().to_string()
+                + THUMBNAIL_SUFFIX
+                + "."
+                + &ext.to_string_lossy()
+            ))
+        } else {
+            None
+        }
+    }
+
+    fn parts(path: &OsPath) -> (Option<String>, Option<String>) {
         let mut p: Option<String> = None;
         let mut f: Option<String> = None;
         if let Some(parent) = path.parent() {
             p = Some(parent.to_string_lossy().to_string());
         }
         if let Some(file_name) = path.file_name() {
-            f = Some(file_name.to_string_lossy().to_string());
+            f = ImageListDir::thumbnail_file_name(file_name.as_ref())
+                .map(|pb| pb.to_string_lossy().into());
         }
         (p, f)
     }
@@ -76,6 +92,44 @@ fn needs_to_log_in(data: &SharedData, cookies: Cookies) -> bool {
     sid.is_none()
         || session_id.is_none()
         || sid.unwrap() != session_id.as_ref().unwrap()
+}
+
+fn create_thumbnail(path: &OsPath, count: usize) {
+    let ftsize = THUMB_SIZE as f64;
+    let thumb_name = ImageListDir::thumbnail_file_name(path);
+    let (dir, _) = ImageListDir::parts(path);
+    if thumb_name.is_none() || dir.is_none() {
+        return;
+    }
+    let thumb_name = PathBuf::from(dir.unwrap()).join(&thumb_name.unwrap());
+    if thumb_name.is_file() {
+        log::info!("[{}] Skipping existing thumbnail {:?}", count, thumb_name);
+        return;
+    }
+    match image::open(path) {
+        Ok(img) => {
+            let (w, h) = img.dimensions();
+            let (w, h) = (w as f64, h as f64);
+            let (tw, th) = if w > h {
+                (ftsize as u32, (ftsize / (w / h)) as u32)
+            } else {
+                ((ftsize / (h / w)) as u32, ftsize as u32)
+            };
+            log::info!("[{}] Creating thumbnail for {:?} ...", count, path);
+            let thumb = resize(&img, tw, th, FilterType::Triangle);
+            if let Err(e) = thumb.save_with_format(&thumb_name, ImageFormat::Jpeg) {
+                log::error!("  ...failed to save thumbnail {:?}: {:?}", thumb_name, e);
+            } else {
+                log::info!("  ...saved thumbnail {:?}", thumb_name);
+            }
+        },
+        Err(e) => {
+            log::error!(
+                "[{}] Failed to open image {:?} for thumbnail generation: {:?}",
+                count, path, e
+            );
+        }
+    }
 }
 
 pub fn redirect_to(path: &'static str) -> HtmlOrRedirect {
@@ -293,12 +347,37 @@ pub async fn delete_article_handler(
     }
 }
 
+fn is_valid_image_file(entry: &DirEntry) -> bool {
+    let is_image = entry.path().extension()
+        .map(|ext| {
+            let ext = ext.to_ascii_lowercase();
+            ext == "jpg" || ext == "png" || ext == "gif"
+        })
+        .unwrap_or(false);
+    let is_thumb = entry.path().file_stem()
+        .and_then(|stem| stem.to_str())
+        .map(|stem| {
+            stem.ends_with(THUMBNAIL_SUFFIX)
+        })
+        .unwrap_or(true);
+
+
+    (is_image || entry.file_type().is_dir()) && !is_thumb
+}
+
 pub fn get_image_list(data: &CommonData) -> HashMap<String, ImageListDir> {
-    let pattern = PathBuf::from(&data.config.content_dir).join("images/**/*.jpg");
     let mut filenames: HashMap<String, ImageListDir> = HashMap::new();
-    for entry in glob(&pattern.to_string_lossy()).expect("Failed to parse imag list glob") {
+    let dir = PathBuf::from(&data.config.content_dir).join("images");
+    log::info!("Dir: {}", dir.display());
+    let iter = WalkDir::new(dir)
+        .sort_by_file_name()
+        .into_iter()
+        .filter_entry(is_valid_image_file);
+    for (count, entry) in iter.enumerate() {
         match entry {
-            Ok(path) => {
+            Ok(e) => {
+                let path = e.path();
+                create_thumbnail(path, count);
                 if let (Some(parent), Some(file_name)) = ImageListDir::parts(path) {
                     if let Some(ild) = filenames.get_mut(&parent) {
                         ild.push(file_name);
@@ -311,14 +390,7 @@ pub fn get_image_list(data: &CommonData) -> HashMap<String, ImageListDir> {
             Err(e) => log::error!("Unable to add entry to image list: {:?}", e),
         }
     }
-
-    log::info!("{:?}", filenames);
-
     filenames
-}
-
-fn covert_to_thumbnail_filename(path: PathBuf) {
-
 }
 
 pub async fn image_list_handler(
