@@ -10,6 +10,10 @@
     const listSectionTabs = Array.from(D.querySelectorAll('#admin-list-sections-tabs li'));
     const listSections = Array.from(D.querySelectorAll('.tab-content[data-tab-set="admin-list-section"]'));
 
+    const imageList = D.querySelector('.image-list');
+
+    const ALT_PLACEHOLDER = 'image caption';
+
     function fetchArticleText(slug) {
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
@@ -101,16 +105,58 @@
         fetchArticleText(slug);
     }
 
-    listSectionTabContaner.addEventListener('click', event => {
-        if (event.target.nodeName !== 'A') return;
-        event.preventDefault();
-        const sectionId = event.target.getAttribute('href');
-
+    function activateTabContent(sectionId) {
         listSections.forEach(s => s.classList.remove('active'));
         D.querySelector(sectionId).classList.add('active');
 
+    }
+
+    listSectionTabContaner.addEventListener('click', event => {
+        if (event.target.nodeName !== 'A') return;
+        event.preventDefault();
+
+        activateTabContent(event.target.getAttribute('href'));
         listSectionTabs.forEach(t => t.classList.remove('active'));
         event.target.parentNode.classList.add('active');
-    })
+    });
+
+    function insertImageRef(img) {
+        console.log(img);
+        let insertAt = editor.selectionStart;
+        const beforeText = editor.value.substring(0, insertAt);
+        const afterText = editor.value.substring(insertAt, editor.value.length);
+        let beforeSpacer, afterSpacer;
+        if (/\n\n$/.test(beforeText)) {
+            beforeSpacer = '';
+        } else if (/\n$/.test(beforeText)) {
+            beforeSpacer = '\n';
+        } else {
+            beforeSpacer = '\n\n';
+        }
+        if (/^\n\n/.test(afterText)) {
+            afterSpacer = '';
+        } else if (/^\n/.test(afterText)) {
+            afterSpacer = '\n';
+        } else {
+            afterSpacer = '\n\n';
+        }
+        editor.value = `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${img.dataset.originalName})${afterSpacer}${afterText}`;
+        insertAt += 4;
+        editor.setSelectionRange(insertAt, insertAt + ALT_PLACEHOLDER.length, 'forward');
+        editor.focus();
+    }
+
+    imageList.addEventListener('click', event => {
+        switch (event.target.nodeName) {
+            case 'H4':
+                event.target.classList.toggle('collapsed');
+                break;
+            case 'IMG':
+                insertImageRef(event.target);
+                break;
+        }
+    });
+
+    activateTabContent(D.querySelector('.tab.active a').getAttribute('href'));
 }(window.document));
 

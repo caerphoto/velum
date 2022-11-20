@@ -14,8 +14,8 @@
 
 <section id="admin-list-sections" class="admin-main-section">
   <ul id="admin-list-sections-tabs" class="tabs">
-    <li class="tab"><a href="#admin-article-manager">Articles</a></li>
-    <li class="tab active"><a href="#admin-image-manager">Images</a></li>
+    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
+    <li class="tab"><a href="#admin-image-manager">Images</a></li>
   </ul>
 
   <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content">
@@ -34,7 +34,8 @@
     </ol>
   </section>
 
-  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content active">
+  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
+    <p>Click an image to insert it into the article at the cursor position.</p>
     {{> _admin_image_list}}
   </section>
 

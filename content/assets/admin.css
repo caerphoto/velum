@@ -25,7 +25,7 @@
 
     --tab-border: #888;
     --tab-inactive-bg: #e4e4e4;
-    --tab-active-bg: #f4f4ff;
+    --tab-active-bg: var(--control-bg);
 }
 
 html.admin {
@@ -131,7 +131,6 @@ button:hover {
 .tabs {
     margin: 0;
     padding: 0 0.5rem;
-    box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid var(--tab-border);
     display: flex;
     flex-wrap: nowrap;
@@ -143,9 +142,9 @@ button:hover {
     display: grid; /* just so labels can be vertically centred */
     box-sizing: border-box;
     flex-basis: 33%;
-    align-content: center;
+    align-content: stretch;
     list-style: none;
-    margin: 0;
+    margin: 0 -1px 0 0;
     padding: 0;
     border-radius: 0.2rem 0.2rem 0 0;
     border-width: 1px 0 0 1px;
@@ -153,10 +152,12 @@ button:hover {
     border-color: var(--tab-border);
     background-color: var(--tab-inactive-bg);
     text-align: center;
+    box-shadow: inset 0 -2px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
 .tab.active {
     background-color: var(--tab-active-bg);
+    box-shadow: 0 5px 0 -1px var(--tab-active-bg);
 }
 
 .tab:last-child {
@@ -166,6 +167,7 @@ button:hover {
 .tab a {
     text-decoration: none;
     display: block;
+    padding-top: 0.5rem;
 }
 
 .tab-content {
@@ -179,13 +181,13 @@ button:hover {
 }
 
 #admin-article-manager {
-    grid-template-rows: 2rem 1fr;
+    grid-template-rows: 2.5rem 1fr;
     grid-template-columns: 50% 50%;
     padding: 0 0.5rem;
 }
 
 #admin-image-manager {
-    grid-template-rows: 1fr;
+    grid-template-rows: 2rem 1fr;
     grid-template-columns: 1fr;
     padding: 0.5rem 0.5rem 0;
 }
@@ -207,6 +209,26 @@ button:hover {
     padding: 0.2rem 0.2rem;
     background-color: var(--main-bg);
     font-weight: normal;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.image-list h4::before {
+    font-size: 80%;
+    content: "▼ "
+}
+
+.image-list h4.collapsed::before {
+    content: "▶ "
+}
+
+.image-list h4:hover {
+    background-color: var(--button-bg);
+}
+
+
+.image-list h4.collapsed + ul {
+    display: none;
 }
 
 .image-list_images {
@@ -231,7 +253,7 @@ button:hover {
     display: block;
     object-fit: scale-down;
     max-width: 100%;
-    cursor: e-resize;
+    cursor: alias;
 }
 
 .admin-main-section form {
