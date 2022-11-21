@@ -14,8 +14,8 @@
 
 <section id="admin-list-sections" class="admin-main-section">
   <ul id="admin-list-sections-tabs" class="tabs">
-    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
-    <li class="tab"><a href="#admin-image-manager">Images</a></li>
+    <li class="tab"><a href="#admin-article-manager">Articles</a></li>
+    <li class="tab active"><a href="#admin-image-manager">Images</a></li>
   </ul>
 
   <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content">
@@ -36,7 +36,10 @@
 
   <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
     <p><strong>Click</strong> an image to insert it into the article. <strong>Shift-click</strong> to open in a new window.</p>
-    {{> _admin_image_list}}
+    <ul class="image-list" data-source="/all_images">
+      <li class="loading">loading images&hellip;</li>
+    {{! _admin_image_list}}
+    </ul>
   </section>
 
 </section>
@@ -51,12 +54,6 @@
 
   <textarea id="article-editor-input" disabled></textarea>
 </section>
-
-<!--
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
--->
 
 <script src="{{asset_path "js/admin.js"}}"></script>
   </body>

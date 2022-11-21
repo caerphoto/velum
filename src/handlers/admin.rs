@@ -273,7 +273,6 @@ pub async fn admin_page_handler(
             "blog_title": blog_title,
             "articles": &data.articles,
             "content_dir": &data.config.content_dir,
-            "images": get_image_list(&data),
         })
     ) {
         Ok(rendered_page) => Ok((

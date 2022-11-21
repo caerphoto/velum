@@ -1,13 +1,10 @@
-<ul class="image-list">
-  {{#each images}}
-  <li class="image-list_dir">
-    <h4>{{this.dir}}</h4>
-    <ul class="image-list_images">
-      {{#each this.file_names}}
-      <li class="image-list_images--image"><img alt="thumnail image in {{../this.dir}}" title="{{this.orig_file_name}}" data-original-name="/{{../this.dir}}/{{this.orig_file_name}}" src="/{{../this.dir}}/{{this.thumbnail_file_name}}"></li>
-      {{/each}}
-    </ul>
-  </li>
-  {{/each}}
-</ul>
-
+{{#each images}}
+<li class="image-list_dir">
+  <h4>{{this.dir}}</h4>
+  <ul class="image-list_images">
+    {{#each this.file_names}}
+    <li class="image-list_images--image"><img alt="thumnail image in {{../this.dir}}" title="{{this.orig_file_name}}" data-original-name="/{{../this.dir}}/{{this.orig_file_name}}" src="/{{../this.dir}}/{{this.thumbnail_file_name}}"></li>
+    {{/each}}
+  </ul>
+</li>
+{{/each}}

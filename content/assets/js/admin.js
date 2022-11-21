@@ -120,8 +120,23 @@
         event.target.parentNode.classList.add('active');
     });
 
+    function loadImageList() {
+        const xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 404) {
+                console.error('Failed to load image list');
+            } else {
+                imageList.innerHTML = xhr.response;
+            }
+        });
+
+        xhr.open('GET', imageList.dataset.source);
+        xhr.send();
+    }
+
     function insertImageRef(img) {
         console.log(img);
+        if (editor.disabled) return;
         let insertAt = editor.selectionStart;
         const beforeText = editor.value.substring(0, insertAt);
         const afterText = editor.value.substring(insertAt, editor.value.length);
@@ -163,5 +178,7 @@
     });
 
     activateTabContent(D.querySelector('.tab.active a').getAttribute('href'));
+
+    loadImageList();
 }(window.document));
 
