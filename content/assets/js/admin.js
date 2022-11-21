@@ -121,7 +121,6 @@
     });
 
     function insertImageRef(img) {
-        console.log(img);
         let insertAt = editor.selectionStart;
         const beforeText = editor.value.substring(0, insertAt);
         const afterText = editor.value.substring(insertAt, editor.value.length);
