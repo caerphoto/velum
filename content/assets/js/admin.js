@@ -141,18 +141,23 @@
             afterSpacer = '\n\n';
         }
         editor.value = `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${img.dataset.originalName})${afterSpacer}${afterText}`;
-        insertAt += 4;
+        insertAt += 2 + beforeSpacer.length;
         editor.setSelectionRange(insertAt, insertAt + ALT_PLACEHOLDER.length, 'forward');
         editor.focus();
     }
 
     imageList.addEventListener('click', event => {
-        switch (event.target.nodeName) {
+        const el = event.target;
+        switch (el.nodeName) {
             case 'H4':
-                event.target.classList.toggle('collapsed');
+                el.classList.toggle('collapsed');
                 break;
             case 'IMG':
-                insertImageRef(event.target);
+                if (event.shiftKey) {
+                    window.open(el.dataset.originalName, el.title);
+                } else {
+                    insertImageRef(el);
+                }
                 break;
         }
     });
