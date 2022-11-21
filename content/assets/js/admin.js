@@ -141,7 +141,7 @@
             afterSpacer = '\n\n';
         }
         editor.value = `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${img.dataset.originalName})${afterSpacer}${afterText}`;
-        insertAt += 4;
+        insertAt += 2 + beforeSpacer.length;
         editor.setSelectionRange(insertAt, insertAt + ALT_PLACEHOLDER.length, 'forward');
         editor.focus();
     }
