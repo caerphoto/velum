@@ -124,7 +124,7 @@
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
             if (xhr.status === 404) {
-                console.error('Failed to load image list');
+                imageList.innerHTML = "Failed to fetch image list :("
             } else {
                 imageList.innerHTML = xhr.response;
             }
