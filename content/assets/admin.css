@@ -187,9 +187,13 @@ button:hover {
 }
 
 #admin-image-manager {
-    grid-template-rows: 2rem 1fr;
+    grid-template-rows: min-content 1fr;
     grid-template-columns: 1fr;
     padding: 0.5rem 0.5rem 0;
+}
+
+#admin-image-manager p {
+    padding-bottom: 0.5rem;
 }
 
 .image-list {
@@ -214,7 +218,7 @@ button:hover {
 }
 
 .image-list h4::before {
-    font-size: 80%;
+    font-size: 70%;
     content: "▼ "
 }
 
@@ -275,7 +279,7 @@ button:hover {
     margin: 0;
     border: 1px solid var(--box-border);
     list-style: none;
-    padding: 0.5rem 0.5rem 0.5rem 1rem;
+    padding: 0.5rem;
 }
 
 .admin-article-list li {

@@ -135,7 +135,6 @@
     }
 
     function insertImageRef(img) {
-        console.log(img);
         if (editor.disabled) return;
         let insertAt = editor.selectionStart;
         const beforeText = editor.value.substring(0, insertAt);
