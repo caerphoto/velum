@@ -137,6 +137,7 @@ fn needs_to_log_in(data: &SharedData, cookies: Cookies) -> bool {
         || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
+// TODO: make this return parent-filename parts, to simplify get_image_list.
 fn create_thumbnail(path: &OsPath, count: usize) {
     let ftsize = THUMB_SIZE as f64;
     let thumb_path = ImageListEntry::thumbnail_file_name(path);
@@ -257,34 +258,6 @@ pub async fn do_logout_handler(
         .unwrap()
 }
 
-pub async fn admin_page_handler(
-    Extension(data): Extension<SharedData>,
-    cookies: Cookies,
-) -> HtmlOrRedirect {
-    ensure_logged_in!(data, cookies);
-
-    let data = data.lock().unwrap();
-    let blog_title = &data.config.blog_title;
-    match data.hbs.render(
-        "admin",
-        &json!({
-            "body_class": "admin",
-            "title": "Blog Admin",
-            "blog_title": blog_title,
-            "articles": &data.articles,
-            "content_dir": &data.config.content_dir,
-        })
-    ) {
-        Ok(rendered_page) => Ok((
-            StatusCode::OK,
-            Html(rendered_page),
-        )),
-        Err(e) => Ok(server_error(
-            &format!("Failed to render article in index. Error: {:?}", e))
-        )
-    }
-}
-
 pub async fn rebuild_index_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
@@ -386,6 +359,35 @@ pub async fn delete_article_handler(
         }
     } else {
         Ok(empty_response(StatusCode::NOT_FOUND))
+    }
+}
+
+pub async fn admin_page_handler(
+    Extension(data): Extension<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrRedirect {
+    ensure_logged_in!(data, cookies);
+
+    let data = data.lock().unwrap();
+    let blog_title = &data.config.blog_title;
+    match data.hbs.render(
+        "admin",
+        &json!({
+            "body_class": "admin",
+            "title": "Blog Admin",
+            "blog_title": blog_title,
+            "articles": &data.articles,
+            "content_dir": &data.config.content_dir,
+            "images": get_image_list(&data),
+        })
+    ) {
+        Ok(rendered_page) => Ok((
+            StatusCode::OK,
+            Html(rendered_page),
+        )),
+        Err(e) => Ok(server_error(
+            &format!("Failed to render article in index. Error: {:?}", e))
+        )
     }
 }
 
