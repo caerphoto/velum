@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsString,
     fmt,
     error::Error,
     path::{Path as OsPath, PathBuf},
@@ -33,28 +34,81 @@ const THUMB_SIZE: u32 = 150;
 
 type HtmlOrRedirect = Result<(StatusCode, Html<String>), Redirect>;
 
-
-#[derive(Debug)]
-pub struct ThumbNameError {
-    orig_file_name: String,
+#[derive(Deserialize)]
+pub struct LoginFormData {
+    password: String,
 }
 
-impl fmt::Display for ThumbNameError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "unable to extract thumbnail file name from {}", self.orig_file_name)
+pub struct NameParts {
+    path: PathBuf,
+    file_name: OsString,
+}
+
+impl NameParts {
+    fn new<P: AsRef<OsPath>>(path: P) -> Result<Self, ThumbError> {
+        let path = path.as_ref();
+        match (path.parent(), path.file_name()) {
+            (Some(p), Some(f)) => Ok(Self {
+                    path: p.into(),
+                    file_name: f.into(),
+                }),
+            _ => Err(ThumbError::new(path))
+        }
+    }
+
+    fn path_string(&self) -> String {
+        self.path.to_string_lossy().to_string()
     }
 }
 
-impl Error for ThumbNameError {
+#[derive(Debug)]
+enum ThumbErrorKind {
+    Name,
+    File,
+}
+
+#[derive(Debug)]
+pub struct ThumbError {
+    orig_file_name: String,
+    kind: ThumbErrorKind,
+    details: Option<image::ImageError>,
+}
+
+impl ThumbError {
+    fn new<P: AsRef<OsPath>>(path: P) -> Self {
+        Self {
+            orig_file_name: path.as_ref().to_string_lossy().into(),
+            kind: ThumbErrorKind::Name,
+            details: None,
+        }
+    }
+}
+
+impl fmt::Display for ThumbError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            ThumbErrorKind::Name => write!(f, "thumbnail name error: {}", self.orig_file_name),
+            ThumbErrorKind::File => write!(f, "thumbnail file error: {:?}", self.details)
+        }
+    }
+}
+
+impl Error for ThumbError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }
 }
 
-#[derive(Deserialize)]
-pub struct LoginFormData {
-    password: String,
+impl std::convert::From<image::ImageError> for ThumbError {
+    fn from(error: image::ImageError) -> Self {
+        Self {
+            orig_file_name: String::new(),
+            kind: ThumbErrorKind::File,
+            details: Some(error),
+        }
+    }
 }
+
 
 #[derive(Debug, Serialize)]
 pub struct ImageListEntry {
@@ -63,13 +117,16 @@ pub struct ImageListEntry {
 }
 
 impl ImageListEntry {
-    fn new(orig_file_name: &str) -> Result<Self, ThumbNameError> {
-        let thumbnail_file_name = Self::thumbnail_file_name(&PathBuf::from(orig_file_name))?;
-        let thumbnail_file_name = thumbnail_file_name.to_string_lossy().to_string();
-        let orig_file_name = String::from(orig_file_name);
+    fn new<P: AsRef<OsPath>>(file_name: P) -> Result<Self, ThumbError> {
+        let file_name = file_name.as_ref();
+        let thumbnail_file_name = Self::thumbnail_file_name(file_name)?
+            .to_string_lossy()
+            .to_string();
+        let orig_file_name = file_name.to_string_lossy().to_string();
         Ok(Self { orig_file_name, thumbnail_file_name })
     }
-    fn thumbnail_file_name(file_name: &OsPath) -> Result<PathBuf, ThumbNameError> {
+    fn thumbnail_file_name<P: AsRef<OsPath>>(file_name: P) -> Result<PathBuf, ThumbError> {
+        let file_name = file_name.as_ref();
         if let (Some(stem), Some(ext)) = (file_name.file_stem(), file_name.extension()) {
             Ok(PathBuf::from(
                 stem.to_string_lossy().to_string()
@@ -78,7 +135,7 @@ impl ImageListEntry {
                 + &ext.to_string_lossy()
             ))
         } else {
-            Err(ThumbNameError { orig_file_name: file_name.to_string_lossy().into() })
+            Err(ThumbError::new(file_name))
         }
     }
 }
@@ -90,30 +147,20 @@ pub struct ImageListDir {
 }
 
 impl ImageListDir {
-    fn reslash(s: &str) -> String {
+    fn reslash<P: AsRef<OsPath>>(p: P) -> String {
+        let s = p.as_ref().to_string_lossy();
         // These names are for output to HTML
         s.replace('\\', "/")
     }
-    fn parts(path: &OsPath) -> (Option<String>, Option<String>) {
-        let mut p: Option<String> = None;
-        let mut f: Option<String> = None;
-        if let Some(parent) = path.parent() {
-            p = Some(parent.to_string_lossy().into());
-        }
-        if let Some(file_name) = path.file_name() {
-            f = Some(file_name.to_string_lossy().into());
-        }
-        (p, f)
-    }
-
-    pub fn new(parent: &str, file_name: &str) -> Result<Self, ThumbNameError> {
-        let entry = ImageListEntry::new(file_name)?;
+    pub fn new(parts: &NameParts) -> Result<Self, ThumbError> {
+        let entry = ImageListEntry::new(&parts.file_name)?;
         Ok(Self {
-            dir: Self::reslash(parent),
+            dir: Self::reslash(&parts.path),
             file_names: vec![entry],
         })
     }
-    pub fn push(&mut self, file_name: String) -> Result<(), ThumbNameError> {
+    pub fn push<P: AsRef<OsPath>>(&mut self, file_name: P) -> Result<(), ThumbError> {
+        let file_name = file_name.as_ref().to_string_lossy().to_string();
         let entry = ImageListEntry::new(&file_name)?;
         self.file_names.push(entry);
         Ok(())
@@ -137,20 +184,17 @@ fn needs_to_log_in(data: &SharedData, cookies: Cookies) -> bool {
         || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
-// TODO: make this return parent-filename parts, to simplify get_image_list.
-fn create_thumbnail(path: &OsPath, count: usize) {
+fn create_thumbnail<P: AsRef<OsPath>>(img_path: P, count: usize) -> Result<NameParts, ThumbError> {
+    let img_path = img_path.as_ref();
     let ftsize = THUMB_SIZE as f64;
-    let thumb_path = ImageListEntry::thumbnail_file_name(path);
-    let (dir, _) = ImageListDir::parts(path);
-    if thumb_path.is_err() || dir.is_none() {
-        return;
-    }
-    let thumb_path = PathBuf::from(dir.unwrap()).join(&thumb_path.unwrap());
+    let parts = NameParts::new(img_path)?;
+    let thumb_name = ImageListEntry::thumbnail_file_name(&parts.file_name)?;
+    let thumb_path = parts.path.join(&thumb_name);
     if thumb_path.is_file() {
         log::info!("[{}] Skipping existing thumbnail {:?}", count, thumb_path);
-        return;
+        return Ok(parts);
     }
-    match image::open(path) {
+    match image::open(&thumb_path) {
         Ok(img) => {
             let (w, h) = img.dimensions();
             let (w, h) = (w as f64, h as f64);
@@ -159,19 +203,22 @@ fn create_thumbnail(path: &OsPath, count: usize) {
             } else {
                 ((ftsize / (h / w)) as u32, ftsize as u32)
             };
-            log::info!("[{}] Creating thumbnail for {:?} ...", count, path);
+            log::info!("[{}] Creating thumbnail for {:?} ...", count, thumb_path);
             let thumb = resize(&img, tw, th, FilterType::Triangle);
             if let Err(e) = thumb.save_with_format(&thumb_path, ImageFormat::Jpeg) {
                 log::error!("  ...failed to save thumbnail {:?}: {:?}", thumb_path, e);
+                Err(e.into())
             } else {
                 log::info!("  ...saved thumbnail {:?}", thumb_path);
+                Ok(parts)
             }
         },
         Err(e) => {
             log::error!(
                 "[{}] Failed to open image {:?} for thumbnail generation: {:?}",
-                count, path, e
+                count, img_path, e
             );
+            Err(e.into())
         }
     }
 }
@@ -378,7 +425,6 @@ pub async fn admin_page_handler(
             "blog_title": blog_title,
             "articles": &data.articles,
             "content_dir": &data.config.content_dir,
-            "images": get_image_list(&data),
         })
     ) {
         Ok(rendered_page) => Ok((
@@ -420,21 +466,24 @@ pub fn get_image_list(data: &CommonData) -> HashMap<String, ImageListDir> {
 
     for (count, entry) in iter.enumerate() {
         match entry {
-            Ok(e) => {
-                if e.file_type().is_dir() { continue; }
+            Ok(dir_entry) => {
+                if dir_entry.file_type().is_dir() { continue; }
 
-                let path = e.path();
-                create_thumbnail(path, count);
-                if let (Some(parent), Some(file_name)) = ImageListDir::parts(path) {
-                    if let Some(ild) = filenames.get_mut(&parent) {
-                        if let Err(e) = ild.push(file_name) {
-                            log::error!("Failed to push file name/thumbnail to dirlist: {:?}", e)
+                match create_thumbnail(dir_entry.path(), count) {
+                    Ok(parts) => {
+                        if let Some(ild) = filenames.get_mut(&parts.path_string()) {
+                            if let Err(e) = ild.push(parts.file_name) {
+                                log::error!("Failed to push file name/thumbnail to dirlist: {:?}", e)
+                            }
+                        } else {
+                            match ImageListDir::new(&parts) {
+                                Ok(ild) => { filenames.insert(parts.path_string(), ild); },
+                                Err(e) => { log::error!("Failed to create new image list dir: {:?}", e); },
+                            }
                         }
-                    } else {
-                        match ImageListDir::new(&parent, &file_name) {
-                            Ok(ild) => { filenames.insert(parent, ild); },
-                            Err(e) => { log::error!("Failed to create new image list dir: {:?}", e); },
-                        }
+                    },
+                    Err(e) => {
+                        log::error!("Failed to create thumbnail: {:?}", e);
                     }
                 }
             },
