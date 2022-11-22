@@ -4,11 +4,10 @@
   <ul class="image-list_images">
     {{#each this.file_names}}
     <li class="image-list_images--image">
-      <figure>
+      <figure data-path="/{{../this.dir}}/{{this.orig_file_name}}" data-file-name="{{this.orig_file_name}}">
         <img
           alt="thumnail image in {{../this.dir}}"
           title="{{this.orig_file_name}}"
-          data-original-name="/{{../this.dir}}/{{this.orig_file_name}}"
           src="/{{../this.dir}}/{{this.thumbnail_file_name}}"
         >
         <figcaption>{{this.orig_file_name}}</figcaption>

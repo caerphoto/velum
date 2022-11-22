@@ -134,7 +134,7 @@
         xhr.send();
     }
 
-    function insertImageRef(img) {
+    function insertImageRef(path) {
         if (editor.disabled) return;
         let insertAt = editor.selectionStart;
         const beforeText = editor.value.substring(0, insertAt);
@@ -154,10 +154,24 @@
         } else {
             afterSpacer = '\n\n';
         }
-        editor.value = `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${img.dataset.originalName})${afterSpacer}${afterText}`;
+        editor.value = `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${path})${afterSpacer}${afterText}`;
         insertAt += 2 + beforeSpacer.length;
         editor.setSelectionRange(insertAt, insertAt + ALT_PLACEHOLDER.length, 'forward');
         editor.focus();
+    }
+
+    function getAncestor(node, ancestorNodeName) {
+        if (node.nodeName === ancestorNodeName) return node;
+        if (node.nodeName === 'BODY') return false;
+        return getAncestor(node.parentNode, ancestorNodeName);
+    }
+
+    function handleThumbClick(el, shift) {
+        if (shift) {
+            window.open(el.dataset.path, el.fileName);
+        } else {
+            insertImageRef(el.dataset.path);
+        }
     }
 
     imageList.addEventListener('click', event => {
@@ -167,12 +181,10 @@
                 el.classList.toggle('collapsed');
                 break;
             }
-            case 'FIGURE': {
-                const img = el.querySelector('img');
-                if (event.shiftKey) {
-                    window.open(img.dataset.originalName, img.title);
-                } else {
-                    insertImageRef(img);
+            default: {
+                const node = getAncestor(el, 'FIGURE');
+                if (node) {
+                    handleThumbClick(node, event.shiftKey);
                 }
                 break;
             }
