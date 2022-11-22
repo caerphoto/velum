@@ -123,10 +123,10 @@
     function loadImageList() {
         const xhr = new XMLHttpRequest();
         xhr.addEventListener('load', () => {
-            if (xhr.status === 404) {
-                imageList.innerHTML = "Failed to fetch image list :("
-            } else {
+            if (xhr.status === 200) {
                 imageList.innerHTML = xhr.response;
+            } else {
+                imageList.innerHTML = "Failed to fetch image list :("
             }
         });
 
@@ -166,6 +166,20 @@
         return getAncestor(node.parentNode, ancestorNodeName);
     }
 
+    function deleteImage(path) {
+        const xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                imageList.innerHTML = xhr.response;
+            } else {
+                alert(`Failed to delete image ${path}`);
+            }
+        });
+
+        xhr.open('DELETE', path);
+        xhr.send();
+    }
+
     function handleThumbClick(el, shift) {
         if (shift) {
             window.open(el.dataset.path, el.fileName);
@@ -181,10 +195,17 @@
                 el.classList.toggle('collapsed');
                 break;
             }
+            case 'BUTTON': {
+                const thumb = getAncestor(el, 'FIGURE');
+                if (thumb && confirm(`Are you sure you want to delete the image ${thumb.dataset.fileName}?`)) {
+                    deleteImage(thumb.dataset.path);
+                }
+                break;
+            }
             default: {
-                const node = getAncestor(el, 'FIGURE');
-                if (node) {
-                    handleThumbClick(node, event.shiftKey);
+                const thumb = getAncestor(el, 'FIGURE');
+                if (thumb) {
+                    handleThumbClick(thumb, event.shiftKey);
                 }
                 break;
             }

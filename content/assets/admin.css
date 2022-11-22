@@ -255,6 +255,7 @@ button:hover {
 
 .image-list figure {
     display: grid;
+    position: relative;
     margin: 0;
     padding: 0;
     justify-items: center;
@@ -280,6 +281,23 @@ button:hover {
     align-self: end;
     font-size: 70%;
     text-align: center;
+}
+
+.image-list .delete-image {
+    position: absolute;
+    width: 19px;
+    height: 18px;
+    top: 1px;
+    right: 1px;
+    background-image: url("/assets/icon-bin.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px;
+    opacity: 0.1;
+}
+
+.image-list figure:hover .delete-image {
+    opacity: 1;
 }
 
 .admin-main-section form {
