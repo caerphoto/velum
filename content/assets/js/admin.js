@@ -163,16 +163,19 @@
     imageList.addEventListener('click', event => {
         const el = event.target;
         switch (el.nodeName) {
-            case 'H4':
+            case 'H4': {
                 el.classList.toggle('collapsed');
                 break;
-            case 'IMG':
+            }
+            case 'FIGURE': {
+                const img = el.querySelector('img');
                 if (event.shiftKey) {
-                    window.open(el.dataset.originalName, el.title);
+                    window.open(img.dataset.originalName, img.title);
                 } else {
-                    insertImageRef(el);
+                    insertImageRef(img);
                 }
                 break;
+            }
         }
     });
 

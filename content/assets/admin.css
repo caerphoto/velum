@@ -26,6 +26,8 @@
     --tab-border: #888;
     --tab-inactive-bg: #e4e4e4;
     --tab-active-bg: var(--control-bg);
+
+    --thumb-hover-bg: #fff;
 }
 
 html.admin {
@@ -168,6 +170,7 @@ button:hover {
     text-decoration: none;
     display: block;
     padding-top: 0.5rem;
+    color: var(--plain-text);
 }
 
 .tab-content {
@@ -245,19 +248,38 @@ button:hover {
 }
 
 .image-list_images li {
-    display: flex;
-    justify-content: center;
     box-sizing: border-box;
     width: 25%;
-    height: 125px;
     padding: 0 1px;
 }
 
+.image-list figure {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    justify-items: center;
+    grid-template-rows: 125px min-content;
+    grid-template-columns: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: alias;
+    padding-bottom: 1px;
+}
+
+.image-list figure:hover {
+    background-color: var(--thumb-hover-bg);
+}
+
 .image-list img {
-    display: block;
     object-fit: scale-down;
     max-width: 100%;
-    cursor: alias;
+    max-height: 100%;
+    align-self: center;
+}
+
+.image-list figcaption {
+    align-self: end;
+    font-size: 70%;
+    text-align: center;
 }
 
 .admin-main-section form {
