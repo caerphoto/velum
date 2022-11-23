@@ -1,7 +1,8 @@
 use std::{
     ffi::OsString,
     fmt,
-    fs::remove_file,
+    fs::{remove_file, self},
+    io::Cursor,
     error::Error,
     path::{Path as OsPath, PathBuf},
     collections::HashMap
@@ -11,21 +12,29 @@ use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use walkdir::{DirEntry, WalkDir};
-use image::{GenericImageView, ImageFormat, imageops::{resize, FilterType}};
+use image::{
+    GenericImageView,
+    ImageFormat,
+    io::Reader as ImageReader,
+    imageops::{resize, FilterType},
+};
 
 use axum::{
     body::{Full, Bytes},
     http::StatusCode,
-    extract::{Extension, Path, Form},
+    extract::{Extension, Path, Form, Multipart},
     response::{Html, Response, IntoResponse, Redirect},
 };
 use tower_cookies::Cookies;
+
+use chrono::prelude::*;
 
 use crate::{SharedData, commondata::CommonData};
 use crate::article::storage;
 use super::{
     server_error,
     empty_response,
+    server_error_page,
 };
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
@@ -446,6 +455,53 @@ pub async fn delete_image_handler(
     }
 
     image_list_handler(Extension(data), cookies).await
+}
+
+fn get_current_images_dir(data: &CommonData) -> PathBuf {
+
+    let mut dir = PathBuf::from(&data.config.content_dir).join("images");
+    let dt = Local::now();
+    let (y, m) = (dt.year().to_string(), dt.month().to_string());
+    dir.push(&y);
+    dir.push(&m);
+    dir
+}
+
+fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: Bytes) -> Result<(), image::ImageError> {
+    let img = ImageReader::new(Cursor::new(bytes)).with_guessed_format()?.decode()?;
+    log::info!("Saving file {:?}", file_name.as_ref());
+    img.save(file_name)?;
+    Ok(())
+}
+
+pub async fn upload_image_handler (
+    mut form_data: Multipart,
+    Extension(data): Extension<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrRedirect {
+    ensure_logged_in!(data, cookies);
+    if let Ok(Some(field)) = form_data.next_field().await {
+        let file_name = field.file_name().expect("Read image file name from form data").to_string();
+
+        if let Ok(bytes) = field.bytes().await {
+            let dir = get_current_images_dir(&data.lock().unwrap());
+            let path = dir.join(&file_name);
+
+            if let Err(e) = fs::create_dir_all(&dir) {
+                log::error!("Error creating image directory {:?}: {:?}", dir, e);
+                Ok(server_error_page("Error creating image directory"))
+            } else if let Err(e) = save_file(&path, bytes) {
+                log::error!("Error saving file {:?}: {:?}", path, e);
+                Ok(server_error_page("Error saving image file"))
+            } else {
+                redirect_to("/admin")
+            }
+        } else {
+            Ok(server_error_page("Error reading uploaded form data"))
+        }
+    } else {
+        Ok(server_error_page("Error reading uploaded form fields"))
+    }
 }
 
 pub async fn admin_page_handler(
