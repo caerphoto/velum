@@ -194,6 +194,10 @@ fn needs_to_log_in(data: &SharedData, cookies: &Cookies) -> bool {
         || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
+fn sanitize_file_name(file_name: &str) -> String {
+    file_name.replace(' ', "-")
+}
+
 fn create_thumbnail<P: AsRef<OsPath>>(img_path: P, count: usize) -> Result<NameParts, ThumbError> {
     let img_path = img_path.as_ref();
     let ftsize = THUMB_SIZE as f64;
@@ -481,7 +485,8 @@ pub async fn upload_image_handler (
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
     if let Ok(Some(field)) = form_data.next_field().await {
-        let file_name = field.file_name().expect("Read image file name from form data").to_string();
+        let file_name = sanitize_file_name(field.file_name()
+            .expect("Read image file name from form data"));
 
         if let Ok(bytes) = field.bytes().await {
             let dir = get_current_images_dir(&data.lock().unwrap());
