@@ -47,6 +47,7 @@ use crate::handlers::{
         update_article_handler,
         delete_article_handler,
         image_list_handler,
+        delete_image_handler,
     },
     static_files::asset_handler,
     not_found_handler,
@@ -95,6 +96,7 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/article/:slug",      put(update_article_handler))
         .route("/article/:slug",      delete(delete_article_handler))
         .route("/all_images",         get(image_list_handler))
+        .route("/images/*path",       delete(delete_image_handler))
 
         .route("/assets/*path",       get(asset_handler))
         .nest("/content/images/",     dir_service)

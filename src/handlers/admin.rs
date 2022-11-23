@@ -1,6 +1,7 @@
 use std::{
     ffi::OsString,
     fmt,
+    fs::remove_file,
     error::Error,
     path::{Path as OsPath, PathBuf},
     collections::HashMap
@@ -169,11 +170,11 @@ impl ImageListDir {
 
 macro_rules! ensure_logged_in {
     ($d:ident, $c:ident) => {
-        if needs_to_log_in(&$d, $c) { return redirect_to("/login"); }
+        if needs_to_log_in(&$d, &$c) { return redirect_to("/login"); }
     };
 }
 
-fn needs_to_log_in(data: &SharedData, cookies: Cookies) -> bool {
+fn needs_to_log_in(data: &SharedData, cookies: &Cookies) -> bool {
     let data = data.lock().unwrap();
     let session_id = cookies
         .get("velum_session_id")
@@ -191,10 +192,9 @@ fn create_thumbnail<P: AsRef<OsPath>>(img_path: P, count: usize) -> Result<NameP
     let thumb_name = ImageListEntry::thumbnail_file_name(&parts.file_name)?;
     let thumb_path = parts.path.join(&thumb_name);
     if thumb_path.is_file() {
-        log::info!("[{}] Skipping existing thumbnail {:?}", count, thumb_path);
         return Ok(parts);
     }
-    match image::open(&thumb_path) {
+    match image::open(img_path) {
         Ok(img) => {
             let (w, h) = img.dimensions();
             let (w, h) = (w as f64, h as f64);
@@ -407,6 +407,45 @@ pub async fn delete_article_handler(
     } else {
         Ok(empty_response(StatusCode::NOT_FOUND))
     }
+}
+
+pub async fn delete_image_handler(
+    Path(path): Path<String>,
+    Extension(data): Extension<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrRedirect {
+    ensure_logged_in!(data, cookies);
+    let path = path.trim_start_matches('/');
+    match NameParts::new(path) {
+        Ok(parts) => {
+            match ImageListEntry::thumbnail_file_name(&parts.file_name) {
+                Ok(thumb_name) => {
+                    let thumb_path = parts.path.join(&thumb_name);
+                    let (ri, rt) = (remove_file(path), remove_file(thumb_path));
+                    if ri.is_err() {
+                        log::error!("Failed to delete image {:?}: {:?}", path, ri.unwrap_err());
+                        return Ok(server_error("Error deleting image"));
+                    }
+                    log::info!("Deleted image {:?}", path);
+                    if rt.is_err() {
+                        log::error!("Failed to delete thumbnail {:?}: {:?}", path, rt.unwrap_err());
+                        return Ok(server_error("Error deleting image"));
+                    }
+                    log::info!("Deleted thumbnail {:?}", thumb_name);
+                },
+                Err(e) => {
+                    log::error!("Failed to get thumbnail name from {:?}: {:?}", parts.file_name, e);
+                    return Ok(server_error("Error deleting image"));
+                }
+            }
+        },
+        Err(e) => {
+            log::error!("Failed to extract parts from {:?}: {:?}", path, e);
+            return Ok(server_error("Error deleting image"));
+        }
+    }
+
+    image_list_handler(Extension(data), cookies).await
 }
 
 pub async fn admin_page_handler(

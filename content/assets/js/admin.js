@@ -176,6 +176,7 @@
             }
         });
 
+        path = path.replace(/^/, '/images');
         xhr.open('DELETE', path);
         xhr.send();
     }
@@ -197,7 +198,7 @@
             }
             case 'BUTTON': {
                 const thumb = getAncestor(el, 'FIGURE');
-                if (thumb && confirm(`Are you sure you want to delete the image ${thumb.dataset.fileName}?`)) {
+                if (thumb && confirm(`Are you sure you want to delete the image ${thumb.dataset.fileName}?\n\nWarning: this cannot be undone.`)) {
                     deleteImage(thumb.dataset.path);
                 }
                 break;
