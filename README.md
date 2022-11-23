@@ -18,6 +18,16 @@ some, tags|`. A 'slug', i.e. a simplified version of the title, is also
 generated, for use in URL routing, along with a timestamp, and all of these are
 stored with the title-less content.
 
+## Images
+
+The admin page lists all images currently available, any of which can be clicked
+to insert the appropriate Markdown code into the current article in the editor.
+
+Images can be uploaded or deleted via the admin page, currently only one at
+a time. If you need to upload multiple images it's probably quicker and easier
+to use something like FTP for now, until I can implement batch
+uploading/deletion.
+
 ## Comments
 
 There is a fairly basic commenting system in place that simply stores comment
@@ -29,6 +39,9 @@ also backed up to a file (`content/comments.jsonl` by default) so they can be
 restored if the server needs to be restarted. The format, JSONL, is
 a line-based variant of JSON – each line is its own independent JSON object
 representing a single comment.
+
+There is currently no facility for managing comments, but this is something
+I plan to implement, hence the tab on the admin page.
 
 Comments are rate-limited by IP address, to prevent some potential abuse. The
 limit is 2 seconds, and not currently configurable. There are some other
@@ -68,7 +81,5 @@ Production use is basically the same as development use, at present. In the
 future there may be options for running daemonised, or as a system service.
 
 ## To Do
-
-1. Image uploader/manager for admin page.
 
 2. Ensure there are no duplicate slugs.
