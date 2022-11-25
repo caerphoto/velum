@@ -22,11 +22,23 @@ use image::{
 use axum::{
     body::{Full, Bytes},
     http::StatusCode,
-    extract::{Extension, Path, Form, Multipart},
-    response::{Html, Response, IntoResponse, Redirect},
+    Json,
+    extract::{
+        Extension,
+        Path,
+        Form,
+        Multipart,
+        multipart::MultipartError,
+    },
+    response::{
+        Html,
+        Response,
+        IntoResponse,
+        Redirect,
+    },
 };
 use tower_cookies::Cookies;
-
+use futures::executor::block_on;
 use chrono::prelude::*;
 
 use crate::{SharedData, commondata::CommonData};
@@ -34,7 +46,6 @@ use crate::article::storage;
 use super::{
     server_error,
     empty_response,
-    server_error_page,
 };
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
@@ -43,14 +54,28 @@ const THUMBNAIL_SUFFIX: &str = "_thumbnail";
 const THUMB_SIZE: u32 = 150;
 
 type HtmlOrRedirect = Result<(StatusCode, Html<String>), Redirect>;
+type HtmlOrStatus = Result<(StatusCode, Html<String>), StatusCode>;
 
 #[derive(Deserialize)]
 pub struct LoginFormData {
     password: String,
 }
 
+struct UploadedImageData {
+    file_name: String,
+    bytes: Result<Bytes, MultipartError>,
+}
+
+#[derive(Serialize)]
+pub struct ThumbsRemaining {
+    total: usize,
+    count: usize,
+}
+
+#[derive(Clone)]
 pub struct NameParts {
     path: PathBuf,
+    dir: PathBuf,
     file_name: OsString,
 }
 
@@ -59,7 +84,8 @@ impl NameParts {
         let path = path.as_ref();
         match (path.parent(), path.file_name()) {
             (Some(p), Some(f)) => Ok(Self {
-                    path: p.into(),
+                    path: path.into(),
+                    dir: p.into(),
                     file_name: f.into(),
                 }),
             _ => Err(ThumbError::new(path))
@@ -67,14 +93,15 @@ impl NameParts {
     }
 
     fn path_string(&self) -> String {
-        self.path.to_string_lossy().to_string()
+        self.dir.to_string_lossy().to_string()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum ThumbErrorKind {
     Name,
     File,
+    AlreadyExists,
 }
 
 #[derive(Debug)]
@@ -92,13 +119,21 @@ impl ThumbError {
             details: None,
         }
     }
+    fn exists<P: AsRef<OsPath>>(path: P) -> Self {
+        Self {
+            orig_file_name: path.as_ref().to_string_lossy().into(),
+            kind: ThumbErrorKind::AlreadyExists,
+            details: None,
+        }
+    }
 }
 
 impl fmt::Display for ThumbError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
             ThumbErrorKind::Name => write!(f, "thumbnail name error: {}", self.orig_file_name),
-            ThumbErrorKind::File => write!(f, "thumbnail file error: {:?}", self.details)
+            ThumbErrorKind::File => write!(f, "thumbnail file error: {:?}", self.details),
+            ThumbErrorKind::AlreadyExists => write!(f, "thumbnail {:?} already exists", self.orig_file_name),
         }
     }
 }
@@ -165,7 +200,7 @@ impl ImageListDir {
     pub fn new(parts: &NameParts) -> Result<Self, ThumbError> {
         let entry = ImageListEntry::new(&parts.file_name)?;
         Ok(Self {
-            dir: Self::reslash(&parts.path),
+            dir: Self::reslash(&parts.dir),
             file_names: vec![entry],
         })
     }
@@ -180,6 +215,12 @@ impl ImageListDir {
 macro_rules! ensure_logged_in {
     ($d:ident, $c:ident) => {
         if needs_to_log_in(&$d, &$c) { return redirect_to("/login"); }
+    };
+}
+
+macro_rules! ensure_authorized {
+    ($d:ident, $c:ident) => {
+        if needs_to_log_in(&$d, &$c) { return Err(StatusCode::UNAUTHORIZED); }
     };
 }
 
@@ -198,16 +239,27 @@ fn sanitize_file_name(file_name: &str) -> String {
     file_name.replace(' ', "-")
 }
 
-fn create_thumbnail<P: AsRef<OsPath>>(img_path: P, count: usize) -> Result<NameParts, ThumbError> {
-    let img_path = img_path.as_ref();
-    let ftsize = THUMB_SIZE as f64;
-    let parts = NameParts::new(img_path)?;
+fn generate_thumb_path(parts: &NameParts) -> Result<PathBuf, ThumbError> {
     let thumb_name = ImageListEntry::thumbnail_file_name(&parts.file_name)?;
-    let thumb_path = parts.path.join(&thumb_name);
+    let thumb_path = parts.dir.join(&thumb_name);
     if thumb_path.is_file() {
-        return Ok(parts);
+        Err(ThumbError::exists(&parts.path))
+    } else {
+        Ok(thumb_path)
     }
-    match image::open(img_path) {
+}
+
+async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: SharedData) -> Result<(), ThumbError> {
+    let progress_val = parts.path.clone();
+    let ftsize = THUMB_SIZE as f64;
+    let thumb_path = match generate_thumb_path(&parts) {
+        Ok(p) => p,
+        Err(e) => match e.kind {
+            ThumbErrorKind::AlreadyExists => return Ok(()),
+            _ => return Err(e),
+        }
+    };
+    let result = match image::open(&parts.path) {
         Ok(img) => {
             let (w, h) = img.dimensions();
             let (w, h) = (w as f64, h as f64);
@@ -216,27 +268,31 @@ fn create_thumbnail<P: AsRef<OsPath>>(img_path: P, count: usize) -> Result<NameP
             } else {
                 ((ftsize / (h / w)) as u32, ftsize as u32)
             };
-            log::info!("[{}] Creating thumbnail for {:?} ...", count, thumb_path);
+            log::info!("[{}/{}] Creating thumbnail for {:?} ...", index, count, thumb_path);
             let thumb = resize(&img, tw, th, FilterType::Triangle);
             if let Err(e) = thumb.save_with_format(&thumb_path, ImageFormat::Jpeg) {
                 log::error!("  ...failed to save thumbnail {:?}: {:?}", thumb_path, e);
                 Err(e.into())
             } else {
                 log::info!("  ...saved thumbnail {:?}", thumb_path);
-                Ok(parts)
+                Ok(())
             }
         },
         Err(e) => {
             log::error!(
-                "[{}] Failed to open image {:?} for thumbnail generation: {:?}",
-                count, img_path, e
+                "[{}/{}] Failed to open image {:?} for thumbnail generation: {:?}",
+                index, count, parts.path, e
             );
             Err(e.into())
         }
-    }
+    };
+
+    data.lock().unwrap().thumb_progress.remove(&progress_val);
+
+    result
 }
 
-pub fn redirect_to(path: &'static str) -> HtmlOrRedirect {
+pub fn redirect_to<T>(path: &'static str) -> Result<T, Redirect> {
     Err(Redirect::to(path))
 }
 
@@ -340,8 +396,8 @@ pub async fn create_article_handler(
     content: String,
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-) -> HtmlOrRedirect {
-    ensure_logged_in!(data, cookies);
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
@@ -376,8 +432,8 @@ pub async fn update_article_handler(
     new_content: String,
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-) -> HtmlOrRedirect {
-    ensure_logged_in!(data, cookies);
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
 
     let mut data = data.lock().unwrap();
 
@@ -426,14 +482,14 @@ pub async fn delete_image_handler(
     Path(path): Path<String>,
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-) -> HtmlOrRedirect {
-    ensure_logged_in!(data, cookies);
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
     let path = path.trim_start_matches('/');
     match NameParts::new(path) {
         Ok(parts) => {
             match ImageListEntry::thumbnail_file_name(&parts.file_name) {
                 Ok(thumb_name) => {
-                    let thumb_path = parts.path.join(&thumb_name);
+                    let thumb_path = parts.dir.join(&thumb_name);
                     let (ri, rt) = (remove_file(path), remove_file(thumb_path));
                     if ri.is_err() {
                         log::error!("Failed to delete image {:?}: {:?}", path, ri.unwrap_err());
@@ -462,7 +518,6 @@ pub async fn delete_image_handler(
 }
 
 fn get_current_images_dir(data: &CommonData) -> PathBuf {
-
     let mut dir = PathBuf::from(&data.config.content_dir).join("images");
     let dt = Local::now();
     let (y, m) = (dt.year().to_string(), dt.month().to_string());
@@ -471,42 +526,66 @@ fn get_current_images_dir(data: &CommonData) -> PathBuf {
     dir
 }
 
-fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: Bytes) -> Result<(), image::ImageError> {
+fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: &Bytes) -> Result<(), image::ImageError> {
     let img = ImageReader::new(Cursor::new(bytes)).with_guessed_format()?.decode()?;
     log::info!("Saving file {:?}", file_name.as_ref());
     img.save(file_name)?;
     Ok(())
 }
 
-pub async fn upload_image_handler (
-    mut form_data: Multipart,
-    Extension(data): Extension<SharedData>,
-    cookies: Cookies,
-) -> HtmlOrRedirect {
-    ensure_logged_in!(data, cookies);
-    if let Ok(Some(field)) = form_data.next_field().await {
+async fn gather_fields(mut form_data: Multipart) -> Vec<UploadedImageData> {
+    let mut fields = Vec::new();
+
+    while let Ok(Some(field)) = form_data.next_field().await {
         let file_name = sanitize_file_name(field.file_name()
             .expect("Read image file name from form data"));
+        let bytes = field.bytes().await;
+        fields.push(UploadedImageData { file_name, bytes })
+    }
 
-        if let Ok(bytes) = field.bytes().await {
-            let dir = get_current_images_dir(&data.lock().unwrap());
-            let path = dir.join(&file_name);
+    fields
+}
 
+fn get_thumbs_remaining(data: &CommonData) -> ThumbsRemaining {
+    let count = data.thumb_progress.len();
+    let total = data.initial_remaining_thumbs;
+    ThumbsRemaining { total, count }
+}
+
+pub async fn check_thumb_progress (
+    Extension(data): Extension<SharedData>,
+    cookies: Cookies,
+) -> Result<Json<ThumbsRemaining>, StatusCode> {
+    ensure_authorized!(data, cookies);
+    Ok(Json(get_thumbs_remaining(&data.lock().unwrap())))
+}
+
+pub async fn upload_image_handler (
+    form_data: Multipart,
+    Extension(data): Extension<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
+    let dir = get_current_images_dir(&data.lock().unwrap());
+    let fields = gather_fields(form_data).await;
+
+    for field in fields.iter() {
+        let path = dir.join(&field.file_name);
+
+        if let Ok(bytes) = &field.bytes {
             if let Err(e) = fs::create_dir_all(&dir) {
                 log::error!("Error creating image directory {:?}: {:?}", dir, e);
-                Ok(server_error_page("Error creating image directory"))
+                return Ok(server_error("Error creating image directory"));
             } else if let Err(e) = save_file(&path, bytes) {
                 log::error!("Error saving file {:?}: {:?}", path, e);
-                Ok(server_error_page("Error saving image file"))
-            } else {
-                redirect_to("/admin")
+                return Ok(server_error("Error saving image file"));
             }
         } else {
-            Ok(server_error_page("Error reading uploaded form data"))
+            return Ok(server_error("Error reading uploaded form data"));
         }
-    } else {
-        Ok(server_error_page("Error reading uploaded form fields"))
     }
+
+    image_list_handler(Extension(data), cookies).await
 }
 
 pub async fn admin_page_handler(
@@ -541,7 +620,7 @@ fn is_valid_image_file(entry: &DirEntry) -> bool {
     let is_image = entry.path().extension()
         .map(|ext| {
             let ext = ext.to_ascii_lowercase();
-            ext == "jpg" || ext == "png" || ext == "gif"
+            ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "gif"
         })
         .unwrap_or(false);
     let is_thumb = entry.path().file_stem()
@@ -555,59 +634,89 @@ fn is_valid_image_file(entry: &DirEntry) -> bool {
     (is_image || entry.file_type().is_dir()) && !is_thumb
 }
 
-pub fn get_image_list(data: &CommonData) -> HashMap<String, ImageListDir> {
-    let mut filenames: HashMap<String, ImageListDir> = HashMap::new();
-
-    let dir = PathBuf::from(&data.config.content_dir).join("images");
+pub fn get_image_list(data: &SharedData) -> (HashMap<String, ImageListDir>, ThumbsRemaining) {
+    let dir = PathBuf::from(&data.lock().unwrap().config.content_dir).join("images");
     let iter = WalkDir::new(dir)
         .sort_by_file_name()
         .into_iter()
         .filter_entry(is_valid_image_file);
 
-    for (count, entry) in iter.enumerate() {
+    let mut thumbnail_futures = Vec::new();
+    let mut image_files: Vec<NameParts> = Vec::new();
+    for entry in iter {
         match entry {
             Ok(dir_entry) => {
                 if dir_entry.file_type().is_dir() { continue; }
-
-                match create_thumbnail(dir_entry.path(), count) {
-                    Ok(parts) => {
-                        if let Some(ild) = filenames.get_mut(&parts.path_string()) {
-                            if let Err(e) = ild.push(parts.file_name) {
-                                log::error!("Failed to push file name/thumbnail to dirlist: {:?}", e)
-                            }
-                        } else {
-                            match ImageListDir::new(&parts) {
-                                Ok(ild) => { filenames.insert(parts.path_string(), ild); },
-                                Err(e) => { log::error!("Failed to create new image list dir: {:?}", e); },
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        log::error!("Failed to create thumbnail: {:?}", e);
-                    }
+                let path = dir_entry.path();
+                match NameParts::new(path) {
+                    Ok(parts) => image_files.push(parts),
+                    Err(e) => log::error!("Failed to create name parts from {:?}: {:?}", path, e),
                 }
             },
             Err(e) => log::error!("Unable to read dir entry: {:?}", e),
         }
     }
 
-    filenames
+    let mut existing_thumb_count = 0;
+    let mut filenames: HashMap<String, ImageListDir> = HashMap::new();
+    let count = image_files.len();
+    for (i, parts) in image_files.iter().enumerate() {
+        if let Err(e) = generate_thumb_path(parts) {
+            if e.kind == ThumbErrorKind::AlreadyExists {
+                existing_thumb_count += 1;
+            }
+        } else {
+            data.lock().unwrap().thumb_progress.insert(parts.path.clone());
+            thumbnail_futures.push(
+                create_thumbnail(parts.clone(), i + 1, count, data.clone())
+            );
+        }
+
+        if let Some(ild) = filenames.get_mut(&parts.path_string()) {
+            if let Err(e) = ild.push(&parts.file_name) {
+                log::error!("Failed to push file name/thumbnail to dirlist: {:?}", e)
+            }
+        } else {
+            match ImageListDir::new(parts) {
+                Ok(ild) => { filenames.insert(parts.path_string(), ild); },
+                Err(e) => { log::error!("Failed to create new image list dir: {:?}", e); },
+            }
+        }
+    }
+
+    let remaining = image_files.len() - existing_thumb_count;
+    data.lock().unwrap().initial_remaining_thumbs += remaining;
+
+    // Generate all thumbnails in a separate thread, which is detached and left to do its thing
+    tokio::task::spawn_blocking(move || {
+        for f in thumbnail_futures {
+            if let Err(e) = block_on(f) {
+                log::error!("Failed to block on future: {:?}", e);
+            }
+        }
+    });
+
+    (filenames, ThumbsRemaining { count: remaining, total: remaining })
 }
 
 pub async fn image_list_handler(
     Extension(data): Extension<SharedData>,
     cookies: Cookies,
-) -> HtmlOrRedirect {
-    ensure_logged_in!(data, cookies);
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
+
+    let (filenames, thumbs_remaining) = get_image_list(&data);
     let data = data.lock().unwrap();
-    let filenames = get_image_list(&data);
     match data.hbs.render(
         "_admin_image_list",
         &json!({
             "images": filenames,
+            "thumbs_remaining": thumbs_remaining,
         })
     ) {
-        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Ok(rendered_page) => {
+            Ok((StatusCode::OK, Html(rendered_page)))
+        },
         Err(e) => Ok(server_error(
             &format!("Failed to render image list. Error: {:?}", e))
         )

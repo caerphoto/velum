@@ -14,8 +14,8 @@
 
 <section id="admin-list-sections" class="admin-main-section">
   <ul id="admin-list-sections-tabs" class="tabs">
-    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
-    <li class="tab"><a href="#admin-image-manager">Images</a></li>
+    <li class="tab"><a href="#admin-article-manager">Articles</a></li>
+    <li class="tab active"><a href="#admin-image-manager">Images</a></li>
     <li class="tab"><a href="#admin-comments-manager">Comments</a></li>
   </ul>
 
@@ -36,15 +36,26 @@
   </section>
 
   <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
-    <p><strong>Click</strong> an image to insert it into the article. <strong>Shift-click</strong> to open in a new window.</p>
-    <form action="/images" method="POST" enctype="multipart/form-data">
-      <input type="file" name="image"  accept="image/*">
-      <input type="submit" value="Upload">
-    </form>
-    <ul class="image-list" data-source="/all_images">
-      <li class="loading">Generating image thumbnails&hellip;</li>
-    {{! _admin_image_list}}
-    </ul>
+    <div>
+      <p><strong>Click</strong> an image to insert it into the article. <strong>Shift-click</strong> to open in a new window.</p>
+      <form action="/images" method="POST" id="image-upload-form" enctype="multipart/form-data">
+        <input type="file" name="image"  accept="image/*" multiple>
+        <input type="submit" value="Upload">
+      </form>
+
+      <div id="thumbs-progress">
+        <p>Generating thumbnails&hellip;</p>
+        <span class="loader"></span>
+        <progress id="thumbs-progress-bar" min="0" max="0" value="0"></progress>
+        <div id="thumbs-progress-text">
+          <span id="thumbs-progress-completed">0</span> / <span id="thumbs-progress-total">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-image-list" data-source="/all_images" data-counts-path="/check_thumb_progress">
+      {{! populated on load by JS }}
+    </div>
   </section>
 
   <section id="admin-comments-manager" data-tab-set="admin-list-section" class="tab-content">

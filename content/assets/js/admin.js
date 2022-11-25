@@ -1,137 +1,213 @@
 (function (D) {
-    const saveForm = D.querySelector('#save-article');
-    const articleList = D.querySelector('#admin-article-manager ol');
-    const createNew = D.querySelector('#admin-new-article');
-    const editorSection = D.querySelector('#admin-article-editor');
-    const editor = D.querySelector('#article-editor-input');
-    const saveBtn = D.querySelector('#save-article button');
-    const successMsg = D.querySelector('#save-success');
-    const listSectionTabContaner = D.querySelector('#admin-list-sections-tabs');
-    const listSectionTabs = Array.from(D.querySelectorAll('#admin-list-sections-tabs li'));
-    const listSections = Array.from(D.querySelectorAll('.tab-content[data-tab-set="admin-list-section"]'));
+    function $(selector) {
+        return D.querySelector(selector);
+    }
+    function $$(selector) {
+        return Array.from(D.querySelectorAll(selector));
+    }
 
-    const imageList = D.querySelector('.image-list');
+    const saveForm = $("#save-article");
+    const articleList = $("#admin-article-manager ol");
+    const createNew = $("#admin-new-article");
+    const editorSection = $("#admin-article-editor");
+    const editor = $("#article-editor-input");
+    const saveBtn = $("#save-article button");
+    const successMsg = $("#save-success");
+    const listSectionTabContaner = $("#admin-list-sections-tabs");
+    const listSectionTabs = $$("#admin-list-sections-tabs li");
+    const listSections = $$('.tab-content[data-tab-set="admin-list-section"]');
 
-    const ALT_PLACEHOLDER = 'image caption';
+    const imageList = $("#admin-image-list");
+    const imageUploadForm = $("#image-upload-form");
+    const thumbsProgress = $("#thumbs-progress");
+    const thumbsProgressBar = $("#thumbs-progress-bar");
+    const thumbsProgressCompleted = $("#thumbs-progress-completed");
+    const thumbsProgressTotal = $("#thumbs-progress-total");
+
+    let intervalID;
+
+    const ALT_PLACEHOLDER = "image caption";
 
     function fetchArticleText(slug) {
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener('load', () => {
+        xhr.addEventListener("load", () => {
             editor.value = xhr.responseText;
-            editorSection.classList.remove('new');
+            editorSection.classList.remove("new");
             saveForm.dataset.slug = slug;
-            saveForm.dataset.method = 'PUT';
+            saveForm.dataset.method = "PUT";
             window.location.hash = slug;
             editor.disabled = false;
         });
-        xhr.open('GET', `/article/${slug}/text`);
+        xhr.open("GET", `/article/${slug}/text`);
         xhr.send();
     }
 
     function confirmDelete(slug, title) {
-        if (!window.confirm(
-            `"${title}"\n\nAre you sure you want to delete this article?\n\nWARNING: this cannot be undone!`
-        )) return;
+        if (
+            !window.confirm(
+                `"${title}"\n\nAre you sure you want to delete this article?\n\nWARNING: this cannot be undone!`,
+            )
+        ) {
+            return;
+        }
 
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener('load', () => {
+        xhr.addEventListener("load", () => {
             const li = articleList.querySelector(`li[data-slug="${slug}"]`);
             if (!li) return;
             li.parentNode.removeChild(li);
-            editor.value = '';
+            editor.value = "";
         });
-        xhr.open('DELETE', `/article/${slug}`);
+        xhr.open("DELETE", `/article/${slug}`);
         xhr.send();
     }
 
-    articleList.addEventListener('click', event => {
+    articleList.addEventListener("click", (event) => {
         const target = event.target;
-        if (target.nodeName === 'A') {
+        if (target.nodeName === "A") {
             if (!target.dataset.slug) return;
             fetchArticleText(target.dataset.slug);
-        } else if (target.nodeName === 'BUTTON') {
+        } else if (target.nodeName === "BUTTON") {
             confirmDelete(
                 target.dataset.slug,
-                target.dataset.title
+                target.dataset.title,
             );
         }
     });
 
-    createNew.addEventListener('submit', event => {
+    createNew.addEventListener("submit", (event) => {
         event.preventDefault();
-        editor.value = '';
-        editorSection.classList.add('new');
-        saveForm.dataset.method = 'POST';
+        editor.value = "";
+        editorSection.classList.add("new");
+        saveForm.dataset.method = "POST";
         delete saveForm.dataset.slug;
-        window.location.hash = '';
+        window.location.hash = "";
         editor.disabled = false;
         editor.focus();
-    })
+    });
 
-    saveForm.addEventListener('submit', event => {
+    saveForm.addEventListener("submit", (event) => {
         event.preventDefault();
 
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener('load', () => {
+        xhr.addEventListener("load", () => {
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Save';
-            setTimeout(() => { successMsg.classList.remove('visible') }, 1000);
-            if (editorSection.classList.contains('new')) {
-                editorSection.classList.remove('new');
-                const frag = D.createElement('template');
+            saveBtn.textContent = "Save";
+            setTimeout(() => {
+                successMsg.classList.remove("visible");
+            }, 1000);
+            if (editorSection.classList.contains("new")) {
+                editorSection.classList.remove("new");
+                const frag = D.createElement("template");
                 frag.innerHTML = xhr.responseText;
                 articleList.prepend(frag.content);
                 setTimeout(() => {
-                    const slug = articleList.querySelector('li:first-child').dataset.slug;
+                    const slug =
+                        articleList.querySelector("li:first-child").dataset
+                            .slug;
                     fetchArticleText(slug);
                 }, 0);
             }
         });
 
-        const path = saveForm.dataset.method === 'POST' ?
-            '/articles' :
-            `/article/${saveForm.dataset.slug}`;
+        const path = saveForm.dataset.method === "POST"
+            ? "/articles"
+            : `/article/${saveForm.dataset.slug}`;
         xhr.open(saveForm.dataset.method, path);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(editor.value);
 
         saveBtn.disabled = true;
-        saveBtn.textContent = '...';
-        successMsg.classList.add('visible');
+        saveBtn.textContent = "...";
+        successMsg.classList.add("visible");
     });
 
     if (window.location.hash) {
-        const slug = window.location.hash.replace(/^#/, '');
+        const slug = window.location.hash.replace(/^#/, "");
         fetchArticleText(slug);
     }
 
     function activateTabContent(sectionId) {
-        listSections.forEach(s => s.classList.remove('active'));
-        D.querySelector(sectionId).classList.add('active');
-
+        listSections.forEach((s) => s.classList.remove("active"));
+        D.querySelector(sectionId).classList.add("active");
     }
 
-    listSectionTabContaner.addEventListener('click', event => {
-        if (event.target.nodeName !== 'A') return;
+    listSectionTabContaner.addEventListener("click", (event) => {
+        if (event.target.nodeName !== "A") return;
         event.preventDefault();
 
-        activateTabContent(event.target.getAttribute('href'));
-        listSectionTabs.forEach(t => t.classList.remove('active'));
-        event.target.parentNode.classList.add('active');
+        activateTabContent(event.target.getAttribute("href"));
+        listSectionTabs.forEach((t) => t.classList.remove("active"));
+        event.target.parentNode.classList.add("active");
     });
+
+    function setImageListLoading() {
+        imageList.innerHTML = "<li>Fetching thumbnails&hellip;</li>";
+        imageList.classList.add("loading");
+        imageUploadForm.classList.add("disabled");
+    }
+
+    function setImageListUploading() {
+        imageList.innerHTML = "<li>Uploading images&hellip;</li>";
+        imageList.classList.add("uploading");
+        imageUploadForm.classList.add("disabled");
+    }
+
+    function fetchThumbCounts(cb) {
+        const xhr = new XMLHttpRequest();
+        xhr.addEventListener("load", () => {
+            cb(JSON.parse(xhr.response));
+        });
+        xhr.open("GET", imageList.dataset.countsPath);
+        xhr.send();
+    }
+
+    function handleImageListResponse() {
+        imageList.classList.remove("loading");
+        imageList.classList.remove("uploading");
+        imageUploadForm.classList.remove("disabled");
+        if (this.status === 200) {
+            imageList.innerHTML = this.response;
+            const listEl = imageList.querySelector("ul");
+            const total = parseInt(listEl.dataset.initialCount, 10);
+            const count = parseInt(listEl.dataset.remaining, 10);
+            if (count > 0) {
+                thumbsProgress.classList.add("active");
+                thumbsProgressBar.max = total;
+                thumbsProgressBar.value = total - count;
+
+                thumbsProgressCompleted.textContent = count;
+                thumbsProgressTotal.textContent = total;
+
+                clearInterval(intervalID);
+                intervalID = setInterval(() => {
+                    fetchThumbCounts((counts) => {
+                        if (counts.count === 0) {
+                            thumbsProgress.classList.remove("active");
+                            clearInterval(intervalID);
+                            loadImageList();
+                        } else {
+                            const done = counts.total - counts.count;
+                            thumbsProgressBar.value = done;
+                            thumbsProgressCompleted.textContent = done;
+                            thumbsProgressTotal.textContent = counts.total;
+                        }
+                    });
+                }, 1000);
+            } else {
+                thumbsProgress.classList.remove("active");
+            }
+        } else {
+            imageList.innerHTML = "Failed to fetch image list :(";
+        }
+    }
 
     function loadImageList() {
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener('load', () => {
-            if (xhr.status === 200) {
-                imageList.innerHTML = xhr.response;
-            } else {
-                imageList.innerHTML = "Failed to fetch image list :("
-            }
-        });
-
-        xhr.open('GET', imageList.dataset.source);
+        xhr.addEventListener("load", handleImageListResponse);
+        xhr.open("GET", imageList.dataset.source);
         xhr.send();
+        setImageListLoading();
     }
 
     function insertImageRef(path) {
@@ -141,34 +217,39 @@
         const afterText = editor.value.substring(insertAt, editor.value.length);
         let beforeSpacer, afterSpacer;
         if (/\n\n$/.test(beforeText)) {
-            beforeSpacer = '';
+            beforeSpacer = "";
         } else if (/\n$/.test(beforeText)) {
-            beforeSpacer = '\n';
+            beforeSpacer = "\n";
         } else {
-            beforeSpacer = '\n\n';
+            beforeSpacer = "\n\n";
         }
         if (/^\n\n/.test(afterText)) {
-            afterSpacer = '';
+            afterSpacer = "";
         } else if (/^\n/.test(afterText)) {
-            afterSpacer = '\n';
+            afterSpacer = "\n";
         } else {
-            afterSpacer = '\n\n';
+            afterSpacer = "\n\n";
         }
-        editor.value = `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${path})${afterSpacer}${afterText}`;
+        editor.value =
+            `${beforeText}${beforeSpacer}![${ALT_PLACEHOLDER}](${path})${afterSpacer}${afterText}`;
         insertAt += 2 + beforeSpacer.length;
-        editor.setSelectionRange(insertAt, insertAt + ALT_PLACEHOLDER.length, 'forward');
+        editor.setSelectionRange(
+            insertAt,
+            insertAt + ALT_PLACEHOLDER.length,
+            "forward",
+        );
         editor.focus();
     }
 
     function getAncestor(node, ancestorNodeName) {
         if (node.nodeName === ancestorNodeName) return node;
-        if (node.nodeName === 'BODY') return false;
+        if (node.nodeName === "BODY") return false;
         return getAncestor(node.parentNode, ancestorNodeName);
     }
 
     function deleteImage(path) {
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener('load', () => {
+        xhr.addEventListener("load", () => {
             if (xhr.status === 200) {
                 imageList.innerHTML = xhr.response;
             } else {
@@ -176,8 +257,8 @@
             }
         });
 
-        path = path.replace(/^/, '/images');
-        xhr.open('DELETE', path);
+        path = path.replace(/^/, "/images");
+        xhr.open("DELETE", path);
         xhr.send();
     }
 
@@ -189,22 +270,27 @@
         }
     }
 
-    imageList.addEventListener('click', event => {
+    imageList.addEventListener("click", (event) => {
         const el = event.target;
         switch (el.nodeName) {
-            case 'H4': {
-                el.classList.toggle('collapsed');
+            case "H4": {
+                el.classList.toggle("collapsed");
                 break;
             }
-            case 'BUTTON': {
-                const thumb = getAncestor(el, 'FIGURE');
-                if (thumb && confirm(`Are you sure you want to delete the image ${thumb.dataset.fileName}?\n\nWarning: this cannot be undone.`)) {
+            case "BUTTON": {
+                const thumb = getAncestor(el, "FIGURE");
+                if (
+                    thumb &&
+                    confirm(
+                        `Are you sure you want to delete the image ${thumb.dataset.fileName}?\n\nWarning: this cannot be undone.`,
+                    )
+                ) {
                     deleteImage(thumb.dataset.path);
                 }
                 break;
             }
             default: {
-                const thumb = getAncestor(el, 'FIGURE');
+                const thumb = getAncestor(el, "FIGURE");
                 if (thumb) {
                     handleThumbClick(thumb, event.shiftKey);
                 }
@@ -213,8 +299,16 @@
         }
     });
 
-    activateTabContent(D.querySelector('.tab.active a').getAttribute('href'));
+    imageUploadForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const xhr = new XMLHttpRequest();
+        const data = new FormData(imageUploadForm);
+        xhr.addEventListener("load", handleImageListResponse);
+        xhr.open(imageUploadForm.method, imageUploadForm.action);
+        xhr.send(data);
+        setImageListUploading();
+    });
 
+    activateTabContent($(".tab.active a").getAttribute("href"));
     loadImageList();
-}(window.document));
-
+})(window.document);

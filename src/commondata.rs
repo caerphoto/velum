@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::path::PathBuf;
 use handlebars::Handlebars;
 use crate::hb::create_handlebars;
 use crate::article::gather_fs_articles;
@@ -13,6 +15,8 @@ pub struct CommonData {
     pub comments: Comments,
     pub config: Config,
     pub session_id: Option<String>,
+    pub thumb_progress: HashSet<PathBuf>,
+    pub initial_remaining_thumbs: usize,
 }
 
 impl CommonData {
@@ -26,6 +30,8 @@ impl CommonData {
             comments,
             config,
             session_id: None,
+            thumb_progress: HashSet::new(),
+            initial_remaining_thumbs: 0,
         }
     }
 
