@@ -77,7 +77,7 @@ macro_rules! ensure_authorized {
 }
 
 fn needs_to_log_in(data: &SharedData, cookies: &Cookies) -> bool {
-    let data = data.lock().unwrap();
+    let data = data.read();
     let session_id = cookies
         .get("velum_session_id")
         .map(|c| c.value().to_string());
@@ -99,7 +99,7 @@ fn render_login_page(
     data: &SharedData,
     error_msg: Option<&str>,
 ) -> HtmlOrRedirect  {
-    let data = data.lock().unwrap();
+    let data = data.read();
     let blog_title = &data.config.blog_title;
     match data.hbs.render(
         "login",
@@ -128,11 +128,10 @@ pub async fn do_login_handler(
     Form(form_data): Form<LoginFormData>,
     Extension(data): Extension<SharedData>,
 ) -> Result<Response<Full<Bytes>>, impl IntoResponse> {
-    let mut mdata = data.lock().unwrap();
-
-    let hash = mdata.config.secrets.admin_password_hash.as_ref();
-    let hash = if hash.is_none() { "" } else { hash.unwrap().as_str() };
-    let verified = bcrypt::verify(&form_data.password, hash).unwrap_or(false);
+    let hash = data.read().config.secrets.admin_password_hash
+        .as_ref().cloned()
+        .unwrap_or_default();
+    let verified = bcrypt::verify(&form_data.password, &hash).unwrap_or(false);
 
     if !verified {
         return Err(render_login_page(&data, Some("Incorrect password")));
@@ -144,7 +143,7 @@ pub async fn do_login_handler(
         session_id,
         THIRTY_DAYS
     );
-    mdata.session_id = Some(session_id.to_string());
+    data.write().session_id = Some(session_id.to_string());
 
     Ok(Response::builder()
         .header("Location", "/admin")
@@ -158,7 +157,7 @@ pub async fn do_login_handler(
 pub async fn do_logout_handler(
     Extension(data): Extension<SharedData>,
 ) -> Response<Full<Bytes>> {
-    let mut data = data.lock().unwrap();
+    let mut data = data.write();
 
     // Note expiry date: setting a date in the past is the spec-compliant way
     // to force the browser to delete the cookie.
@@ -179,7 +178,7 @@ pub async fn rebuild_index_handler(
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
 
-    let mut data = data.lock().unwrap();
+    let mut data = data.write();
 
     if let Err(e) = data.rebuild() {
         log::error!("Failed to rebuild article index index: {:?}", e);
@@ -197,9 +196,7 @@ pub async fn create_article_handler(
     cookies: Cookies,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
-
-    let mut data = data.lock().unwrap();
-
+    let mut data = data.write();
     match storage::create_article(&content, &mut data) {
         Ok(view) => {
             log::info!("Created article '{}' on disk.", view.slug);
@@ -233,9 +230,7 @@ pub async fn update_article_handler(
     cookies: Cookies,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
-
-    let mut data = data.lock().unwrap();
-
+    let mut data = data.write();
     if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
         log::error!("Failed to update article: {:?}", err);
         Ok(server_error("Error upating article"))
@@ -256,16 +251,16 @@ pub async fn delete_article_handler(
     cookies: Cookies,
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
+    let rdata = data.read();
 
-    let mut data = data.lock().unwrap();
-
-    if let Some(article) = storage::fetch_by_slug(&slug, &data.articles) {
+    if let Some(article) = storage::fetch_by_slug(&slug, &rdata.articles) {
         if let Err(err) = storage::delete_article(article) {
             log::error!("Failed to delete article: {:?}", err);
             Ok(server_error("Error deleting article"))
         } else {
             log::info!("Deleted article '{}' from disk.", &slug);
-            if let Err(err) = data.rebuild() {
+            let mut wdata = data.write();
+            if let Err(err) = wdata.rebuild() {
                 log::error!("Failed to rebuild article index: {:?}", err);
                 Ok(server_error("Error rebuilding article index"))
             } else {
@@ -327,7 +322,7 @@ pub async fn check_thumb_progress (
     cookies: Cookies,
 ) -> Result<Json<ThumbsRemaining>, StatusCode> {
     ensure_authorized!(data, cookies);
-    Ok(Json(get_thumbs_remaining(&data.lock().unwrap())))
+    Ok(Json(get_thumbs_remaining(&data.read())))
 }
 
 fn get_current_images_dir(data: &CommonData) -> PathBuf {
@@ -365,7 +360,7 @@ pub async fn upload_image_handler (
     cookies: Cookies,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
-    let dir = get_current_images_dir(&data.lock().unwrap());
+    let dir = get_current_images_dir(&data.read());
     let fields = gather_fields(form_data).await;
 
     for field in fields.iter() {
@@ -393,7 +388,7 @@ pub async fn admin_page_handler(
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
 
-    let data = data.lock().unwrap();
+    let data = data.read();
     let blog_title = &data.config.blog_title;
     match data.hbs.render(
         "admin",
@@ -422,7 +417,7 @@ pub async fn image_list_handler(
     ensure_authorized!(data, cookies);
 
     let (filenames, thumbs_remaining) = get_image_list(&data);
-    let data = data.lock().unwrap();
+    let data = data.read();
     let keys: Vec<String> = filenames.keys().map(|k| k.0.to_string_lossy().to_string()).collect();
     match data.hbs.render(
         "_admin_image_list",

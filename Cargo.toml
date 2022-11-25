@@ -11,6 +11,7 @@ tower-http = { version = "0.3", features = ["fs", "timeout", "compression-br", "
 axum = { version = "0.5", features = ["headers", "http2", "multipart"] }
 hyper = { version = "0.14", features = ["full"] }
 tokio = { version = "1.12", features = ["full"] }
+parking_lot = "0.12"
 headers = "0.3.8"
 mime_guess = "2.0"
 tower-cookies = "0.7"

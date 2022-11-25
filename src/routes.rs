@@ -65,7 +65,7 @@ async fn error_handler(error: std::io::Error) -> impl IntoResponse {
 }
 
 pub fn init(shared_data: SharedData) -> Router {
-    let dir = PathBuf::from(shared_data.lock().unwrap().config.content_dir.clone());
+    let dir = PathBuf::from(shared_data.read().config.content_dir.clone());
     let dir_service = get_service(ServeDir::new(dir.join("images")))
         .handle_error(error_handler);
 

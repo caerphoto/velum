@@ -1855,6 +1855,7 @@ dependencies = [
  "log",
  "mime_guess",
  "ordinal",
+ "parking_lot",
  "pulldown-cmark",
  "regex",
  "rpassword",

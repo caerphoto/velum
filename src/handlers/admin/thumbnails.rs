@@ -251,7 +251,7 @@ async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: Sh
         }
     };
 
-    data.lock().unwrap().thumb_progress.remove(&progress_val);
+    data.write().thumb_progress.remove(&progress_val);
 
     result
 }
@@ -285,7 +285,7 @@ fn file_sorter(a: &DirEntry, b: &DirEntry) -> std::cmp::Ordering {
 }
 
 pub fn get_image_list(data: &SharedData) -> (BTreeMap<DirKey, ImageListDir>, ThumbsRemaining) {
-    let dir = PathBuf::from(&data.lock().unwrap().config.content_dir).join("images");
+    let dir = PathBuf::from(&data.read().config.content_dir).join("images");
     let iter = WalkDir::new(dir)
         .sort_by(file_sorter)
         .into_iter()
@@ -317,7 +317,7 @@ pub fn get_image_list(data: &SharedData) -> (BTreeMap<DirKey, ImageListDir>, Thu
                 existing_thumb_count += 1;
             }
         } else {
-            data.lock().unwrap().thumb_progress.insert(parts.path.clone());
+            data.write().thumb_progress.insert(parts.path.clone());
             thumbnail_futures.push(
                 create_thumbnail(parts.clone(), i + 1, count, data.clone())
             );
@@ -337,7 +337,7 @@ pub fn get_image_list(data: &SharedData) -> (BTreeMap<DirKey, ImageListDir>, Thu
     }
 
     let remaining = image_files.len() - existing_thumb_count;
-    data.lock().unwrap().initial_remaining_thumbs += remaining;
+    data.write().initial_remaining_thumbs += remaining;
 
     // Generate all thumbnails in a separate thread, which is detached and left to do its thing
     tokio::task::spawn_blocking(move || {
