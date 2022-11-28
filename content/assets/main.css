@@ -153,7 +153,6 @@ footer .feed-link img {
     display: inline-block;
     width: 17px;
     height: 18px;
-    vertical-align: middle;
 }
 
 .theme-selector-icon.dim {
@@ -173,7 +172,7 @@ footer .feed-link img {
     width: 1em;
     height: 1em;
     content: "";
-    vertical-align: middle;
+    vertical-align: -10%;
     cursor: pointer;
 }
 
