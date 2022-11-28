@@ -145,6 +145,10 @@ footer .feed-link img {
     align-self: center;
 }
 
+.link-box a {
+    white-space: pre;
+}
+
 .theme-selector-icon {
     display: inline-block;
     width: 17px;
@@ -509,6 +513,6 @@ nav .footer-home-link-box {
         padding-left: 0.5rem;
     }
     article > section {
-        grid-template-columns: 0.5em auto 0.5em;
+        grid-template-columns: 0 auto 0;
     }
 }
