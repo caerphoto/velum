@@ -12,9 +12,10 @@ html.light {
     --alt-bg: #ccc;
     --input-bg: #fff;
     --plain-text: #444;
+    --subdued-text: #777;
     --alt-text: #000;
-    --link-normal: #0064c1;
-    --link-visited: #8b7195;
+    --link-normal: hsl(227, 30%, 50%);
+    --link-visited: hsl(283, 20%, 40%);
     --link-hover: #009ac9;
     --link-header: #0064c1;
     --link-header-visited: #0064c1;
@@ -33,9 +34,10 @@ html.dark {
     --alt-bg: #000;
     --input-bg: #000;
     --plain-text: #ccc;
+    --subdued-text: #888;
     --alt-text: #aaa;
-    --link-normal: #618bb3;
-    --link-visited: #8d7097;
+    --link-normal: hsl(227, 30%, 60%);
+    --link-visited: hsl(283, 15%, 60%);
     --link-hover: #009ac9;
     --link-header: #0084d1;
     --link-index-visited: #0084d1;
@@ -54,6 +56,7 @@ html.nightsight {
     --alt-bg: #200;
     --input-bg: #000;
     --plain-text: #b00;
+    --subdued-text: #800;
     --alt-text: #d55;
     --link-normal: #414c72;
     --link-visited: #3d1e48;
@@ -197,7 +200,7 @@ header h1 {
 }
 
 h2 {
-    margin: 0 0 0.1em;
+    margin: 0 0 0.5rem;
 }
 
 .article-list h2 a {
@@ -228,11 +231,21 @@ article > section > * {
 }
 
 h3 {
-    margin: 0 0 0.3em;
+    margin: 0 0 0.3rem;
+}
+
+.article-list h3 {
+    font-weight: normal;
+    color: var(--subdued-text);
+    font-size: 1rem;
 }
 
 p {
     margin: 0 0 1em;
+}
+
+p.content-preview {
+    margin-bottom: 0.7rem;
 }
 
 a {
@@ -280,6 +293,7 @@ ul.article-list > li {
 
 ul.tags {
     font-size: 80%;
+    font-family: "Lato", sans-serif;
 }
 
 ul.tags::before {
