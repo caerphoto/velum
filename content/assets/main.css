@@ -3,8 +3,8 @@ html {
     padding: 0;
     background-color: var(--main-bg);
     color: var(--plain-text);
-    font-family: "IBM Plex Serif", serif;
-    font-size: 18px;
+    font-family: "EB Garamond", serif;
+    font-size: 21px;
 }
 
 html.light {
@@ -89,7 +89,7 @@ footer {
 
 header {
     color: var(--alt-text);
-    grid-template-columns: 1fr 35em 1fr;
+    grid-template-columns: 1fr 30rem 1fr;
     grid-template-rows: auto auto;
     border-bottom: 1px solid var(--separator-color);
     margin: 0 -0.5rem 1em;
@@ -182,6 +182,10 @@ footer .feed-link img {
     margin: 1em 0;
 }
 
+h1, h2, h3, h4, h5 {
+    font-family: "Lato", sans-serif;
+}
+
 h1 {
     margin: 0.2em 0 0.5em;
 }
@@ -196,6 +200,19 @@ h2 {
     margin: 0 0 0.1em;
 }
 
+.article-list h2 a {
+    text-decoration: none;
+    border-bottom: 1px solid var(--link-normal);
+}
+
+.article-list h2 a:visited {
+    border-color: var(--link-visited);
+}
+
+.article-list h2 a:hover {
+    border-color: var(--link-hover);
+}
+
 .tag-index header h2 {
     grid-row: 3/4;
     grid-column: 2/4;
@@ -203,7 +220,7 @@ h2 {
 
 article > section {
     display: grid;
-    grid-template-columns: 1fr 35rem 1fr;
+    grid-template-columns: 1fr 30rem 1fr;
 }
 
 article > section > * {

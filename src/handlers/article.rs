@@ -28,7 +28,7 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
     lazy_static! {
         static ref INDEX_PATH: Regex = Regex::new(
             // matches:
-            //   /index/<page>
+            //   /articles/<page>
             //   /tag/<tag>
             //   /tag/<tag>/<page>
             r"^(/articles/\d+)|(/tag/[a-z0-9\-]+(/\d+)?)"

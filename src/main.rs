@@ -10,10 +10,7 @@ mod config;
 mod io;
 
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-    },
+    sync::Arc,
     time,
     env,
     net::{
