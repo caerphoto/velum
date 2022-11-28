@@ -12,12 +12,18 @@
         };
     }
 
+    function hasLoaded(img) {
+        return img.complete &&
+            img.naturalHeight > 0 &&
+            img.naturalWidth > 0;
+    }
+
     function showExifOnImage(event) {
         const img = event.target;
 
-        if (img.nodeName !== "IMG") {
-            return;
-        }
+        if (img.nodeName !== "IMG") return;
+        if (!hasLoaded(img)) return;
+
         exifPopover.classList.add("active");
         exifPopover.classList.add("loading");
         const popoverPosition = positionFromImage(img);
