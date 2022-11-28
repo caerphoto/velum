@@ -173,7 +173,7 @@ pub async fn asset_handler(
     req: Request<Body>,
 ) -> Result<Response<BoxBody>, HtmlResponse> {
     // Need to clone to ensure a reference is not held across an await.
-    let dir = data.lock().unwrap().config.content_dir.clone();
+    let dir = data.read().config.content_dir.clone();
 
     let npath = normalize_path(&path);
     let real_path = PathBuf::from(dir)

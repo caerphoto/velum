@@ -70,7 +70,7 @@ pub async fn index_handler(
     let page = parse_result.unwrap();
 
     let now = time::Instant::now();
-    let data = data.lock().unwrap();
+    let data = data.read();
 
     let page_size = data.config.page_size;
     let article_list = fetch_index_links(page, page_size, None, &data.articles);
@@ -97,7 +97,7 @@ pub async fn rss_handler(
     Extension(data): Extension<SharedData>,
 ) -> impl IntoResponse {
     let now = time::Instant::now();
-    let data = data.lock().unwrap();
+    let data = data.read();
     let articles = build_rss_articles(&data);
     let render_data = RssIndexView {
         blog_title: &data.config.blog_title,
@@ -140,7 +140,7 @@ pub async fn tag_handler(
 ) -> impl IntoResponse {
     let now = time::Instant::now();
     let tag_copy = tag.clone();
-    let data = data.lock().unwrap();
+    let data = data.read();
     let page_size = data.config.page_size;
 
     let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);

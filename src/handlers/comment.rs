@@ -33,14 +33,13 @@ pub async fn comment_handler(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(data): Extension<SharedData>,
 ) -> impl IntoResponse {
-
-    let mut data = data.lock().unwrap();
     let comment = Comment {
         author: form_data.author,
         author_url: form_data.author_url,
         text: form_data.text,
         timestamp: create_timestamp(),
     };
+    let mut data = data.write();
     if let Ok(saved) = data.comments.add(&slug, comment, Some(addr)) {
         log::info!("Saved comment on article '{}'", &slug);
         (

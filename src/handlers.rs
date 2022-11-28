@@ -96,6 +96,13 @@ pub fn empty_response(code: StatusCode) -> HtmlResponse {
     (code, Html(String::new()))
 }
 
+pub fn server_error_page(msg: &str) -> HtmlResponse {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Html(render_error_page(StatusCode::INTERNAL_SERVER_ERROR, Some(msg))),
+    )
+}
+
 pub fn not_found(uri: Option<Uri>) -> HtmlResponse {
     (
         StatusCode::NOT_FOUND,

@@ -28,7 +28,7 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
     lazy_static! {
         static ref INDEX_PATH: Regex = Regex::new(
             // matches:
-            //   /index/<page>
+            //   /articles/<page>
             //   /tag/<tag>
             //   /tag/<tag>/<page>
             r"^(/articles/\d+)|(/tag/[a-z0-9\-]+(/\d+)?)"
@@ -52,7 +52,7 @@ pub async fn article_text_handler(
     Path(slug): Path<String>,
     Extension(data): Extension<SharedData>,
 ) -> impl IntoResponse {
-    let data = data.lock().unwrap();
+    let data = data.read();
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         (StatusCode::OK, article.base_content.clone())
     } else {
@@ -67,7 +67,7 @@ pub async fn article_handler(
     cookies: Cookies,
 ) -> impl IntoResponse {
     let now = time::Instant::now();
-    let data = data.lock().unwrap();
+    let data = data.read();
 
     let referer = headers
         .get("Referer")

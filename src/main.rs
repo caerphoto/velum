@@ -10,10 +10,7 @@ mod config;
 mod io;
 
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-    },
+    sync::Arc,
     time,
     env,
     net::{
@@ -22,11 +19,13 @@ use std::{
     }
 };
 
+use parking_lot::RwLock;
+
 
 use crate::config::Config;
 use commondata::CommonData;
 
-pub type SharedData = Arc<Mutex<CommonData>>;
+pub type SharedData = Arc<RwLock<CommonData>>;
 
 #[macro_use] extern crate lazy_static;
 
@@ -47,7 +46,7 @@ async fn main() {
     log::info!("Building articles and comments, and reading templates... ");
     let codata = CommonData::new();
     let mut config = codata.config.clone();
-    let shared_codata = Arc::new(Mutex::new(codata));
+    let shared_codata = Arc::new(RwLock::new(codata));
     log::info!("...done in {}ms.", now.elapsed().as_millis());
 
     check_args(&mut config);

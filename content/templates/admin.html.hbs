@@ -12,22 +12,56 @@
   <h1>Blog Admin</h1>
 </header>
 
-<section id="admin-article-manager" class="admin-main-section">
-  <h2>Articles:</h2>
+<section id="admin-list-sections" class="admin-main-section">
+  <ul id="admin-list-sections-tabs" class="tabs">
+    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
+    <li class="tab"><a href="#admin-image-manager">Images</a></li>
+    <li class="tab"><a href="#admin-comments-manager">Comments</a></li>
+  </ul>
 
-  <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
-    <button type="submit">Rebuild article index</button>
-  </form>
+  <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content">
+    <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
+      <button type="submit">Rebuild index</button>
+    </form>
 
-  <form id="admin-new-article" action="#new">
-    <button type="submit">Create new article</button>
-  </form>
+    <form id="admin-new-article" action="#new">
+      <button type="submit">Create new article</button>
+    </form>
 
-  <ol class="admin-article-list" reversed>
-    {{#each articles}}
-      {{> _admin_article_list_item }}
-    {{/each}}
-  </ol>
+    <ol class="admin-article-list" reversed>
+      {{#each articles}}
+        {{> _admin_article_list_item }}
+      {{/each}}
+    </ol>
+  </section>
+
+  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
+    <div>
+      <p><strong>Click</strong> an image to insert it into the article. <strong>Shift-click</strong> to open in a new window.</p>
+      <form action="/images" method="POST" id="image-upload-form" enctype="multipart/form-data">
+        <input type="file" name="image"  accept="image/*" multiple>
+        <input type="submit" value="Upload">
+      </form>
+
+      <div id="thumbs-progress">
+        <p>Generating thumbnails&hellip;</p>
+        <span class="loader"></span>
+        <progress id="thumbs-progress-bar" min="0" max="0" value="0"></progress>
+        <div id="thumbs-progress-text">
+          <span id="thumbs-progress-completed">0</span> / <span id="thumbs-progress-total">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-image-list" data-source="/all_images" data-counts-path="/check_thumb_progress">
+      {{! populated on load by JS }}
+    </div>
+  </section>
+
+  <section id="admin-comments-manager" data-tab-set="admin-list-section" class="tab-content">
+    <p>Coming soon</p>
+  </section>
+
 </section>
 
 <section id="admin-article-editor" class="admin-main-section">
@@ -38,8 +72,9 @@
     <button type="submit">Save</button>
   </form>
 
-  <textarea id="article-editor-input" disabled></textarea>
+  <textarea id="article-editor-input" disabled>Click an article on the list to the left to begin editing, or click ’Create new article‘.</textarea>
 </section>
 
 <script src="{{asset_path "js/admin.js"}}"></script>
-{{> _footer}}
+  </body>
+</html>
