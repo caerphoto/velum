@@ -6,7 +6,7 @@ use axum::{
         Uri,
     },
     response::{Html, IntoResponse},
-    extract::{Path, Extension},
+    extract::{Path, State},
 };
 use headers::HeaderMap;
 use tower_cookies::Cookies;
@@ -50,7 +50,7 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
 
 pub async fn article_text_handler(
     Path(slug): Path<String>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
 ) -> impl IntoResponse {
     let data = data.read();
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
@@ -62,7 +62,7 @@ pub async fn article_text_handler(
 
 pub async fn article_handler(
     Path(slug): Path<String>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     headers: HeaderMap,
     cookies: Cookies,
 ) -> impl IntoResponse {

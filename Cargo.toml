@@ -1,29 +1,30 @@
 [package]
 name = "velum"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = { version = "0.6", features = ["headers", "http2", "multipart"] }
+tokio = { version = "1.12", features = ["full"] }
+hyper = { version = "0.14", features = ["full"] }
 tower = "0.4"
 tower-http = { version = "0.3", features = ["fs", "timeout", "compression-br", "compression-deflate", "compression-gzip"] }
-axum = { version = "0.5", features = ["headers", "http2", "multipart"] }
-hyper = { version = "0.14", features = ["full"] }
-tokio = { version = "1.12", features = ["full"] }
+tower-cookies = "0.8"
+
+axum-macros = "0.3"
 parking_lot = "0.12"
-headers = "0.3.8"
+headers = "0.3"
 mime_guess = "2.0"
-tower-cookies = "0.7"
 futures = { version = "0.3", features = ["executor"] }
-axum-macros = "0.2"
 walkdir = "2.3"
 image = "0.24"
 
 config = { version = "0.13.2", features = ["toml"] }
-log = "0.4.0"
-env_logger = "0.9.0"
-pulldown-cmark = { version = "0.9.1", default-features = false, features = ["simd"] }
+log = "0.4"
+env_logger = "0.9"
+pulldown-cmark = { version = "0.9", default-features = false, features = ["simd"] }
 handlebars = "4.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -31,9 +32,9 @@ toml = "0.5"
 bytes = "1.1"
 filetime = "0.2"
 regex = "1"
-lazy_static = "1.4.0"
+lazy_static = "1.4"
 chrono = "0.4"
-ordinal = "0.3.0"
+ordinal = "0.3"
 bcrypt = "0.13"
 rpassword = "7.0"
 uuid = { version = "1.1", features = [ "v4", "fast-rng" ] }

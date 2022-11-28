@@ -38,13 +38,12 @@ use axum::{
         Full as FullBody,
         BoxBody
     },
-    extract::{Path, Extension},
+    extract::{Path, State},
     http::{Request, StatusCode},
     response::{IntoResponse, Response},
     routing::get_service,
 };
 use axum_macros::debug_handler;
-use tower_cookies::Cookies;
 use tower_http::services::ServeFile;
 use tower::ServiceExt;
 
@@ -143,12 +142,11 @@ fn normalize_path(path: &str) -> PathBuf {
         static ref DATE_PART: Regex = Regex::new(r"-\d{14}").unwrap();
     }
 
-    let npath = path.trim_start_matches('/');
-    if DATE_PART.is_match(npath) {
+    if DATE_PART.is_match(path) {
         // Note: replace returns Cow<str>, not &str
-        PathBuf::from(DATE_PART.replace(npath, "").as_ref())
+        PathBuf::from(DATE_PART.replace(path, "").as_ref())
     } else {
-        PathBuf::from(npath)
+        PathBuf::from(path)
     }
 }
 
@@ -168,8 +166,7 @@ fn js_manifest_response(path: &PathBuf) -> Result<Response<BoxBody>, HtmlRespons
 #[debug_handler]
 pub async fn asset_handler(
     Path(path): Path<String>,
-    Extension(data): Extension<SharedData>,
-    _cookies: Cookies,
+    State(data): State<SharedData>,
     req: Request<Body>,
 ) -> Result<Response<BoxBody>, HtmlResponse> {
     // Need to clone to ensure a reference is not held across an await.
