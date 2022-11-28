@@ -9,11 +9,12 @@ use axum::{
         ConnectInfo,
         Json,
         Path,
-        Extension
+        State
     },
 };
 use serde::Deserialize;
 
+use axum_macros::debug_handler;
 use crate::{
     SharedData,
     comments::Comment,
@@ -27,11 +28,12 @@ pub struct JsonComment {
     text: String,
 }
 
+#[debug_handler]
 pub async fn comment_handler(
     Path(slug): Path<String>,
-    Json(form_data): Json<JsonComment>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
+    Json(form_data): Json<JsonComment>,
 ) -> impl IntoResponse {
     let comment = Comment {
         author: form_data.author,

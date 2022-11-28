@@ -16,7 +16,7 @@ use axum::{
     http::StatusCode,
     Json,
     extract::{
-        Extension,
+        State,
         Path,
         Form,
         Multipart,
@@ -119,14 +119,14 @@ fn render_login_page(
 }
 
 pub async fn login_page_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
 ) -> impl IntoResponse {
     render_login_page(&data, None)
 }
 
 pub async fn do_login_handler(
+    State(data): State<SharedData>,
     Form(form_data): Form<LoginFormData>,
-    Extension(data): Extension<SharedData>,
 ) -> Result<Response<Full<Bytes>>, impl IntoResponse> {
     let hash = data.read().config.secrets.admin_password_hash
         .as_ref().cloned()
@@ -155,7 +155,7 @@ pub async fn do_login_handler(
 }
 
 pub async fn do_logout_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
 ) -> Response<Full<Bytes>> {
     let mut data = data.write();
 
@@ -173,7 +173,7 @@ pub async fn do_logout_handler(
 }
 
 pub async fn rebuild_index_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
@@ -191,9 +191,9 @@ pub async fn rebuild_index_handler(
 }
 
 pub async fn create_article_handler(
-    content: String,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
+    content: String,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
     let mut data = data.write();
@@ -225,9 +225,9 @@ pub async fn create_article_handler(
 
 pub async fn update_article_handler(
     Path(slug): Path<String>,
-    new_content: String,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
+    new_content: String,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
     let mut data = data.write();
@@ -247,7 +247,7 @@ pub async fn update_article_handler(
 
 pub async fn delete_article_handler(
     Path(slug): Path<String>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
@@ -274,17 +274,16 @@ pub async fn delete_article_handler(
 
 pub async fn delete_image_handler(
     Path(path): Path<String>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
-    let path = path.trim_start_matches('/');
-    match NameParts::new(path) {
+    match NameParts::new(&path) {
         Ok(parts) => {
             match ImageListEntry::thumbnail_file_name(&parts.file_name) {
                 Ok(thumb_name) => {
                     let thumb_path = parts.dir.join(&thumb_name);
-                    let (ri, rt) = (remove_file(path), remove_file(thumb_path));
+                    let (ri, rt) = (remove_file(&path), remove_file(thumb_path));
                     if ri.is_err() {
                         log::error!("Failed to delete image {:?}: {:?}", path, ri.unwrap_err());
                         return Ok(server_error("Error deleting image"));
@@ -308,7 +307,7 @@ pub async fn delete_image_handler(
         }
     }
 
-    image_list_handler(Extension(data), cookies).await
+    image_list_handler(State(data), cookies).await
 }
 
 fn get_thumbs_remaining(data: &CommonData) -> ThumbsRemaining {
@@ -318,7 +317,7 @@ fn get_thumbs_remaining(data: &CommonData) -> ThumbsRemaining {
 }
 
 pub async fn check_thumb_progress (
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> Result<Json<ThumbsRemaining>, StatusCode> {
     ensure_authorized!(data, cookies);
@@ -355,9 +354,9 @@ fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: &Bytes) -> Result<(), image:
 }
 
 pub async fn upload_image_handler (
-    form_data: Multipart,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
+    form_data: Multipart,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
     let dir = get_current_images_dir(&data.read());
@@ -379,11 +378,11 @@ pub async fn upload_image_handler (
         }
     }
 
-    image_list_handler(Extension(data), cookies).await
+    image_list_handler(State(data), cookies).await
 }
 
 pub async fn admin_page_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
@@ -411,7 +410,7 @@ pub async fn admin_page_handler(
 }
 
 pub async fn image_list_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);

@@ -1,8 +1,9 @@
 use axum::{
-    extract::{Extension, Path},
+    extract::{State, Path},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect, Response},
 };
+use axum_macros::debug_handler;
 use std::time;
 use tower_cookies::Cookies;
 
@@ -49,16 +50,17 @@ fn render_article_list(
     }
 }
 
+#[debug_handler]
 pub async fn home_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    index_handler(Path(String::from("0")), Extension(data), cookies).await
+    index_handler(Path(String::from("0")), State(data), cookies).await
 }
 
 pub async fn index_handler(
     Path(page_or_slug): Path<String>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> impl IntoResponse {
     // Handle legacy article route, i.e. /articles/:slug
@@ -94,7 +96,7 @@ fn build_rss_articles(data: &CommonData) -> Vec<RssArticleView> {
 }
 
 pub async fn rss_handler(
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
 ) -> impl IntoResponse {
     let now = time::Instant::now();
     let data = data.read();
@@ -127,15 +129,15 @@ pub async fn rss_handler(
 
 pub async fn tag_home_handler(
     Path(tag): Path<String>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    tag_handler(Path((tag, 1)), Extension(data), cookies).await
+    tag_handler(Path((tag, 1)), State(data), cookies).await
 }
 
 pub async fn tag_handler(
     Path((tag, page)): Path<(String, usize)>,
-    Extension(data): Extension<SharedData>,
+    State(data): State<SharedData>,
     cookies: Cookies,
 ) -> impl IntoResponse {
     let now = time::Instant::now();

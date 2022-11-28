@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use chrono::{DateTime, Duration};
+use chrono::{DateTime, Duration, LocalResult};
 use ordinal::Ordinal;
 use std::path::PathBuf;
 use std::fs;
@@ -14,55 +14,64 @@ fn pluralize(word: &str, num: i64) -> (String, i64) {
 }
 
 handlebars_helper!(date_from_timestamp: |ts: i64| {
-    let dt = Utc.timestamp_millis(ts);
-    format!("{} {} {}",
-        dt.format("%A"), // Day
-        Ordinal(dt.day()), // Date
-        dt.format("%B %Y") // Month, year, time
-    )
+    if let LocalResult::Single(dt) = Utc.timestamp_millis_opt(ts) {
+        format!("{} {} {}",
+            dt.format("%A"), // Day
+            Ordinal(dt.day()), // Date
+            dt.format("%B %Y") // Month, year, time
+        )
+    } else {
+        format!("<invalid timestamp: {}>", ts)
+    }
 });
 
 handlebars_helper!(age_from_timestamp: |ts: i64| {
-    let dt = Utc.timestamp_millis(ts);
-    let age = Utc::now().signed_duration_since(dt);
-    let unit: String;
-    let num: i64;
-    if age.num_minutes() < 60 * 24 {
-        if age.num_minutes() <= 90 {
-            if age.num_minutes() == 0 {
-                (unit, num) = ("Just now".to_string(), 0);
+    if let LocalResult::Single(dt) = Utc.timestamp_millis_opt(ts) {
+        let age = Utc::now().signed_duration_since(dt);
+        let unit: String;
+        let num: i64;
+        if age.num_minutes() < 60 * 24 {
+            if age.num_minutes() <= 90 {
+                if age.num_minutes() == 0 {
+                    (unit, num) = ("Just now".to_string(), 0);
+                } else {
+                    (unit, num) = pluralize("minute", age.num_minutes());
+                }
             } else {
-                (unit, num) = pluralize("minute", age.num_minutes());
+                (unit, num) = pluralize("hour", age.num_hours());
             }
         } else {
-            (unit, num) = pluralize("hour", age.num_hours());
-        }
-    } else {
-        match age.num_days() {
-            1..=14 => (unit, num) = pluralize("day", age.num_days()),
-            15..=31 => (unit, num) = pluralize("week", age.num_weeks()),
-            // We'll pretend every month has 30 days, it's close enough
-            32..=365 => (unit, num) = pluralize("month", age.num_days() / 30),
-            _ => {
-                let years = age.num_days() / 365;
-                let remainder = age - Duration::days(years * 365);
-                let months = remainder.num_days() / 30;
-                let (yunit, _) = pluralize("year", years);
-                unit = format!("{} {} {}", years, yunit, months);
-                num = months;
+            match age.num_days() {
+                1..=14 => (unit, num) = pluralize("day", age.num_days()),
+                15..=31 => (unit, num) = pluralize("week", age.num_weeks()),
+                // We'll pretend every month has 30 days, it's close enough
+                32..=365 => (unit, num) = pluralize("month", age.num_days() / 30),
+                _ => {
+                    let years = age.num_days() / 365;
+                    let remainder = age - Duration::days(years * 365);
+                    let months = remainder.num_days() / 30;
+                    let (yunit, _) = pluralize("year", years);
+                    unit = format!("{} {} {}", years, yunit, months);
+                    num = months;
+                }
             }
         }
-    }
-    if num > 0 {
-        format!("{} {} ago", num, unit)
+        if num > 0 {
+            format!("{} {} ago", num, unit)
+        } else {
+            unit
+        }
     } else {
-        unit
+        format!("<invalid timestamp: {}>", ts)
     }
 });
 
 handlebars_helper!(rfc822_date: |ts: i64| {
-    let dt = Utc.timestamp_millis(ts);
-    dt.to_rfc2822()
+    if let LocalResult::Single(dt) = Utc.timestamp_millis_opt(ts) {
+        dt.to_rfc2822()
+    } else {
+        format!("<invalid timestamp: {}>", ts)
+    }
 });
 
 handlebars_helper!(article_full_url: |blog_url: String, slug: String| {

@@ -3,8 +3,7 @@ use std::{
     path::PathBuf,
 };
 use axum::{
-    extract::{Extension, Path},
-    handler::Handler,
+    extract::Path,
     http::StatusCode,
     response::{IntoResponse, Redirect},
     Router,
@@ -103,10 +102,10 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/images/*path",           delete(delete_image_handler))
 
         .route("/assets/*path",           get(asset_handler))
-        .nest("/content/images/",         dir_service)
+        .nest_service("/content/images/",         dir_service)
 
-        .layer(Extension(shared_data))
+        .with_state(shared_data)
         .layer(CookieManagerLayer::new())
         .layer(middleware)
-        .fallback(not_found_handler.into_service())
+        .fallback(not_found_handler)
 }
