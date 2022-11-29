@@ -15,11 +15,11 @@ html.light {
     --plain-text: #444;
     --subdued-text: #777;
     --alt-text: #000;
-    --link-normal: hsl(227, 30%, 50%);
-    --link-visited: hsl(283, 20%, 40%);
-    --link-hover: #009ac9;
-    --link-header: #0064c1;
-    --link-header-visited: #0064c1;
+    --link-normal: hsl(200, 30%, 50%);
+    --link-visited: hsl(300, 20%, 40%);
+    --link-hover: hsl(200, 100%, 50%);
+    --link-header: hsl(200, 40%, 40%);
+    --link-header-visited: var(--link-header);
     --code: #444;
     --separator-color: rgba(0, 0, 0, 0.2);
     --caption-bg: rgba(0, 0, 0, 0.05);
@@ -41,7 +41,7 @@ html.dark {
     --link-visited: hsl(283, 15%, 60%);
     --link-hover: #009ac9;
     --link-header: #0084d1;
-    --link-index-visited: #0084d1;
+    --link-index-visited: var(--link-header);
     --code: #444;
     --separator-color: rgba(255, 255, 255, 0.3);
     --caption-bg: rgba(0, 0, 0, 0.4);
@@ -59,8 +59,8 @@ html.nightsight {
     --plain-text: #b00;
     --subdued-text: #800;
     --alt-text: #d55;
-    --link-normal: #414c72;
-    --link-visited: #3d1e48;
+    --link-normal: hsl(227, 40%, 30%);
+    --link-visited: hsl(300, 20%, 30%);
     --link-hover: #26313e;
     --link-header: #414c72;
     --link-index-visited: #5c3868; /* slightly darker than normal links */
@@ -314,6 +314,9 @@ ul.tags li::after {
 ul.tags li:last-child::after {
     content: "";
 }
+ul.tags li a {
+    text-decoration: none;
+}
 
 pre {
     overflow-x: auto;
@@ -412,6 +415,14 @@ p.img img {
 .article ul {
     overflow-x: auto;
     overflow-y: hidden;
+}
+
+hr {
+    width: 80%;
+    margin: 0 auto 1em;
+    border-width: 1px 0 1px 0;
+    border-color: var(--plain-text) transparent var(--separator-color);
+    border-style: solid;
 }
 
 nav {
