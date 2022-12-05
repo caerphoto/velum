@@ -23,10 +23,20 @@ stored with the title-less content.
 The admin page lists all images currently available, any of which can be clicked
 to insert the appropriate Markdown code into the current article in the editor.
 
-Images can be uploaded or deleted via the admin page, currently only one at
-a time. If you need to upload multiple images it's probably quicker and easier
-to use something like FTP for now, until I can implement batch
-uploading/deletion.
+Images can be uploaded or deleted via the admin page, with a maximum upload size
+of 25MB total. Uploaded images will be stored in the configured content
+directory under `images/<4-digit-year>/<2-digit-month>`, to help with
+organisation.
+
+When images are uploaded, thumbnail versions of them will be generated
+automatically, to avoid the need to load the full-sized versions in the admin
+page image list. This can be quite a lengthy process if large and/or many images
+are uploaded, but a progress bar will be displayed that shows how many
+thumbnails are left to generate. Thumbnails are generally around 3–7KB.
+
+If images were uploaded via other means, e.g. by FTP, thumbnail generation will
+begin automatically when the admin page is loaded. As with uploading via the
+admin page, a progress bar will be displayed.
 
 ## Comments
 
