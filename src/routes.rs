@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 use axum::{
-    extract::Path,
+    extract::{Path, DefaultBodyLimit},
     http::StatusCode,
     response::{IntoResponse, Redirect},
     Router,
@@ -65,13 +65,18 @@ async fn error_handler(error: std::io::Error) -> impl IntoResponse {
 
 pub fn init(shared_data: SharedData) -> Router {
     let dir = PathBuf::from(shared_data.read().config.content_dir.clone());
-    let dir_service = get_service(ServeDir::new(dir.join("images")))
+    let image_dir_service = get_service(ServeDir::new(dir.join("images")))
         .handle_error(error_handler);
 
     let middleware = ServiceBuilder::new()
         .layer(CompressionLayer::new())
+        .layer(DefaultBodyLimit::max(512 * 1024))
         .layer(TimeoutLayer::new(Duration::from_secs(10)))
         ;
+
+    let img_upload_route = Router::new()
+        .route("/images", post(upload_image_handler))
+        .layer(DefaultBodyLimit::max(25 * 1024 * 1024));
 
     Router::new()
         .route("/",                       get(home_handler))
@@ -97,12 +102,12 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/article/:slug",          put(update_article_handler))
         .route("/article/:slug",          delete(delete_article_handler))
         .route("/all_images",             get(image_list_handler))
+        .merge(img_upload_route)
         .route("/check_thumb_progress",   get(check_thumb_progress))
-        .route("/images",                 post(upload_image_handler))
         .route("/images/*path",           delete(delete_image_handler))
 
         .route("/assets/*path",           get(asset_handler))
-        .nest_service("/content/images/",         dir_service)
+        .nest_service("/content/images/", image_dir_service)
 
         .with_state(shared_data)
         .layer(CookieManagerLayer::new())

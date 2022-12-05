@@ -198,7 +198,7 @@
                 thumbsProgress.classList.remove("active");
             }
         } else {
-            imageList.innerHTML = "Failed to fetch image list :(";
+            imageList.innerHTML = this.response;
         }
     }
 

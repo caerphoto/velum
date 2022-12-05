@@ -1,6 +1,7 @@
 mod thumbnails;
 
 use std::{
+    error::Error,
     fs::{remove_file, self, OpenOptions},
     io::{Write, Error as IoError},
     path::{Path as OsPath, PathBuf}, collections::HashMap,
@@ -348,6 +349,7 @@ async fn gather_fields(mut form_data: Multipart) -> Vec<UploadedImageData> {
 fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: &Bytes) -> Result<(), IoError> {
     let mut file = OpenOptions::new()
         .write(true)
+        .create(true)
         .open(&file_name)?;
     log::info!("Saving file {:?}", file_name.as_ref());
     file.write_all(bytes)
@@ -365,16 +367,20 @@ pub async fn upload_image_handler (
     for field in fields.iter() {
         let path = dir.join(&field.file_name);
 
-        if let Ok(bytes) = &field.bytes {
-            if let Err(e) = fs::create_dir_all(&dir) {
-                log::error!("Error creating image directory {:?}: {:?}", dir, e);
+        match &field.bytes {
+            Ok(bytes) => {
+                if let Err(e) = fs::create_dir_all(&dir) {
+                    log::error!("Error creating image directory {:?}: {:?}", dir, e);
                 return Ok(server_error("Error creating image directory"));
-            } else if let Err(e) = save_file(&path, bytes) {
-                log::error!("Error saving file {:?}: {:?}", path, e);
-                return Ok(server_error("Error saving image file"));
+                } else if let Err(e) = save_file(&path, bytes) {
+                    log::error!("Error saving file {:?}: {:?}", path, e);
+                    return Ok(server_error("Error saving image file"));
+                }
+            },
+            Err(e) => {
+                log::error!("Error reading form data: {:?}", e);
+                return Ok(server_error(&format!("Error reading uploaded form data: {:#?}", e.source())));
             }
-        } else {
-            return Ok(server_error("Error reading uploaded form data"));
         }
     }
 
