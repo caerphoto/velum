@@ -1,6 +1,5 @@
 use std::{
-    cmp::{Ord, Ordering},
-    collections::BTreeMap,
+    collections::HashMap,
     error::Error,
     ffi::OsString,
     fmt,
@@ -102,47 +101,6 @@ impl std::convert::From<image::ImageError> for ThumbError {
             kind: ThumbErrorKind::File,
             details: Some(error),
         }
-    }
-}
-
-// specialised struct to use as key in BTreeMap, allowing for custom ordering 
-pub struct DirKey(pub PathBuf);
-impl DirKey {
-    fn new<P: AsRef<OsPath>>(p: P) -> Self {
-        Self(p.as_ref().to_path_buf())
-    }
-}
-impl fmt::Display for DirKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0.to_string_lossy())
-    }
-}
-impl PartialEq for DirKey {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl Eq for DirKey {}
-impl PartialOrd for DirKey {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let me: &PathBuf = &(self.0);
-        let them: &PathBuf = &(other.0);
- 
-        Some(them.cmp(me))
-    }
-}
-impl Ord for DirKey {
-    fn cmp(&self, other:&Self) -> Ordering {
-        let me: &PathBuf = &(self.0);
-        let them: &PathBuf = &(other.0);
-        them.cmp(me)
-    }
-}
-impl Serialize for DirKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
-        serializer.serialize_str(&self.0.to_string_lossy())
     }
 }
 
@@ -284,7 +242,7 @@ fn file_sorter(a: &DirEntry, b: &DirEntry) -> std::cmp::Ordering {
     std::cmp::Ordering::Equal
 }
 
-pub fn get_image_list(data: &SharedData) -> (BTreeMap<DirKey, ImageListDir>, ThumbsRemaining) {
+pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, ThumbsRemaining) {
     let dir = PathBuf::from(&data.read().config.content_dir).join("images");
     let iter = WalkDir::new(dir)
         .sort_by(file_sorter)
@@ -308,8 +266,7 @@ pub fn get_image_list(data: &SharedData) -> (BTreeMap<DirKey, ImageListDir>, Thu
     }
 
     let mut existing_thumb_count = 0;
-    //let mut filenames: HashMap<String, ImageListDir> = HashMap::new();
-    let mut filenames: BTreeMap<DirKey, ImageListDir> = BTreeMap::new();
+    let mut filenames: HashMap<PathBuf, ImageListDir> = HashMap::new();
     let count = image_files.len();
     for (i, parts) in image_files.iter().enumerate() {
         if let Err(e) = generate_thumb_path(parts) {
@@ -323,14 +280,14 @@ pub fn get_image_list(data: &SharedData) -> (BTreeMap<DirKey, ImageListDir>, Thu
             );
         }
 
-        let key = DirKey::new(&parts.dir);
-        if let Some(ild) = filenames.get_mut(&key) {
+        let key = &parts.dir;
+        if let Some(ild) = filenames.get_mut(key) {
             if let Err(e) = ild.push(&parts.file_name) {
                 log::error!("Failed to push file name/thumbnail to dirlist: {:?}", e)
             }
         } else {
             match ImageListDir::new(parts) {
-                Ok(ild) => { filenames.insert(key, ild); },
+                Ok(ild) => { filenames.insert(key.clone(), ild); },
                 Err(e) => { log::error!("Failed to create new image list dir: {:?}", e); },
             }
         }

@@ -1,15 +1,14 @@
 mod thumbnails;
 
 use std::{
-    fs::{remove_file, self},
-    io::Cursor,
-    path::{Path as OsPath, PathBuf},
+    fs::{remove_file, self, OpenOptions},
+    io::{Write, Error as IoError},
+    path::{Path as OsPath, PathBuf}, collections::HashMap,
 };
 
 use uuid::Uuid;
 use serde::Deserialize;
 use serde_json::json;
-use image::io::Reader as ImageReader;
 
 use axum::{
     body::{Full, Bytes},
@@ -149,7 +148,7 @@ pub async fn do_login_handler(
         .header("Location", "/admin")
         .header("Set-Cookie", cookie)
         .status(SEE_OTHER)
-        .body("".into()) // body can't be () because we might render login
+        .body(Bytes::new().into())
         .unwrap()
     )
 }
@@ -346,11 +345,12 @@ async fn gather_fields(mut form_data: Multipart) -> Vec<UploadedImageData> {
     fields
 }
 
-fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: &Bytes) -> Result<(), image::ImageError> {
-    let img = ImageReader::new(Cursor::new(bytes)).with_guessed_format()?.decode()?;
+fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: &Bytes) -> Result<(), IoError> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .open(&file_name)?;
     log::info!("Saving file {:?}", file_name.as_ref());
-    img.save(file_name)?;
-    Ok(())
+    file.write_all(bytes)
 }
 
 pub async fn upload_image_handler (
@@ -409,20 +409,31 @@ pub async fn admin_page_handler(
     }
 }
 
+// NOTE: this assumes directories are named according to the pattern used by
+// get_current_images_dir, i.e. <content_dir>/images/yyyy/mm
+fn sorted_dir_keys<K: AsRef<OsPath>, V>(h: &HashMap<K, V>) -> Vec<String> {
+    let mut sorted: Vec<String> = h.keys()
+        .map(|path| path.as_ref().to_string_lossy().to_string() )
+        .collect();
+    sorted.sort_by_key(|path| std::cmp::Reverse(path.to_uppercase()));
+    sorted
+}
+
 pub async fn image_list_handler(
     State(data): State<SharedData>,
     cookies: Cookies,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
 
-    let (filenames, thumbs_remaining) = get_image_list(&data);
+    let (image_dirs, thumbs_remaining) = get_image_list(&data);
     let data = data.read();
-    let keys: Vec<String> = filenames.keys().map(|k| k.0.to_string_lossy().to_string()).collect();
+    let dir_keys = sorted_dir_keys(&image_dirs);
+
     match data.hbs.render(
         "_admin_image_list",
         &json!({
-            "image_keys": keys,
-            "images": filenames,
+            "dir_keys": dir_keys,
+            "image_dirs": image_dirs,
             "thumbs_remaining": thumbs_remaining,
         })
     ) {

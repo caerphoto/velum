@@ -32,12 +32,14 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
     paths_with_ext_in_dir("hbs", &dir, |path| {
         let template_name = template_name(path);
         hb.register_template_file(&template_name, path)
-            .unwrap_or_else(|e| panic!(
-                "Failed to register template {} with path {:?}. Error: {:?}",
-                template_name,
-                path,
-                e
-            ))
+            .unwrap_or_else(|e| {
+                panic!(
+                    "Failed to register template {} with path {:?}. Error: {}",
+                    template_name,
+                    path,
+                    e
+                )
+            })
     });
 
     register_helpers(hb)

@@ -1,9 +1,9 @@
 <ul class="image-list" data-initial-count="{{thumbs_remaining.total}}" data-remaining="{{thumbs_remaining.count}}">
-{{#each image_keys }}
+{{#each dir_keys }}
 <li class="image-list_dir">
   <h4>{{this}}</h4>
   <ul class="image-list_images">
-    {{#with (lookup ../images[this]) }}
+    {{#with (lookup ../image_dirs[this]) }}
     {{#each this.file_names}}
     <li class="image-list_images--image">
       <figure data-path="/{{../this.dir}}/{{this.orig_file_name}}" data-file-name="{{this.orig_file_name}}">
