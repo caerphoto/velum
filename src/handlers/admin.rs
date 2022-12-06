@@ -251,24 +251,23 @@ pub async fn delete_article_handler(
     cookies: Cookies,
 ) -> HtmlOrRedirect {
     ensure_logged_in!(data, cookies);
-    let rdata = data.read();
+    let filename = match storage::fetch_by_slug(&slug, &data.read().articles) {
+        Some(article) => article.source_filename.clone(),
+        None =>          return Ok(empty_response(StatusCode::NOT_FOUND)),
+    };
 
-    if let Some(article) = storage::fetch_by_slug(&slug, &rdata.articles) {
-        if let Err(err) = storage::delete_article(article) {
-            log::error!("Failed to delete article: {:?}", err);
-            Ok(server_error("Error deleting article"))
-        } else {
-            log::info!("Deleted article '{}' from disk.", &slug);
-            let mut wdata = data.write();
-            if let Err(err) = wdata.rebuild() {
-                log::error!("Failed to rebuild article index: {:?}", err);
-                Ok(server_error("Error rebuilding article index"))
-            } else {
-                Ok(empty_response(StatusCode::OK))
-            }
-        }
+    if let Err(err) = storage::delete_article(&filename) {
+        log::error!("Failed to delete article: {:?}", err);
+        Ok(server_error("Error deleting article"))
     } else {
-        Ok(empty_response(StatusCode::NOT_FOUND))
+        log::info!("Deleted article '{}' from disk.", &slug);
+        let mut wdata = data.write();
+        if let Err(err) = wdata.rebuild() {
+            log::error!("Failed to rebuild article index: {:?}", err);
+            Ok(server_error("Error rebuilding article index"))
+        } else {
+            Ok(empty_response(StatusCode::OK))
+        }
     }
 }
 

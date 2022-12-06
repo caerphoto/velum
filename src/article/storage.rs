@@ -1,6 +1,6 @@
 use std::fs;
 use std::cmp::min;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::io::{self, ErrorKind};
 use uuid::Uuid;
 use crate::CommonData;
@@ -171,8 +171,8 @@ pub fn update_article(slug: &str, new_content: &str, data: &mut CommonData) -> R
     }
 }
 
-pub fn delete_article(article: &ContentView) -> Result<(), std::io::Error> {
-    fs::remove_file(&article.source_filename)
+pub fn delete_article<P: AsRef<Path>>(source_filename: P) -> Result<(), std::io::Error> {
+    fs::remove_file(source_filename.as_ref())
 }
 
 pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ContentView>> {
