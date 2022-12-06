@@ -86,27 +86,40 @@
         editor.focus();
     });
 
+    function insertNewArticle(listItemHtml) {
+        if (!editorSection.classList.contains("new")) return;
+
+        editorSection.classList.remove("new");
+        const frag = D.createElement("template");
+        frag.innerHTML = listItemHtml;
+        const newLi = frag.content.querySelector("li");
+        const slug = newLi.dataset.slug;
+        fetchArticleText(slug);
+
+        newLi.classList.add("new");
+        articleList.prepend(frag.content);
+        setTimeout(() => {
+            newLi.classList.remove("new");
+        }, 2000);
+    }
+
     saveForm.addEventListener("submit", (event) => {
         event.preventDefault();
 
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener("load", () => {
+        xhr.addEventListener("load", function () {
             saveBtn.disabled = false;
             saveBtn.textContent = "Save";
-            setTimeout(() => {
-                successMsg.classList.remove("visible");
-            }, 1000);
-            if (editorSection.classList.contains("new")) {
-                editorSection.classList.remove("new");
-                const frag = D.createElement("template");
-                frag.innerHTML = xhr.responseText;
-                articleList.prepend(frag.content);
+
+            if (this.status === 200) {
+                successMsg.classList.add("visible");
                 setTimeout(() => {
-                    const slug =
-                        articleList.querySelector("li:first-child").dataset
-                            .slug;
-                    fetchArticleText(slug);
-                }, 0);
+                    successMsg.classList.remove("visible");
+                }, 2000);
+                insertNewArticle(this.response);
+            } else {
+                // TODO: custom error popup
+                alert("Error saving article");
             }
         });
 
@@ -119,7 +132,6 @@
 
         saveBtn.disabled = true;
         saveBtn.textContent = "...";
-        successMsg.classList.add("visible");
     });
 
     if (window.location.hash) {
@@ -252,6 +264,7 @@
         xhr.addEventListener("load", () => {
             if (xhr.status === 200) {
                 imageList.innerHTML = xhr.response;
+                window.location.hash = "";
             } else {
                 alert(`Failed to delete image ${path}`);
             }

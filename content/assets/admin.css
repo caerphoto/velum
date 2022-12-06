@@ -21,6 +21,7 @@
     --article-input-disabled-bg: #ccc;
     --new-article-heading-color: #0a0;
     --new-article-text-color: #070;
+    --new-item-bg: hsl(120, 80%, 70%);
     --separator: #aaa;
     --box-border: #ccc;
 
@@ -410,20 +411,25 @@ button:hover {
     margin: 0;
     border: 1px solid var(--box-border);
     list-style: none;
-    padding: 0.5rem;
+    padding: 0.5rem 0;
 }
 
-.admin-article-list li {
-    padding: 0.5rem 0;
+.admin-article-list_item {
+    padding: 0.5rem 0.5rem;
     border-bottom: 1px dotted var(--separator);
     position: relative;
     margin: 0;
+    transition: background-color 2s;
 }
 
-.admin-article-list li .delete {
+.admin-article-list_item.new {
+    background-color: var(--new-item-bg);
+}
+
+.admin-article-list_item .delete {
     position: absolute;
     top: 50%;
-    right: 0;
+    right: 0.5rem;
     box-sizing: border-box;
     height: 1.8em;
     margin-top: -0.9em;
@@ -432,7 +438,7 @@ button:hover {
     border: 1px solid var(--danger-control-border);
 }
 
-.admin-article-list a[data-slug] {
+.admin-article-list_item a[data-slug] {
     text-decoration: none;
     color: var(--link-normal);
 }
