@@ -37,7 +37,7 @@
 }
 
 html.admin {
-    font-family: "Lato", sans-serif;
+    font-family: "Jost", sans-serif;
     font-size: 16px;
 }
 
@@ -504,8 +504,8 @@ button:hover {
 
 #article-editor-input {
     grid-column: 1/4;
-    font-family: monospace;
-    font-size: 77%;
+    font-family: "Nanum Gothic Coding", monospace;
+    font-size: 14px;
     padding: 0.2rem 0.4rem;
 }
 
