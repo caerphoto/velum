@@ -436,7 +436,7 @@ hr {
 
 nav {
     display: grid;
-    grid-template-columns: 1fr 8em 1fr;
+    grid-template-columns: 1fr 6em 1fr;
     grid-template-rows: 1fr;
     margin-bottom: 1em;
 }
