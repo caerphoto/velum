@@ -34,10 +34,13 @@
     --loading: #fff;
 
     --spinner-size: 20px;
+
+    --body-font-family: "Lato", serif;
+    --mono-font-family: "JetBrains Mono", monospace;
 }
 
 html.admin {
-    font-family: "Jost", sans-serif;
+    font-family: var(--body-font-family);
     font-size: 16px;
 }
 
@@ -504,7 +507,7 @@ button:hover {
 
 #article-editor-input {
     grid-column: 1/4;
-    font-family: "Nanum Gothic Coding", monospace;
+    font-family: var(--mono-font-family);
     font-size: 14px;
     padding: 0.2rem 0.4rem;
 }
