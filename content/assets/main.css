@@ -341,7 +341,8 @@ code {
 
 p > code {
     background-color: var(--alt-bg);
-    padding: 0 0.3em;
+    padding: 0.2em 0.3em;
+    vertical-align: 0.1em;
 }
 
 p.img {
