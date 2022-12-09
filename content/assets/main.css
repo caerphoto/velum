@@ -1,6 +1,7 @@
 html {
     --body-font-family: "Crimson Pro", serif;
     --heading-font-family: "Jost", sans-serif;
+    --mono-font-family: "JetBrains Mono", monospace;
 
     margin: 0;
     padding: 0;
@@ -331,18 +332,17 @@ pre {
     margin: 0 0 1em;
     padding: 0.5em;
     background-color: var(--alt-bg);
-    line-height: 1.2;
+    line-height: 1;
 }
 
 code {
-    font-size: 14px;
-    font-family: "Nanum Gothic Coding", monospace;
+    font-size: 13px;
+    font-family: var(--mono-font-family);
 }
 
 p > code {
     background-color: var(--alt-bg);
     padding: 0.2em 0.3em;
-    vertical-align: 0.1em;
 }
 
 p.img {
