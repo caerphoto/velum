@@ -10,7 +10,7 @@ html {
     font-family: var(--body-font-family);
     font-size: 22px;
     line-height: 1.25;
-    font-weight: 400;
+    font-weight: 300;
 
     --content-width: 30rem;
 }
