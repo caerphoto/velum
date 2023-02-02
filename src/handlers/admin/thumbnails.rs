@@ -17,7 +17,10 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::SharedData;
 
+// WARNING: if this is changed, ALL thumbnails will be regenerated. To avoid this, rename your
+// thumbnails FIRST to match the new suffix.
 const THUMBNAIL_SUFFIX: &str = "_thumbnail";
+
 const THUMB_SIZE: u32 = 150;
 
 #[derive(Serialize)]

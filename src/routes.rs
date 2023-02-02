@@ -80,15 +80,16 @@ pub fn init(shared_data: SharedData) -> Router {
 
     Router::new()
         .route("/",                       get(home_handler))
-        .route("/:legacy_slug",           get(|Path(slug): Path<String>| async move {
-            Redirect::permanent(&(String::from("/article/") + &slug))
-        }))
         .route("/articles/:page_or_slug", get(index_handler))
         .route("/article/:slug",          get(article_handler))
         .route("/article/:slug/text",     get(article_text_handler))
 
         .route("/tag/:tag",               get(tag_home_handler))
         .route("/tag/:tag/:page",         get(tag_handler))
+        .route("/tag/:tag/",              get(|Path(tag): Path<String>| async move {
+            // Legacy tag support, since my blog still gets hits on this path
+            Redirect::permanent(&(String::from("/tag/") + &tag))
+        }))
         .route("/rss",                    get(rss_handler))
 
         .route("/comment/:slug",          post(comment_handler))
