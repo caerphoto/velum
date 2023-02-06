@@ -109,18 +109,6 @@ impl Builder {
             .join("\n")
     }
 
-    pub fn content_preview(&self, max_len: usize) -> String {
-        let content = self.main_content();
-        let parser = cmark::Parser::new(&content);
-        let mut parts: Vec<String> = Vec::new();
-        for event in parser {
-            if let Event::Text(text) = event { parts.push(text.to_string()) }
-        }
-
-        let truncated = safe_truncate(&parts.join(" "), max_len).to_string();
-        if truncated.len() < max_len { truncated } else { truncated + "…" }
-    }
-
     fn typogrify(text: &str) -> String {
         lazy_static! {
             static ref REPLACEMENTS: Vec<Typograph> = vec![
@@ -161,6 +149,21 @@ impl Builder {
         }
 
         new_text
+    }
+
+    pub fn content_preview(&self, max_len: usize) -> String {
+        let content = self.main_content();
+        let parser = cmark::Parser::new(&content);
+        let mut parts: Vec<String> = Vec::new();
+        for event in parser {
+            if let Event::Text(text) = event {
+                parts.push(text.to_string());
+                if parts.len() >= max_len { break; }
+            }
+        }
+
+        let truncated = Builder::typogrify(safe_truncate(&parts.join(" "), max_len));
+        if truncated.len() < max_len { truncated } else { truncated + "…" }
     }
 
     pub fn parsed_content(&self) -> String {
