@@ -308,7 +308,7 @@ pub async fn delete_image_handler(
 fn get_thumbs_remaining(data: &CommonData) -> ThumbsRemaining {
     let count = data.thumb_progress.len();
     let total = data.initial_remaining_thumbs;
-    ThumbsRemaining { total, count }
+    ThumbsRemaining { count, total }
 }
 
 pub async fn check_thumb_progress (

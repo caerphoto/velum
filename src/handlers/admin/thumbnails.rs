@@ -179,9 +179,12 @@ async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: Sh
     let ftsize = THUMB_SIZE as f64;
     let thumb_path = match generate_thumb_path(&parts) {
         Ok(p) => p,
-        Err(e) => match e.kind {
-            ThumbErrorKind::AlreadyExists => return Ok(()),
-            _ => return Err(e),
+        Err(e) => {
+            data.write().thumb_progress.remove(&progress_val);
+            match e.kind {
+                ThumbErrorKind::AlreadyExists => return Ok(()),
+                _ => return Err(e),
+            }
         }
     };
     let result = match image::open(&parts.path) {
@@ -213,6 +216,8 @@ async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: Sh
     };
 
     data.write().thumb_progress.remove(&progress_val);
+    let initial_remaining = data.read().initial_remaining_thumbs;
+    log::info!("cth: initial_remaining: {initial_remaining}");
 
     result
 }
@@ -268,6 +273,7 @@ pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, Thu
         }
     }
 
+    let initial_remaining = data.read().thumb_progress.len();
     let mut existing_thumb_count = 0;
     let mut filenames: HashMap<PathBuf, ImageListDir> = HashMap::new();
     let count = image_files.len();
@@ -297,9 +303,11 @@ pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, Thu
     }
 
     let remaining = image_files.len() - existing_thumb_count;
-    data.write().initial_remaining_thumbs += remaining;
+    log::info!("updating initial_remaining_thumbs: init: {initial_remaining}, rem: {remaining}");
+    data.write().initial_remaining_thumbs = initial_remaining + remaining;
 
-    // Generate all thumbnails in a separate thread, which is detached and left to do its thing
+    // Generate all thumbnails in a separate thread, which is detached and left to do its thing,
+    // i.e. we don't need to join back on it
     tokio::task::spawn_blocking(move || {
         for f in thumbnail_futures {
             if let Err(e) = block_on(f) {

@@ -1,4 +1,4 @@
-(function (D) {
+(function(D) {
     function $(selector) {
         return D.querySelector(selector);
     }
@@ -107,7 +107,7 @@
         event.preventDefault();
 
         const xhr = new XMLHttpRequest();
-        xhr.addEventListener("load", function () {
+        xhr.addEventListener("load", function() {
             saveBtn.disabled = false;
             saveBtn.textContent = "Save";
 
@@ -183,12 +183,13 @@
             const listEl = imageList.querySelector("ul");
             const total = parseInt(listEl.dataset.initialCount, 10);
             const count = parseInt(listEl.dataset.remaining, 10);
+            const done = total - count;
             if (count > 0) {
                 thumbsProgress.classList.add("active");
                 thumbsProgressBar.max = total;
-                thumbsProgressBar.value = total - count;
+                thumbsProgressBar.value = done;
 
-                thumbsProgressCompleted.textContent = count;
+                thumbsProgressCompleted.textContent = done;
                 thumbsProgressTotal.textContent = total;
 
                 clearInterval(intervalID);
