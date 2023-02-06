@@ -25,7 +25,7 @@ impl From<io::Error> for ParseError {
 
 impl From<String> for ParseError {
     fn from(msg: String) -> Self {
-        Self { cause: format!("ParseError: {}", msg) }
+        Self { cause: format!("ParseError: {msg}") }
     }
 }
 

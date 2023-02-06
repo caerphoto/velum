@@ -23,7 +23,7 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
 
     let dir = PathBuf::from(&config.content_dir).join("templates");
     if !dir.is_dir() {
-        panic!("Template path {:?} is not a directory.", dir);
+        panic!("Template path {dir:?} is not a directory.");
     }
 
     #[cfg(debug_assertions)]
@@ -34,10 +34,7 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
         hb.register_template_file(&template_name, path)
             .unwrap_or_else(|e| {
                 panic!(
-                    "Failed to register template {} with path {:?}. Error: {}",
-                    template_name,
-                    path,
-                    e
+                    "Failed to register template {template_name} with path {path:?}. Error: {e}"
                 )
             })
     });

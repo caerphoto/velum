@@ -43,7 +43,7 @@ pub fn log_elapsed(thing: &str, thing_name: Option<&str>, page: Option<usize>, f
     };
 
     let thing_name = match thing_name {
-        Some(t) => format!(" `{}`", t),
+        Some(t) => format!(" `{t}`"),
         None => "".to_string(),
     };
 
@@ -77,10 +77,10 @@ pub fn render_error_page<T: std::fmt::Display>(
     let message = if additional_text.is_some() {
         format!("HTTP error {:?}: {}", status, additional_text.unwrap())
     } else {
-        format!("HTTP error {:?}", status)
+        format!("HTTP error {status:?}")
     };
     let filename = ERRORS_DIR.join(status.as_u16().to_string() + ".html");
-    if let Ok(content) = fs::read_to_string(&filename) {
+    if let Ok(content) = fs::read_to_string(filename) {
         content.replace("####", &message)
     } else {
         message

@@ -21,7 +21,7 @@ handlebars_helper!(date_from_timestamp: |ts: i64| {
             dt.format("%B %Y") // Month, year, time
         )
     } else {
-        format!("<invalid timestamp: {}>", ts)
+        format!("<invalid timestamp: {ts}>")
     }
 });
 
@@ -51,18 +51,18 @@ handlebars_helper!(age_from_timestamp: |ts: i64| {
                     let remainder = age - Duration::days(years * 365);
                     let months = remainder.num_days() / 30;
                     let (yunit, _) = pluralize("year", years);
-                    unit = format!("{} {} {}", years, yunit, months);
+                    unit = format!("{years} {yunit} {months}");
                     num = months;
                 }
             }
         }
         if num > 0 {
-            format!("{} {} ago", num, unit)
+            format!("{num} {unit} ago")
         } else {
             unit
         }
     } else {
-        format!("<invalid timestamp: {}>", ts)
+        format!("<invalid timestamp: {ts}>")
     }
 });
 
@@ -70,7 +70,7 @@ handlebars_helper!(rfc822_date: |ts: i64| {
     if let LocalResult::Single(dt) = Utc.timestamp_millis_opt(ts) {
         dt.to_rfc2822()
     } else {
-        format!("<invalid timestamp: {}>", ts)
+        format!("<invalid timestamp: {ts}>")
     }
 });
 
@@ -166,7 +166,7 @@ handlebars_helper!(asset_path: |filename: String| {
             let dt: DateTime<Utc> = date.into();
             let timestamp = dt.format("%Y%m%d%H%M%S");
             if let Some((pre, suf)) = filename.rsplit_once('.') {
-                new_filename = format!("{}-{}.{}", pre, timestamp, suf);
+                new_filename = format!("{pre}-{timestamp}.{suf}");
             }
         }
     }

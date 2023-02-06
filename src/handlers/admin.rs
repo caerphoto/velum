@@ -113,7 +113,7 @@ fn render_login_page(
     ) {
         Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
         Err(e) => Ok(server_error_page(
-            &format!("Failed to render article in index. Error: {:?}", e))
+            &format!("Failed to render article in index. Error: {e:?}"))
         )
     }
 }
@@ -131,18 +131,14 @@ pub async fn do_login_handler(
     let hash = data.read().config.secrets.admin_password_hash
         .as_ref().cloned()
         .unwrap_or_default();
-    let verified = bcrypt::verify(&form_data.password, &hash).unwrap_or(false);
+    let verified = bcrypt::verify(form_data.password, &hash).unwrap_or(false);
 
     if !verified {
         return Err(render_login_page(&data, Some("Incorrect password")));
     }
 
     let session_id = Uuid::new_v4();
-    let cookie = format!(
-        "velum_session_id={}; Path=/; HttpOnly; Max-Age={}",
-        session_id,
-        THIRTY_DAYS
-    );
+    let cookie = format!("velum_session_id={session_id}; Path=/; HttpOnly; Max-Age={THIRTY_DAYS}");
     data.write().session_id = Some(session_id.to_string());
 
     Ok(Response::builder()
@@ -181,9 +177,9 @@ pub async fn rebuild_index_handler(
     let mut data = data.write();
 
     if let Err(e) = data.rebuild() {
-        log::error!("Failed to rebuild article index index: {:?}", e);
+        log::error!("Failed to rebuild article index index: {e:?}");
         Ok(server_error_page(
-            &format!("Failed to render article in index. Error: {:?}", e)
+            &format!("Failed to render article in index. Error: {e:?}")
         ))
     } else {
         redirect_to("/admin")
@@ -256,7 +252,7 @@ pub async fn delete_article_handler(
         None =>          return Ok(empty_response(StatusCode::NOT_FOUND)),
     };
 
-    if let Err(err) = storage::delete_article(&filename) {
+    if let Err(err) = storage::delete_article(filename) {
         log::error!("Failed to delete article: {:?}", err);
         Ok(server_error("Error deleting article"))
     } else {
@@ -409,7 +405,7 @@ pub async fn admin_page_handler(
             Html(rendered_page),
         )),
         Err(e) => Ok(server_error(
-            &format!("Failed to render article in index. Error: {:?}", e))
+            &format!("Failed to render article in index. Error: {e:?}"))
         )
     }
 }
@@ -446,7 +442,7 @@ pub async fn image_list_handler(
             Ok((StatusCode::OK, Html(rendered_page)))
         },
         Err(e) => Ok(server_error(
-            &format!("Failed to render image list. Error: {:?}", e))
+            &format!("Failed to render image list. Error: {e:?}"))
         )
     }
 }

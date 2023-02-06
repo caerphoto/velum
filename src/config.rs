@@ -71,7 +71,7 @@ impl Config {
             Some(bcrypt::hash(pw, BCRYPT_HASH_COST).expect("Failed to hash password"));
 
         if let Err(e) = self.save_secrets() {
-            panic!("Config save failed: {:?}", e);
+            panic!("Config save failed: {e:?}");
         }
     }
 }

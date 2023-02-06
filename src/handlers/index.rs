@@ -43,10 +43,7 @@ fn render_article_list(
 
     match data.hbs.render( "index", &render_data) {
         Ok(rendered_page) => (StatusCode::OK, Html(rendered_page)),
-        Err(e) => server_error(&format!(
-            "Failed to render article in index. Error: {:?}",
-            e
-        )),
+        Err(e) => server_error(&format!( "Failed to render article in index. Error: {e:?}")),
     }
 }
 

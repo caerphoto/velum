@@ -158,7 +158,7 @@ impl ImageListDir {
     }
     pub fn push<P: AsRef<OsPath>>(&mut self, file_name: P) -> Result<(), ThumbError> {
         let file_name = file_name.as_ref().to_string_lossy().to_string();
-        let entry = ImageListEntry::new(&file_name)?;
+        let entry = ImageListEntry::new(file_name)?;
         self.file_names.push(entry);
         Ok(())
     }
@@ -166,7 +166,7 @@ impl ImageListDir {
 
 fn generate_thumb_path(parts: &NameParts) -> Result<PathBuf, ThumbError> {
     let thumb_name = ImageListEntry::thumbnail_file_name(&parts.file_name)?;
-    let thumb_path = parts.dir.join(&thumb_name);
+    let thumb_path = parts.dir.join(thumb_name);
     if thumb_path.is_file() {
         Err(ThumbError::exists(&parts.path))
     } else {

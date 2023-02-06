@@ -59,7 +59,7 @@ use crate::SharedData;
 async fn error_handler(error: std::io::Error) -> impl IntoResponse {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
-        format!("Unhandled internal error: {}", error),
+        format!("Unhandled internal error: {error}"),
     )
 }
 

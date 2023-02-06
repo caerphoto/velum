@@ -89,7 +89,7 @@ pub async fn article_handler(
                 reply
             },
             Err(e) => {
-                server_error(&format!( "Failed to render article. Error: {:?}", e))
+                server_error(&format!( "Failed to render article. Error: {e:?}"))
             }
         }
     } else {

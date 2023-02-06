@@ -59,7 +59,7 @@ impl ContentView {
         let trimmed_url = blog_url.trim_end_matches('/');
         let modified_content = RELATIVE_IMG_URL.replace_all(
             &self.parsed_content,
-            format!(r#"<$1$2 $3="{}/$4""#, trimmed_url)
+            format!(r#"<$1$2 $3="{trimmed_url}/$4""#)
         );
         RssArticleView {
             title: self.title.as_ref(),
