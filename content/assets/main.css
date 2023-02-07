@@ -1,6 +1,7 @@
 html {
     --body-font-family: "Crimson Pro", serif;
-    --heading-font-family: "Work Sans", sans-serif;
+    --heading-font-family: "Overlock", sans-serif;
+    --admin-font-family: "Work Sans", sans-serif;
     --mono-font-family: "JetBrains Mono", monospace;
 
     margin: 0;
@@ -20,6 +21,7 @@ html.light {
     --alt-bg: #f2e9e1;
     --plain-text: #575279;
     --subdued-text: #9893a5;
+    --content-heading-text: #908caa;
     --alt-text: #907aa9;
 
     --link-normal: #d7827e;
@@ -49,6 +51,7 @@ html.dark {
     --alt-bg: #393552;
     --plain-text: #d5d3e6; /* standard rosé pine normal text is too bright */
     --subdued-text: #908caa;
+    --content-heading-text: #e0def4;
     --alt-text: #c4a7e7;
 
     --link-normal: #ea9a97;
@@ -225,7 +228,15 @@ footer .feed-link img {
 
 h1, h2, h3, h4, h5 {
     font-family: var(--heading-font-family);
-    font-weight: 600;
+    font-weight: 700;
+}
+
+article h1,
+article h2,
+article h3,
+article h4,
+article h5 {
+    color: var(--content-heading-text);
 }
 
 h1 {
