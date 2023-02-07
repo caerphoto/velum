@@ -16,21 +16,28 @@ html {
 }
 
 html.light {
-    --main-bg: #eee;
-    --alt-bg: #ccc;
-    --input-bg: #fff;
-    --plain-text: #444;
-    --subdued-text: #777;
-    --alt-text: #000;
-    --link-normal: hsl(200, 30%, 50%);
-    --link-visited: hsl(300, 20%, 40%);
-    --link-hover: hsl(200, 100%, 50%);
-    --link-header: hsl(200, 40%, 40%);
+    --main-bg: #faf4ed;
+    --alt-bg: #f2e9e1;
+    --plain-text: #575279;
+    --subdued-text: #9893a5;
+    --alt-text: #b4637a;
+
+    --link-normal: #56949f;
+    --link-visited: #907aa9;
+    --link-hover: #286983;
+    --link-header: var(--link-normal);
     --link-header-visited: var(--link-header);
+
     --code: #444;
-    --separator-color: rgba(0, 0, 0, 0.2);
+    --separator-color: #ea9d34;
     --caption-bg: rgba(0, 0, 0, 0.05);
     --caption-border: rgba(0, 0, 0, 0.2);
+
+    --input-bg: #fffaf3;
+    --input-border: var(--subdued-text);
+    --input-border-focus: var(--alt-text);
+    --button-bg: #dfdad9;
+    --button-bg-hover: #cecacd;
 }
 
 html.light .theme-selector-icon {
@@ -38,21 +45,28 @@ html.light .theme-selector-icon {
 }
 
 html.dark {
-    --main-bg: #222;
-    --alt-bg: #000;
-    --input-bg: #000;
-    --plain-text: #ccc;
-    --subdued-text: #888;
-    --alt-text: #aaa;
-    --link-normal: hsl(227, 30%, 60%);
-    --link-visited: hsl(283, 15%, 60%);
-    --link-hover: #009ac9;
-    --link-header: #0084d1;
+    --main-bg: #232136;
+    --alt-bg: #393552;
+    --plain-text: #d5d3e6; /* standard rosé pine normal text is too bright */
+    --subdued-text: #908caa;
+    --alt-text: #eb6f92;
+
+    --link-normal: #9ccfd8;
+    --link-visited: #c4a7e7;
+    --link-hover: #3e8fb0;
+    --link-header: var(--link-normal);
     --link-index-visited: var(--link-header);
+
     --code: #444;
-    --separator-color: rgba(255, 255, 255, 0.3);
+    --separator-color: #f6c177;
     --caption-bg: rgba(0, 0, 0, 0.4);
     --caption-border: rgba(0, 0, 0, 0.5);
+
+    --input-bg: #2a283e;
+    --input-border: var(--subdued-text);
+    --input-border-focus: var(--alt-text);
+    --button-bg: #44415a;
+    --button-bg-hover: #56526a;
 }
 
 html.dark .theme-selector-icon {
@@ -66,15 +80,23 @@ html.nightsight {
     --plain-text: #b00;
     --subdued-text: #800;
     --alt-text: #d55;
+
     --link-normal: hsl(227, 40%, 30%);
     --link-visited: hsl(300, 20%, 30%);
     --link-hover: #26313e;
     --link-header: #414c72;
     --link-index-visited: #5c3868; /* slightly darker than normal links */
+
     --code: #844;
     --separator-color: rgba(255, 0, 0, 0.6);
     --caption-bg: rgba(80, 0, 0, 0.2);
     --caption-border: rgba(255, 0, 0, 0.2);
+
+    --input-bg: #211;
+    --input-border: var(--subdued-text);
+    --input-border-focus: var(--alt-text);
+    --button-bg: #211;
+    --button-bg-hover: #333;
 }
 
 html.nightsight .theme-selector-icon {
@@ -102,7 +124,7 @@ header {
     color: var(--alt-text);
     grid-template-columns: 1fr var(--content-width) 1fr;
     grid-template-rows: auto auto;
-    border-bottom: 1px solid var(--separator-color);
+    border-bottom: 2px solid var(--separator-color);
     margin: 0 -0.5rem 1em;
 }
 
@@ -117,6 +139,7 @@ header {
 footer {
     grid-template-columns: 1fr 1fr;
     margin: 0 -0.5rem;
+    border-top: 2px solid var(--separator-color);
 }
 
 footer p {
@@ -184,8 +207,12 @@ footer .feed-link img {
 }
 
 #ts-nightsight + label::after {
-    border-color: #800;
+    border-color: #c00;
 }
+.dark #ts-nightsight + label::after {
+    border-color: #c33;
+}
+
 
 #theme-selector-box input:checked + label::after {
     background-color: var(--alt-text);
@@ -473,6 +500,24 @@ nav .footer-home-link-box {
     align-self: end;
 }
 
+button,
+input[type="button"],
+input[type="submit"] {
+    background-color: var(--button-bg);
+    color: var(--plain-text);
+    border: 1px solid var(--plain-text);
+    font-family: var(--heading-font-family);
+    font-size: 1em;
+    padding: 0.2em 0.5em;
+    border-radius: 0.1em;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover {
+    background-color: var(--button-bg-hover);
+}
+
 #comments {
     margin-top: 1.5em;
     margin-bottom: 1em;
@@ -505,10 +550,17 @@ nav .footer-home-link-box {
     box-sizing: border-box;
     margin: 0 0 0.5em;
     padding: 0.2em 0.5em;
-    border: 1px solid var(--plain-text);
+    border: 1px solid var(--input-border);
     background-color: var(--input-bg);
     color: var(--plain-text);
     border-radius: 2px;
+}
+
+#comments input:focus,
+#comments textarea:focus {
+    border-color: var(--input-border-focus);
+    outline: 1px solid var(--input-border-focus);
+    outline-offset: 2px;
 }
 
 #comments input {
