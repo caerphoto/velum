@@ -20,11 +20,11 @@ html.light {
     --alt-bg: #f2e9e1;
     --plain-text: #575279;
     --subdued-text: #9893a5;
-    --alt-text: #b4637a;
+    --alt-text: #907aa9;
 
-    --link-normal: #56949f;
-    --link-visited: #907aa9;
-    --link-hover: #286983;
+    --link-normal: #d7827e;
+    --link-visited: #56949f;
+    --link-hover: #ea9d34;
     --link-header: var(--link-normal);
     --link-header-visited: var(--link-header);
 
@@ -49,11 +49,11 @@ html.dark {
     --alt-bg: #393552;
     --plain-text: #d5d3e6; /* standard rosé pine normal text is too bright */
     --subdued-text: #908caa;
-    --alt-text: #eb6f92;
+    --alt-text: #c4a7e7;
 
-    --link-normal: #9ccfd8;
-    --link-visited: #c4a7e7;
-    --link-hover: #3e8fb0;
+    --link-normal: #ea9a97;
+    --link-visited: #9ccfd8;
+    --link-hover: #f6c177;
     --link-header: var(--link-normal);
     --link-index-visited: var(--link-header);
 
@@ -230,6 +230,10 @@ h1, h2, h3, h4, h5 {
 
 h1 {
     margin: 0.2em 0 0.5em;
+}
+
+.tag-index h1 {
+    margin-bottom: 0.2em;
 }
 
 header h1 {
