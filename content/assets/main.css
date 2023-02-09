@@ -66,7 +66,7 @@ html.dark {
     --caption-border: rgba(0, 0, 0, 0.5);
 
     --input-bg: #2a283e;
-    --input-border: var(--subdued-text);
+    --input-border: var(--separator-color);
     --input-border-focus: var(--alt-text);
     --button-bg: #44415a;
     --button-bg-hover: #56526a;
