@@ -218,7 +218,7 @@ footer .feed-link img {
 
 
 #theme-selector-box input:checked + label::after {
-    background-color: var(--alt-text);
+    background-color: var(--link-normal);
     content: "";
 }
 
@@ -264,7 +264,7 @@ h2 {
 }
 
 .article-list h2 a:visited {
-    border-color: var(--link-visited);
+    border-color: var(--subdued-text);
 }
 
 .article-list h2 a:hover {
