@@ -37,7 +37,7 @@ html.light {
 
     --input-bg: #fffaf3;
     --input-border: var(--subdued-text);
-    --input-border-focus: var(--alt-text);
+    --input-border-focus: var(--separator-color);
     --button-bg: #dfdad9;
     --button-bg-hover: #cecacd;
 }
