@@ -125,7 +125,6 @@ impl<'a> ArticleRenderView<'a> {
         theme: String,
         data: &'a CommonData,
     ) -> Self {
-        dbg!(&article.prev);
         Self {
             title: &article.title,
             blog_title: &data.config.blog_title,
