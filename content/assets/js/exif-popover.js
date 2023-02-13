@@ -1,4 +1,5 @@
-(function () {
+(function() {
+    if (!window.EXIF) return;
     let exifPopover;
 
     function positionFromImage(img) {
@@ -24,31 +25,31 @@
         if (img.nodeName !== "IMG") return;
         if (!hasLoaded(img)) return;
 
-        exifPopover.classList.add("active");
-        exifPopover.classList.add("loading");
         const popoverPosition = positionFromImage(img);
 
         exifPopover.style.top = popoverPosition.top + "px";
         exifPopover.style.left = popoverPosition.left + "px";
 
-        window.EXIF.getData(img, function () {
+        window.EXIF.getData(img, function() {
             const data = this.exifdata;
             if (Object.keys(data).length === 0) {
                 return;
             }
+            if (!data.FocalLength && !data.FNumber && !data.LensModel) {
+                return;
+            }
+
             let model = data.LensModel || "(lens name unavailable)";
+            model = model.replace("Fujifilm Fujinon", "");
             const length = Math.round(data.FocalLength) || "--";
             const aperture = data.FNumber || "--";
-
-            model = model.replace("Fujifilm Fujinon", "");
 
             exifPopover.innerHTML = [
                 length + "mm",
                 "f/" + aperture,
             ].join(" &middot; ") +
                 '<br><span class="lens-name">' + model + "</span>";
-
-            exifPopover.classList.remove("loading");
+            exifPopover.classList.add("active");
         });
     }
 
@@ -56,28 +57,26 @@
         exifPopover.classList.remove("active");
     }
 
-    if (window.EXIF) {
-        exifPopover = document.createElement("div");
-        exifPopover.innerHTML = "--<br>--";
-        exifPopover.id = "exif-popover";
-        document.body.appendChild(exifPopover);
-        document.body.addEventListener("mouseover", showExifOnImage);
-        document.body.addEventListener("mouseout", hideExif);
+    exifPopover = document.createElement("div");
+    exifPopover.innerHTML = "--<br>--";
+    exifPopover.id = "exif-popover";
+    document.body.appendChild(exifPopover);
+    document.body.addEventListener("mouseover", showExifOnImage);
+    document.body.addEventListener("mouseout", hideExif);
 
-        document.body.addEventListener("click", function (event) {
-            setTimeout(
-                function () {
-                    if (this.target.nodeName !== "IMG") return;
-                    if (this.target.classList.contains("focus")) {
-                        if (exifPopover.classList.contains("active")) {
-                            hideExif();
-                        } else {
-                            showExifOnImage(this);
-                        }
+    document.body.addEventListener("click", function(event) {
+        setTimeout(
+            function() {
+                if (this.target.nodeName !== "IMG") return;
+                if (this.target.classList.contains("focus")) {
+                    if (exifPopover.classList.contains("active")) {
+                        hideExif();
+                    } else {
+                        showExifOnImage(this);
                     }
-                }.bind(event),
-                0,
-            );
-        });
-    }
+                }
+            }.bind(event),
+            0,
+        );
+    });
 })();
