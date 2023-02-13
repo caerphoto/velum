@@ -3,72 +3,10 @@ use serde::Serialize;
 use crate::{
     CommonData,
     comments::Comment,
-    article::storage::LinkList,
-
+    article::storage::PaginatedArticles,
 };
 
-#[derive(Serialize, Clone, Debug)]
-pub struct IndexView {
-    pub title: String,
-    pub slug: String,
-    pub preview: String,
-    pub timestamp: i64,
-    pub tags: Vec<String>,
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub struct PrevNextView {
-    pub title: String,
-    pub slug: String,
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub struct ContentView {
-    pub title: String,
-    pub parsed_content: String,
-    pub base_content: String,
-    pub preview: String,
-    pub slug: String,
-    pub source_filename: std::path::PathBuf,
-    pub timestamp: i64,
-    pub tags: Vec<String>,
-    pub prev: Option<PrevNextView>,
-    pub next: Option<PrevNextView>,
-}
-
-impl ContentView {
-    pub fn to_prev_next_view(&self) -> PrevNextView {
-        PrevNextView { title: self.title.clone(), slug: self.slug.clone() }
-    }
-
-    pub fn to_index_view(&self) -> IndexView {
-        IndexView {
-            title: self.title.clone(),
-            preview: self.preview.clone(),
-            slug: self.slug.clone(),
-            timestamp: self.timestamp,
-            tags: self.tags.clone(),
-        }
-    }
-
-    pub fn to_rss_view(&self, blog_url: &str) -> RssArticleView {
-        lazy_static! {
-            static ref RELATIVE_IMG_URL: Regex = Regex::new(r#"<(img|a)( .*)* (src|href)="/([^"]+)""#).unwrap();
-        }
-
-        let trimmed_url = blog_url.trim_end_matches('/');
-        let modified_content = RELATIVE_IMG_URL.replace_all(
-            &self.parsed_content,
-            format!(r#"<$1$2 $3="{trimmed_url}/$4""#)
-        );
-        RssArticleView {
-            title: self.title.as_ref(),
-            slug: self.slug.as_ref(),
-            content: String::from(modified_content),
-            timestamp: self.timestamp,
-        }
-    }
-}
+use super::builder::ParsedArticle;
 
 #[derive(Serialize)]
 pub struct IndexRenderView<'a> {
@@ -80,7 +18,7 @@ pub struct IndexRenderView<'a> {
     last_page: usize,
     search_tag: Option<&'a str>,
     article_count: usize,
-    articles: Vec<IndexView>,
+    articles: Vec<&'a ParsedArticle>,
     body_class: &'a str,
     content_dir: &'a str,
     theme: String,
@@ -89,7 +27,7 @@ pub struct IndexRenderView<'a> {
 
 impl<'a> IndexRenderView<'a> {
     pub fn new(
-        article_list: LinkList,
+        article_list: &'a PaginatedArticles,
         tag: Option<&'a str>,
         page: usize,
         page_size: usize,
@@ -123,7 +61,7 @@ impl<'a> IndexRenderView<'a> {
             body_class: if tag.is_some() { "tag-index" } else { "index" },
             search_tag: tag,
             article_count: article_list.total_articles,
-            articles: article_list.index_views,
+            articles: article_list.articles.clone(), // is a vec of refs, so clone is cheap
             content_dir: &data.config.content_dir,
             theme,
             home_page_info,
@@ -139,6 +77,26 @@ pub struct RssArticleView<'a> {
     timestamp: i64,
 }
 
+impl <'a>RssArticleView<'a> {
+    pub fn from_parsed_article<'b>(article: &'b ParsedArticle, blog_url: &'b str) -> RssArticleView<'b> {
+        lazy_static! {
+            static ref RELATIVE_IMG_URL: Regex = Regex::new(r#"<(img|a)( .*)* (src|href)="/([^"]+)""#).unwrap();
+        }
+
+        let trimmed_url = blog_url.trim_end_matches('/');
+        let modified_content = RELATIVE_IMG_URL.replace_all(
+            &article.parsed_content,
+            format!(r#"<$1$2 $3="{trimmed_url}/$4""#)
+        );
+        RssArticleView {
+            title: article.title.as_ref(),
+            slug: article.slug.as_ref(),
+            content: String::from(modified_content),
+            timestamp: article.timestamp,
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub struct RssIndexView<'a> {
     pub blog_title: &'a str,
@@ -152,7 +110,7 @@ pub struct ArticleRenderView<'a> {
     title: &'a str,
     //blog_title: String,
     blog_title: &'a str,
-    article: &'a ContentView,
+    article: &'a ParsedArticle,
     comments: Option<&'a Vec<Comment>>,
     return_path: String,
     body_class: &'a str,
@@ -162,11 +120,12 @@ pub struct ArticleRenderView<'a> {
 
 impl<'a> ArticleRenderView<'a> {
     pub fn new(
-        article: &'a ContentView,
+        article: &'a ParsedArticle,
         return_path: String,
         theme: String,
         data: &'a CommonData,
     ) -> Self {
+        dbg!(&article.prev);
         Self {
             title: &article.title,
             blog_title: &data.config.blog_title,
