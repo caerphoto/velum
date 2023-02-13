@@ -1,6 +1,7 @@
 html {
     --body-font-family: "Crimson Pro", serif;
-    --heading-font-family: "Work Sans", sans-serif;
+    --heading-font-family: "Overlock", sans-serif;
+    --admin-font-family: "Work Sans", sans-serif;
     --mono-font-family: "JetBrains Mono", monospace;
 
     margin: 0;
@@ -16,21 +17,29 @@ html {
 }
 
 html.light {
-    --main-bg: #eee;
-    --alt-bg: #ccc;
-    --input-bg: #fff;
-    --plain-text: #444;
-    --subdued-text: #777;
-    --alt-text: #000;
-    --link-normal: hsl(200, 30%, 50%);
-    --link-visited: hsl(300, 20%, 40%);
-    --link-hover: hsl(200, 100%, 50%);
-    --link-header: hsl(200, 40%, 40%);
+    --main-bg: #faf4ed;
+    --alt-bg: #f2e9e1;
+    --plain-text: #575279;
+    --subdued-text: #9893a5;
+    --content-heading-text: #908caa;
+    --alt-text: #907aa9;
+
+    --link-normal: #d7827e;
+    --link-visited: #56949f;
+    --link-hover: #ea9d34;
+    --link-header: var(--link-normal);
     --link-header-visited: var(--link-header);
+
     --code: #444;
-    --separator-color: rgba(0, 0, 0, 0.2);
+    --separator-color: #ea9d34;
     --caption-bg: rgba(0, 0, 0, 0.05);
     --caption-border: rgba(0, 0, 0, 0.2);
+
+    --input-bg: #fffaf3;
+    --input-border: var(--subdued-text);
+    --input-border-focus: var(--separator-color);
+    --button-bg: #dfdad9;
+    --button-bg-hover: #cecacd;
 }
 
 html.light .theme-selector-icon {
@@ -38,21 +47,29 @@ html.light .theme-selector-icon {
 }
 
 html.dark {
-    --main-bg: #222;
-    --alt-bg: #000;
-    --input-bg: #000;
-    --plain-text: #ccc;
-    --subdued-text: #888;
-    --alt-text: #aaa;
-    --link-normal: hsl(227, 30%, 60%);
-    --link-visited: hsl(283, 15%, 60%);
-    --link-hover: #009ac9;
-    --link-header: #0084d1;
+    --main-bg: #232136;
+    --alt-bg: #393552;
+    --plain-text: #d5d3e6; /* standard rosé pine normal text is too bright */
+    --subdued-text: #908caa;
+    --content-heading-text: #e0def4;
+    --alt-text: #c4a7e7;
+
+    --link-normal: #ea9a97;
+    --link-visited: #9ccfd8;
+    --link-hover: #f6c177;
+    --link-header: var(--link-normal);
     --link-index-visited: var(--link-header);
+
     --code: #444;
-    --separator-color: rgba(255, 255, 255, 0.3);
+    --separator-color: #f6c177;
     --caption-bg: rgba(0, 0, 0, 0.4);
     --caption-border: rgba(0, 0, 0, 0.5);
+
+    --input-bg: #2a283e;
+    --input-border: var(--subdued-text);
+    --input-border-focus: var(--separator-color);
+    --button-bg: #44415a;
+    --button-bg-hover: #56526a;
 }
 
 html.dark .theme-selector-icon {
@@ -66,15 +83,23 @@ html.nightsight {
     --plain-text: #b00;
     --subdued-text: #800;
     --alt-text: #d55;
+
     --link-normal: hsl(227, 40%, 30%);
     --link-visited: hsl(300, 20%, 30%);
     --link-hover: #26313e;
     --link-header: #414c72;
     --link-index-visited: #5c3868; /* slightly darker than normal links */
+
     --code: #844;
     --separator-color: rgba(255, 0, 0, 0.6);
     --caption-bg: rgba(80, 0, 0, 0.2);
     --caption-border: rgba(255, 0, 0, 0.2);
+
+    --input-bg: #211;
+    --input-border: var(--subdued-text);
+    --input-border-focus: var(--alt-text);
+    --button-bg: #211;
+    --button-bg-hover: #333;
 }
 
 html.nightsight .theme-selector-icon {
@@ -102,7 +127,7 @@ header {
     color: var(--alt-text);
     grid-template-columns: 1fr var(--content-width) 1fr;
     grid-template-rows: auto auto;
-    border-bottom: 1px solid var(--separator-color);
+    border-bottom: 2px solid var(--separator-color);
     margin: 0 -0.5rem 1em;
 }
 
@@ -117,6 +142,7 @@ header {
 footer {
     grid-template-columns: 1fr 1fr;
     margin: 0 -0.5rem;
+    border-top: 2px solid var(--separator-color);
 }
 
 footer p {
@@ -184,11 +210,15 @@ footer .feed-link img {
 }
 
 #ts-nightsight + label::after {
-    border-color: #800;
+    border-color: #c00;
+}
+.dark #ts-nightsight + label::after {
+    border-color: #c33;
 }
 
+
 #theme-selector-box input:checked + label::after {
-    background-color: var(--alt-text);
+    background-color: var(--link-normal);
     content: "";
 }
 
@@ -198,11 +228,23 @@ footer .feed-link img {
 
 h1, h2, h3, h4, h5 {
     font-family: var(--heading-font-family);
-    font-weight: 600;
+    font-weight: 700;
+}
+
+article h1,
+article h2,
+article h3,
+article h4,
+article h5 {
+    color: var(--content-heading-text);
 }
 
 h1 {
     margin: 0.2em 0 0.5em;
+}
+
+.tag-index h1 {
+    margin-bottom: 0.2em;
 }
 
 header h1 {
@@ -222,7 +264,7 @@ h2 {
 }
 
 .article-list h2 a:visited {
-    border-color: var(--link-visited);
+    border-color: var(--subdued-text);
 }
 
 .article-list h2 a:hover {
@@ -473,6 +515,24 @@ nav .footer-home-link-box {
     align-self: end;
 }
 
+button,
+input[type="button"],
+input[type="submit"] {
+    background-color: var(--button-bg);
+    color: var(--plain-text);
+    border: 1px solid var(--plain-text);
+    font-family: var(--heading-font-family);
+    font-size: 1em;
+    padding: 0.2em 0.5em;
+    border-radius: 0.1em;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover {
+    background-color: var(--button-bg-hover);
+}
+
 #comments {
     margin-top: 1.5em;
     margin-bottom: 1em;
@@ -505,10 +565,17 @@ nav .footer-home-link-box {
     box-sizing: border-box;
     margin: 0 0 0.5em;
     padding: 0.2em 0.5em;
-    border: 1px solid var(--plain-text);
+    border: 1px solid var(--input-border);
     background-color: var(--input-bg);
     color: var(--plain-text);
     border-radius: 2px;
+}
+
+#comments input:focus,
+#comments textarea:focus {
+    border-color: var(--input-border-focus);
+    outline: 1px solid var(--input-border-focus);
+    outline-offset: 2px;
 }
 
 #comments input {
