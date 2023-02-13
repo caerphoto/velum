@@ -4,14 +4,13 @@ use handlebars::Handlebars;
 use crate::hb::create_handlebars;
 use crate::article::gather_fs_articles;
 use crate::errors::ParseError;
-use crate::article::view::ContentView;
+use crate::article::builder::ParsedArticle;
 use crate::comments::Comments;
 use crate::config::Config;
 
-#[derive(Clone)]
 pub struct CommonData {
     pub hbs: Handlebars<'static>,
-    pub articles: Vec<ContentView>,
+    pub articles: Vec<ParsedArticle>,
     pub comments: Comments,
     pub config: Config,
     pub session_id: Option<String>,
