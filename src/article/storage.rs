@@ -200,6 +200,5 @@ pub fn gather_fs_articles(config: &Config) -> ParseResult<Vec<ParsedArticle>> {
     articles.sort_by_key(|k| k.timestamp);
     articles.reverse();
     set_prev_next(&mut articles);
-    let a1 = articles.first();
     Ok(articles)
 }
