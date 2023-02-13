@@ -1,6 +1,7 @@
 use crate::errors::{ParseError, ParseResult};
 use pulldown_cmark::{self as cmark, Event, Tag};
 use regex::Regex;
+use serde::Serialize;
 use std::io::{self, ErrorKind};
 use std::path::{PathBuf, Path};
 use std::{fs, time};
@@ -26,10 +27,11 @@ pub struct Builder {
     pub content: String,
     pub timestamp: i64,
     pub source_filename: PathBuf,
+    pub max_preview_length: usize,
 }
 
 impl Builder {
-    pub fn from_file(path: &Path) -> Result<Self, io::Error> {
+    pub fn from_file(path: &Path, max_preview_length: usize) -> Result<Self, io::Error> {
         let metadata = fs::metadata(path)?;
         let content = fs::read_to_string(path)?;
         let filedate = metadata.modified()?;
@@ -38,6 +40,7 @@ impl Builder {
                 content,
                 timestamp: s.as_millis() as i64,
                 source_filename: path.into(),
+                max_preview_length,
             })
         } else {
             Err(io::Error::new(ErrorKind::Other, "failed to read file"))
@@ -200,6 +203,61 @@ impl Builder {
         let mut parsed = String::new();
         cmark::html::push_html(&mut parsed, typographic_parser);
         parsed
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct ArticlePrevNext {
+    pub title: String,
+    pub slug: String,
+}
+
+impl From<&ParsedArticle> for ArticlePrevNext {
+    fn from(value: &ParsedArticle) -> Self {
+        Self {
+            title: value.title.clone(),
+            slug: value.slug.clone(),
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct ParsedArticle {
+    pub title: String,
+    pub parsed_content: String,
+    pub base_content: String,
+    pub preview: String,
+    pub slug: String,
+    pub source_filename: std::path::PathBuf,
+    pub timestamp: i64,
+    pub tags: Vec<String>,
+    pub prev: Option<ArticlePrevNext>,
+    pub next: Option<ArticlePrevNext>,
+}
+
+impl TryFrom<&Builder> for ParsedArticle {
+    type Error = ParseError;
+    fn try_from(b: &Builder) -> Result<Self, Self::Error> {
+        let title = b.title()?;
+        Ok(ParsedArticle {
+            slug: b.slug()?, // borrow here before
+            title,                       // move here
+            parsed_content: b.parsed_content(),
+            base_content: b.content.clone(),
+            preview: b.content_preview(b.max_preview_length),
+            source_filename: b.source_filename.clone(),
+            timestamp: b.timestamp,
+            tags: b.tags(),
+            prev: None,
+            next: None,
+        })
+    }
+}
+
+impl TryFrom<Builder> for ParsedArticle {
+    type Error = ParseError;
+    fn try_from(value: Builder) -> Result<Self, Self::Error> {
+        ParsedArticle::try_from(&value)
     }
 }
 

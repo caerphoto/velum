@@ -14,7 +14,7 @@ use super::{
 };
 
 use crate::article::{
-    storage::{fetch_index_links, LinkList},
+    storage::{fetch_paginated_articles, PaginatedArticles},
     view::{
         IndexRenderView,
         RssIndexView,
@@ -25,7 +25,7 @@ use crate::CommonData;
 use crate::SharedData;
 
 fn render_article_list(
-    article_list: LinkList,
+    article_list: PaginatedArticles,
     tag: Option<&str>,
     page: usize,
     page_size: usize,
@@ -33,7 +33,7 @@ fn render_article_list(
     data: &CommonData,
 ) -> (StatusCode, Html<String>) {
     let render_data = IndexRenderView::new(
-        article_list,
+        &article_list,
         tag,
         page,
         page_size,
@@ -72,7 +72,7 @@ pub async fn index_handler(
     let data = data.read();
 
     let page_size = data.config.page_size;
-    let article_list = fetch_index_links(page, page_size, None, &data.articles);
+    let article_list = fetch_paginated_articles(page, page_size, None, &data.articles);
 
     let response = render_article_list(
         article_list,
@@ -89,7 +89,10 @@ pub async fn index_handler(
 
 fn build_rss_articles(data: &CommonData) -> Vec<RssArticleView> {
     let end_index = std::cmp::min(10, data.articles.len());
-    data.articles[..end_index].iter().map(|a| a.to_rss_view(&data.config.blog_url)).collect()
+    data.articles[..end_index]
+        .iter()
+        .map(|a| RssArticleView::from_parsed_article(a, &data.config.blog_url))
+        .collect()
 }
 
 pub async fn rss_handler(
@@ -142,7 +145,7 @@ pub async fn tag_handler(
     let data = data.read();
     let page_size = data.config.page_size;
 
-    let article_result = fetch_index_links(page, page_size, Some(&tag), &data.articles);
+    let article_result = fetch_paginated_articles(page, page_size, Some(&tag), &data.articles);
 
     let response = render_article_list(
         article_result,
