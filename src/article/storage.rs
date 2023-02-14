@@ -1,5 +1,4 @@
 use std::fs;
-use std::cmp::min;
 use std::path::{PathBuf, Path};
 use std::io::{self, ErrorKind};
 use serde::Serialize;
@@ -17,44 +16,34 @@ pub struct PaginatedArticles<'a> {
     pub total_articles: usize,
 }
 
-fn indices_from_page(page: usize, per_page: usize) -> (usize, usize) {
-    let start_index = page.saturating_sub(1) * per_page;
-    let end_index = start_index + per_page - 1;
-    (start_index, end_index)
-}
-
 pub fn fetch_paginated_articles<'a>(
     page: usize,
     per_page: usize,
     tag: Option<&str>,
-    articles: &'a Vec<ParsedArticle>,
+    articles: &'a [ParsedArticle],
 ) -> PaginatedArticles<'a> {
-    let (mut start, mut end) = indices_from_page(page, per_page);
-
-    if let Some(t) = tag {
-        let index_views: Vec<&ParsedArticle> = articles
+    let article_subset: Vec<&ParsedArticle>  = if let Some(t) = tag {
+        let t = t.to_string();
+        articles
             .iter()
-            .filter(|cv| cv.tags.contains(&t.to_string()))
-            .collect();
-
-        end = min(end, index_views.len());
-        start = min(start, end);
-
-        PaginatedArticles {
-            articles: index_views[start..end].to_vec(),
-            total_articles: index_views.len(),
-        }
+            .filter(|cv| cv.tags.contains(&t))
+            .collect()
     } else {
-        end = min(end, articles.len());
-        start = min(start, end);
-        let index_views: Vec<&ParsedArticle> = articles[start..end]
-            .iter()
-            .collect();
-        PaginatedArticles {
-            articles: index_views,
-            total_articles: articles.len(),
-        }
+        articles.iter().collect()
+    };
+
+    // Pages are normally 1-indexed, but page 0 is also valid: it means the 'home' index page,
+    // where we show the 'blog info' box.
+    let page = page.saturating_sub(1);
+
+    let total_articles = article_subset.len();
+    if let Some(chunk) = article_subset.chunks(per_page).nth(page) {
+        PaginatedArticles { articles: chunk.into(), total_articles }
+    } else {
+        log::error!("Problem getting page {page} from subset of length {total_articles} with chunk size of {per_page}");
+        PaginatedArticles { articles: Vec::new(), total_articles }
     }
+
 }
 
 pub fn fetch_by_slug<'a >(slug: &str, articles: &'a Vec<ParsedArticle>) -> Option<&'a ParsedArticle> {
@@ -72,7 +61,6 @@ fn fetch_by_slug_mut<'a >(slug: &str, articles: &'a mut Vec<ParsedArticle>) -> O
 
     None
 }
-
 
 fn set_prev_next(articles: &mut Vec<ParsedArticle>) {
     for i in 0..articles.len() { // can't use enumerate because we need to borrow mut within loop
