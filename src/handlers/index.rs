@@ -41,8 +41,14 @@ fn render_article_list(
         data
     );
 
+    let status = if article_list.total_articles > 0 {
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
+    };
+
     match data.hbs.render( "index", &render_data) {
-        Ok(rendered_page) => (StatusCode::OK, Html(rendered_page)),
+        Ok(rendered_page) => (status, Html(rendered_page)),
         Err(e) => server_error(&format!( "Failed to render article in index. Error: {e:?}")),
     }
 }

@@ -30,20 +30,26 @@
 
   </section>
   <section id="post-index" class="content">
-    <ul class="article-list">
-      {{#each articles}}
-      <li class="article-list_item">
-        <h2><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
-        <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
-        <p class="content-preview">{{this.preview}}</p>
-        {{{render_tags this.tags ../search_tag}}}
+    {{#if (gt article_count 0)}}
+      <ul class="article-list">
+        {{#each articles}}
+        <li class="article-list_item">
+          <h2><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
+          <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
+          <p class="content-preview">{{this.preview}}</p>
+          {{{render_tags this.tags ../search_tag}}}
 
-      </li>
-      {{/each}}
-    </ul>
+        </li>
+        {{/each}}
+      </ul>
+    {{else}}
+      <p class="empty-article-list-note">No articles found.</p>
+    {{/if}}
   </section>
 </article>
 
-{{> _index_pagination }}
+{{#if (gt article_count 0)}}
+  {{> _index_pagination }}
+{{/if}}
 
 {{> _footer}}

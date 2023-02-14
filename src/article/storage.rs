@@ -32,15 +32,19 @@ pub fn fetch_paginated_articles<'a>(
         articles.iter().collect()
     };
 
-    // Pages are normally 1-indexed, but page 0 is also valid: it means the 'home' index page,
-    // where we show the 'blog info' box.
+    // Pages are normally provided as 1-indexed from the URL, but page 0 is also valid: it means
+    // the 'home' index page, where we show the 'blog info' box.
     let page = page.saturating_sub(1);
 
     let total_articles = article_subset.len();
     if let Some(chunk) = article_subset.chunks(per_page).nth(page) {
         PaginatedArticles { articles: chunk.into(), total_articles }
     } else {
-        log::error!("Problem getting page {page} from subset of length {total_articles} with chunk size of {per_page}");
+        if article_subset.is_empty() {
+            log::error!("No articles found. Tag: {tag:?}");
+        } else {
+            log::error!("Problem getting page {page} from subset of length {total_articles} with chunk size of {per_page}. Tag {tag:?}");
+        }
         PaginatedArticles { articles: Vec::new(), total_articles }
     }
 
