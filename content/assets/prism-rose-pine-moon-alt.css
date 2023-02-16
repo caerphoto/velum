@@ -10,14 +10,14 @@ pre[class*="language-"] {
 	color: #e0def4;
 	background: #2a273f;
 	font-family: 'JetBrains Mono', monospace;
-	font-size: 0.8em;
+	font-size: 13px;
 	font-weight: 300;
 	text-align: left;
 	white-space: pre;
 	word-spacing: normal;
 	word-break: normal;
 	word-wrap: normal;
-	line-height: 1.5;
+	line-height: 15px;
 
 	-moz-tab-size: 4;
 	-o-tab-size: 4;
