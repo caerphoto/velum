@@ -118,6 +118,9 @@ footer {
     background-color: var(--alt-bg);
     color: var(--alt-text);
     padding: 0.5em 0.5rem;
+    border-style: dotted;
+    border-color: var(--separator-color);
+    border-width: 0;
     box-shadow:
         -1.5rem 0 0 0 var(--plain-text),
          1.5rem 0 0 0 var(--plain-text);
@@ -127,8 +130,9 @@ header {
     color: var(--alt-text);
     grid-template-columns: 1fr var(--content-width) 1fr;
     grid-template-rows: auto auto;
-    border-bottom: 2px solid var(--separator-color);
+    border-bottom-width: 6px;
     margin: 0 -0.5rem 1em;
+    box-shadow: inset 0 -3px 0 0 var(--separator-color);
 }
 
 .index header {
@@ -142,7 +146,8 @@ header {
 footer {
     grid-template-columns: 1fr 1fr;
     margin: 0 -0.5rem;
-    border-top: 2px solid var(--separator-color);
+    border-top-width: 6px;
+    box-shadow: inset 0 3px 0 0 var(--separator-color);
 }
 
 footer p {
@@ -481,7 +486,7 @@ nav {
     display: grid;
     grid-template-columns: 1fr 6em 1fr;
     grid-template-rows: 1fr;
-    margin-bottom: 1em;
+    margin-bottom: 1.5em;
 }
 
 .article nav {
