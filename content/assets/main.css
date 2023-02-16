@@ -23,6 +23,7 @@ html.light {
     --subdued-text: #9893a5;
     --content-heading-text: #908caa;
     --alt-text: #907aa9;
+    --header-shadow-color: #fff;
 
     --link-normal: #d7827e;
     --link-visited: #56949f;
@@ -53,6 +54,7 @@ html.dark {
     --subdued-text: #908caa;
     --content-heading-text: #e0def4;
     --alt-text: #c4a7e7;
+    --header-shadow-color: #000;
 
     --link-normal: #ea9a97;
     --link-visited: #9ccfd8;
@@ -83,6 +85,7 @@ html.nightsight {
     --plain-text: #b00;
     --subdued-text: #800;
     --alt-text: #d55;
+    --header-shadow-color: #000;
 
     --link-normal: hsl(227, 40%, 30%);
     --link-visited: hsl(300, 20%, 30%);
@@ -121,9 +124,6 @@ footer {
     border-style: dotted;
     border-color: var(--separator-color);
     border-width: 0;
-    box-shadow:
-        -1.5rem 0 0 0 var(--plain-text),
-         1.5rem 0 0 0 var(--plain-text);
 }
 
 header {
@@ -132,7 +132,11 @@ header {
     grid-template-rows: auto auto;
     border-bottom-width: 6px;
     margin: 0 -0.5rem 1em;
-    box-shadow: inset 0 -3px 0 0 var(--separator-color);
+    box-shadow:
+        inset 0 -1px 0 0 var(--alt-bg),
+        0 1px 0 0 var(--alt-bg),
+        inset 0 -2px 0 0 var(--separator-color),
+        0 2px 0 0 var(--separator-color);
 }
 
 .index header {
@@ -147,7 +151,11 @@ footer {
     grid-template-columns: 1fr 1fr;
     margin: 0 -0.5rem;
     border-top-width: 6px;
-    box-shadow: inset 0 3px 0 0 var(--separator-color);
+    box-shadow:
+        inset 0 1px 0 0 var(--alt-bg),
+        0 -1px 0 0 var(--alt-bg),
+        inset 0 2px 0 0 var(--separator-color),
+        0 -2px 0 0 var(--separator-color);
 }
 
 footer p {
@@ -255,7 +263,7 @@ h1 {
 header h1 {
     grid-row: 2/3;
     grid-column: 2/3;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+    text-shadow: 0 1px 0 var(--header-shadow-color);
 }
 
 h2 {
