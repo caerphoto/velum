@@ -5,7 +5,7 @@ combines them into a full blog site, which it serves either directly or via
 something like nginx. The idea is to be as minimal and lightweight as possible,
 while still providing a decent blog experience for your readers.
 
-Live example: <https://blog.andyf.me/> running behind Nginx.
+Live example: <https://blog.andyf.me/> running behind nginx.
 
 ## In-memory Storage
 
