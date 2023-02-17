@@ -458,7 +458,7 @@ p.img img {
 }
 
 .nightsight #article-body figcaption::after {
-    content: "(Click or tap image to show it at full brightness.)";
+    content: "(Click/tap image to show it at full brightness.)";
     font-style: normal;
 }
 
