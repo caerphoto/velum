@@ -27,6 +27,7 @@
     let intervalID;
 
     const ALT_PLACEHOLDER = "image caption";
+    const RX_ARTICLE_HASH = /#article\/\w+$/;
 
     function fetchArticleText(slug) {
         const xhr = new XMLHttpRequest();
@@ -134,8 +135,8 @@
         saveBtn.textContent = "...";
     });
 
-    if (window.location.hash) {
-        const slug = window.location.hash.replace(/^#/, "");
+    if (window.location.hash && RX_ARTICLE_HASH.test(window.location.hash)) {
+        const slug = window.location.hash.replace(/^#article\//, "");
         fetchArticleText(slug);
     }
 

@@ -1,79 +1,96 @@
 {{> _header}}
 
-<header>
-  <div class="home link-box">
-    <a href="/" class="index-link">&larr; Home</a>
-  </div>
-  <div class="logout link-box">
-    <form action="/logout" method="POST">
-      <button type="submit">Log out</button>
-    </form>
-  </div>
-  <h1>Blog Admin</h1>
-</header>
+<div id="vue-app">
+  <header>
+    <div class="home link-box">
+      <a href="/" class="index-link">&larr; Home</a>
+    </div>
+    <div class="logout link-box">
+      <form action="/logout" method="POST">
+        <button type="submit">Log out</button>
+      </form>
+    </div>
+    <h1>Blog Admin ${message}</h1>
+  </header>
 
-<section id="admin-list-sections" class="admin-main-section">
-  <ul id="admin-list-sections-tabs" class="tabs">
-    <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
-    <li class="tab"><a href="#admin-image-manager">Images</a></li>
-    <li class="tab"><a href="#admin-comments-manager">Comments</a></li>
-  </ul>
+  <section id="admin-list-sections" class="admin-main-section">
+    <ul id="admin-list-sections-tabs" class="tabs">
+      <li class="tab active"><a href="#admin-article-manager">Articles</a></li>
+      <li class="tab"><a href="#admin-image-manager">Images</a></li>
+      <li class="tab"><a href="#admin-comments-manager">Comments</a></li>
+    </ul>
 
-  <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content">
-    <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
-      <button type="submit">Rebuild index</button>
-    </form>
-
-    <form id="admin-new-article" action="#new">
-      <button type="submit">Create new article</button>
-    </form>
-
-    <ol class="admin-article-list" reversed>
-      {{#each articles}}
-        {{> _admin_article_list_item }}
-      {{/each}}
-    </ol>
-  </section>
-
-  <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
-    <div>
-      <p><strong>Click</strong> an image to insert it into the article. <strong>Shift-click</strong> to open in a new window.</p>
-      <form action="/images" method="POST" id="image-upload-form" enctype="multipart/form-data">
-        <input type="file" name="image"  accept="image/*" multiple>
-        <input type="submit" value="Upload">
+    <section id="admin-article-manager" data-tab-set="admin-list-section" class="tab-content">
+      <form id="admin-rebuild-index" action="/rebuild_index" method="POST" class="main-section-form">
+        <button type="submit">Rebuild index</button>
       </form>
 
-      <div id="thumbs-progress">
-        <p>Generating thumbnails&hellip;</p>
-        <span class="loader"></span>
-        <progress id="thumbs-progress-bar" min="0" max="0" value="0"></progress>
-        <div id="thumbs-progress-text">
-          <span id="thumbs-progress-completed">0</span> / <span id="thumbs-progress-total">0</span>
+      <form id="admin-new-article" action="#new">
+        <button type="submit">Create new article</button>
+      </form>
+
+      <ol class="admin-article-list" reversed>
+        {{#each articles}}
+          {{> _admin_article_list_item }}
+        {{/each}}
+      </ol>
+    </section>
+
+    <section id="admin-image-manager" data-tab-set="admin-list-section" class="tab-content">
+      <div>
+        <p><strong>Click</strong> an image to insert it into the article. <strong>Shift-click</strong> to open in a new window.</p>
+        <form action="/images" method="POST" id="image-upload-form" enctype="multipart/form-data">
+          <input type="file" name="image"  accept="image/*" multiple>
+          <input type="submit" value="Upload">
+        </form>
+
+        <div id="thumbs-progress">
+          <p>Generating thumbnails&hellip;</p>
+          <span class="loader"></span>
+          <progress id="thumbs-progress-bar" min="0" max="0" value="0"></progress>
+          <div id="thumbs-progress-text">
+            <span id="thumbs-progress-completed">0</span> / <span id="thumbs-progress-total">0</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div id="admin-image-list" data-source="/all_images" data-counts-path="/check_thumb_progress">
-      {{! populated on load by JS }}
-    </div>
+      <div id="admin-image-list" data-source="/all_images" data-counts-path="/check_thumb_progress">
+        {{! populated on load by JS }}
+      </div>
+    </section>
+
+    <section id="admin-comments-manager" data-tab-set="admin-list-section" class="tab-content">
+      <p>Coming soon</p>
+      <p>{{message}}</p>
+    </section>
+
   </section>
 
-  <section id="admin-comments-manager" data-tab-set="admin-list-section" class="tab-content">
-    <p>Coming soon</p>
+  <section id="admin-article-editor" class="admin-main-section">
+    <h2>Edit <span class="if-new">new</span> article:</h2>
+
+    <p id="save-success">Saved!</p>
+    <form action="/article" data-method="PUT" id="save-article" class="main-section-form">
+      <button type="submit">Save</button>
+    </form>
+
+    <textarea id="article-editor-input" disabled>Click an article on the list to the left to begin editing, or click ’Create new article‘.</textarea>
   </section>
+</div> <!-- #vue-app -->
 
-</section>
 
-<section id="admin-article-editor" class="admin-main-section">
-  <h2>Edit <span class="if-new">new</span> article:</h2>
-
-  <p id="save-success">Saved!</p>
-  <form action="/article" data-method="PUT" id="save-article" class="main-section-form">
-    <button type="submit">Save</button>
-  </form>
-
-  <textarea id="article-editor-input" disabled>Click an article on the list to the left to begin editing, or click ’Create new article‘.</textarea>
-</section>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+  const app = Vue.createApp({
+    data() {
+      return {
+        message: 'Hello Vue!'
+      }
+    }
+  });
+  app.config.compilerOptions.delimiters = ['${', '}'];
+  app.mount('#vue-app');
+</script>
 
 <script src="{{asset_path "js/admin.js"}}"></script>
   </body>
