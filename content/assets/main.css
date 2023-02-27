@@ -230,21 +230,20 @@ footer .feed-link img {
     display: block;
     appearance: none;
     box-sizing: border-box;
-    outline: 2px solid var(--plain-text);
-    border: 1px solid var(--alt-bg);
+    border: 2px solid var(--plain-text);
     border-radius: 50%;
     background-color: var(--alt-bg);
-    width: 0.9rem;
-    height: 0.9rem;
-    margin: 0 2px; /* 2px to match outline width */
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
     cursor: pointer;
 }
 
-#ts-nightsight {
-    outline-color: #c00;
+input#ts-nightsight {
+    border-color: #c00;
 }
-.dark #ts-nightsight {
-    outline-color: #c33;
+.dark input#ts-nightsight {
+    border-color: #c33;
 }
 
 
