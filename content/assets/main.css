@@ -195,44 +195,61 @@ footer .feed-link img {
     white-space: pre;
 }
 
+#theme-selector-box {
+    display: flex;
+    align-items: center;
+}
+
 .theme-selector-icon {
-    display: inline-block;
-    width: 17px;
-    height: 18px;
+    display: block;
+    width: 19px;
+    height: 20px;
+    margin: 0 0.2rem;
 }
 
 .theme-selector-icon.dim {
     transform: scale(60%);
 }
 
-#theme-selector-box input {
-    display: none;
+#theme-selector-box .joiner {
+    display: block;
+    line-height: 1;
 }
 
-#theme-selector-box label::after {
-    display: inline-block;
+#theme-selector-box label {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+#theme-selector-box input {
+    display: block;
+    appearance: none;
     box-sizing: border-box;
-    border: 2px solid var(--plain-text);
+    outline: 2px solid var(--plain-text);
+    border: 1px solid var(--alt-bg);
     border-radius: 50%;
     background-color: var(--alt-bg);
-    width: 1em;
-    height: 1em;
-    content: "";
-    vertical-align: -10%;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin: 0 2px; /* 2px to match outline width */
     cursor: pointer;
 }
 
-#ts-nightsight + label::after {
-    border-color: #c00;
+#ts-nightsight {
+    outline-color: #c00;
 }
-.dark #ts-nightsight + label::after {
-    border-color: #c33;
+.dark #ts-nightsight {
+    outline-color: #c33;
 }
 
 
-#theme-selector-box input:checked + label::after {
+#theme-selector-box input:checked {
     background-color: var(--link-normal);
-    content: "";
 }
 
 #home-page-info {
