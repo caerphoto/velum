@@ -64,12 +64,14 @@ struct UploadedImageData {
     bytes: Result<Bytes, MultipartError>,
 }
 
+// Use for pages that render HTML
 macro_rules! ensure_logged_in {
     ($d:ident, $c:ident) => {
         if needs_to_log_in(&$d, &$c) { return redirect_to("/login"); }
     };
 }
 
+// Use for API endpoints
 macro_rules! ensure_authorized {
     ($d:ident, $c:ident) => {
         if needs_to_log_in(&$d, &$c) { return Err(StatusCode::UNAUTHORIZED); }
@@ -87,6 +89,7 @@ fn needs_to_log_in(data: &SharedData, cookies: &Cookies) -> bool {
         || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
+// TODO: include other non-common-denominator characters are replaced
 fn sanitize_file_name(file_name: &str) -> String {
     file_name.replace(' ', "-")
 }
