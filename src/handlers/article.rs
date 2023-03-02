@@ -85,7 +85,7 @@ pub async fn article_handler(
         match  data.hbs.render("article", &render_data) {
             Ok(rendered_page) => {
                 let reply = (StatusCode:: OK, Html(rendered_page));
-                log_elapsed("article", Some(&slug), None, now);
+                log_elapsed("ARTICLE", Some(&slug), None, now);
                 reply
             },
             Err(e) => {

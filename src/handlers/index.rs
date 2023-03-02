@@ -88,7 +88,7 @@ pub async fn index_handler(
         theme(cookies),
         &data,
     );
-    log_elapsed("article index", None, Some(page), now);
+    log_elapsed("ARTICLE INDEX", None, Some(page), now);
 
     Ok(response)
 }
@@ -119,7 +119,7 @@ pub async fn rss_handler(
 
     match data.hbs.render("rss", &render_data) {
         Ok(rendered_doc) => {
-            log_elapsed("RSS feed", None, None, now);
+            log_elapsed("RSS FEED", None, None, now);
             res.status(StatusCode::OK)
                 .body(rendered_doc)
                 .unwrap()
@@ -161,6 +161,6 @@ pub async fn tag_handler(
         theme(cookies),
         &data,
     );
-    log_elapsed("tag index", Some(&tag_copy), Some(page), now);
+    log_elapsed("TAG INDEX", Some(&tag_copy), Some(page), now);
     response
 }

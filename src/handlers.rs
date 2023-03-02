@@ -48,17 +48,9 @@ pub fn log_elapsed(thing: &str, thing_name: Option<&str>, page: Option<usize>, f
     };
 
     if let Some(page) = page {
-        log::info!(
-            "Rendered {}{} ({}) in {}{}s",
-            thing, thing_name, page,
-            elapsed, unit
-        );
+        log::info!("Rendered {thing}{thing_name} ({page}) in {elapsed}{unit}s");
     } else {
-        log::info!(
-            "Rendered {}{} in {}{}s",
-            thing, thing_name,
-            elapsed, unit
-        );
+        log::info!("Rendered {thing}{thing_name} in {elapsed}{unit}s");
     }
 
 }
