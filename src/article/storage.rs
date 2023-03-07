@@ -51,19 +51,11 @@ pub fn fetch_paginated_articles<'a>(
 }
 
 pub fn fetch_by_slug<'a >(slug: &str, articles: &'a Vec<ParsedArticle>) -> Option<&'a ParsedArticle> {
-    for a in articles {
-        if a.slug == slug { return Some(a) }
-    }
-
-    None
+    articles.iter().find(|a| a.slug == slug)
 }
 
 fn fetch_by_slug_mut<'a >(slug: &str, articles: &'a mut Vec<ParsedArticle>) -> Option<&'a mut ParsedArticle> {
-    for a in articles {
-        if a.slug == slug { return Some(a) }
-    }
-
-    None
+    articles.iter_mut().find(|a| a.slug == slug)
 }
 
 fn set_prev_next(articles: &mut Vec<ParsedArticle>) {
