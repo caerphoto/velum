@@ -137,7 +137,7 @@ fn build_response(filename: &PathBuf, last_modified: SystemTime, buf: Vec<u8>) -
     res
 }
 
-fn normalize_path(path: &str) -> PathBuf {
+fn untimestamped_path(path: &str) -> PathBuf {
     lazy_static! {
         static ref DATE_PART: Regex = Regex::new(r"-\d{14}").unwrap();
     }
@@ -148,6 +148,21 @@ fn normalize_path(path: &str) -> PathBuf {
     } else {
         PathBuf::from(path)
     }
+}
+
+fn build_fs_path(content_dir: &str, path: &str) -> PathBuf {
+    let real_path = PathBuf::from(content_dir)
+        .join("assets")
+        .join(path);
+
+    // We can return the timestamped path if a file with the timestamp actually exists, e.g. for
+    // precompiled JS files.
+    if real_path.exists() { return real_path; }
+
+    let utpath = untimestamped_path(path);
+    PathBuf::from(content_dir)
+        .join("assets")
+        .join(utpath)
 }
 
 async fn error_handler(error: std::io::Error) -> impl IntoResponse {
@@ -169,24 +184,19 @@ pub async fn asset_handler(
     State(data): State<SharedData>,
     req: Request<Body>,
 ) -> Result<Response<BoxBody>, HtmlResponse> {
-    // Need to clone to ensure a reference is not held across an await.
-    let dir = data.read().config.content_dir.clone();
-
-    let npath = normalize_path(&path);
-    let real_path = PathBuf::from(dir)
-        .join("assets")
-        .join(&npath);
+    let content_dir = data.read().config.content_dir.clone();
+    let fs_path = build_fs_path(&content_dir, &path);
 
     log::info!(
         "Serving assset {} from file {}",
         &path,
-        &real_path.to_string_lossy()
+        &fs_path.to_string_lossy()
     );
 
-    if npath.ends_with("manifest.js") {
-        js_manifest_response(&real_path)
+    if fs_path.ends_with("manifest.js") {
+        js_manifest_response(&fs_path)
     } else {
-        let service = get_service(ServeFile::new(real_path))
+        let service = get_service(ServeFile::new(fs_path))
             .handle_error(error_handler);
         let result = service.oneshot(req).await;
         Ok(result.unwrap())
