@@ -9,8 +9,8 @@ html {
     background-color: var(--main-bg);
     color: var(--plain-text);
     font-family: var(--body-font-family);
-    font-size: 22px;
-    line-height: 1.25;
+    font-size: 23px;
+    line-height: 1.2;
     font-weight: 300;
 
     --content-width: 30rem;
