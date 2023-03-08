@@ -388,6 +388,7 @@ ul.tags::before {
 ul.tags li {
     display: inline-block;
     margin-right: 0.3em;
+    padding-bottom: 2px;
 }
 ul.tags li::after {
     content: ", ";
