@@ -18,6 +18,7 @@ use axum_macros::debug_handler;
 use crate::{
     SharedData,
     comments::Comment,
+    typography::typogrified,
 };
 use super::create_timestamp;
 
@@ -38,7 +39,8 @@ pub async fn comment_handler(
     let comment = Comment {
         author: form_data.author,
         author_url: form_data.author_url,
-        text: form_data.text,
+        text: typogrified(&form_data.text),
+        base_text: form_data.text,
         timestamp: create_timestamp(),
     };
     let mut data = data.write();

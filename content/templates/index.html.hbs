@@ -38,7 +38,7 @@
           <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
           <p class="content-preview">{{this.preview}}</p>
           {{{render_tags this.tags ../search_tag}}}
-
+          <p class="article-comment_count">Comments: <span>{{lookup ../comment_counts @index}}</span></p>
         </li>
         {{/each}}
       </ul>

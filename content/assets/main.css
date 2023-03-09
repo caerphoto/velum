@@ -362,9 +362,15 @@ footer a:visited {
 ul.article-list,
 ul.tags {
     list-style: none;
-    margin: 0 0 1em;
     padding: 0;
     font-weight: 400;
+}
+
+article .tags {
+    margin: 0 0 1em;
+}
+.article-list .tags {
+    margin: 0;
 }
 
 li {
@@ -372,17 +378,15 @@ li {
     padding: 0;
 }
 
-ul.article-list > li {
-    margin-bottom: 1em;
-}
-
-ul.tags {
+ul.tags,
+.article-comment_count {
     font-size: 0.8rem;
     font-family: var(--heading-font-family);
 }
 
 ul.tags::before {
     content: "Tags: ";
+    color: var(--subdued-text);
 }
 
 ul.tags li {
@@ -398,6 +402,15 @@ ul.tags li:last-child::after {
 }
 ul.tags li a {
     text-decoration: none;
+}
+
+.article-comment_count {
+    margin-bottom: 1em;
+    color: var(--subdued-text);
+}
+
+.article-comment_count span {
+    color: var(--plain-text);
 }
 
 pre {

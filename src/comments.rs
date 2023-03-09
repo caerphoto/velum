@@ -9,11 +9,13 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use crate::config::Config;
+use crate::typography::typogrified;
 
 const COMMENT_RATE_LIMIT: Duration = Duration::from_millis(2000);
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Comment {
+    pub base_text: String,
     pub text: String,
     pub author: String,
     pub author_url: String,
@@ -22,8 +24,10 @@ pub struct Comment {
 
 impl From<&CommentLine> for Comment {
     fn from(cline: &CommentLine) -> Self {
+        let text = typogrified(&cline.text);
         Self {
-            text: cline.text.clone(),
+            base_text: cline.text.clone(),
+            text,
             author: cline.author.clone(),
             author_url: cline.author_url.clone(),
             timestamp: cline.timestamp,
@@ -44,7 +48,7 @@ impl CommentLine {
     fn from_comment(c: &Comment, slug: &str) -> Self {
         Self {
             slug: slug.to_string(),
-            text: c.text.clone(),
+            text: c.base_text.clone(),
             author: c.author.clone(),
             author_url: c.author_url.clone(),
             timestamp: c.timestamp,
@@ -57,7 +61,6 @@ where P: AsRef<Path>, {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
-
 
 #[derive(Clone, Debug)]
 pub struct Comments {
@@ -72,7 +75,7 @@ impl Comments {
         File::create(filename).is_ok()
     }
 
-    pub fn new(config: &Config) -> Self {
+    pub fn load(config: &Config) -> Self {
         let mut comments = HashMap::new();
         let prev_instants = HashMap::new();
         let filename = Path::new(&config.content_dir).join("comments.jsonl");
@@ -121,7 +124,6 @@ impl Comments {
     }
 
     fn is_limited(&self, key: &str) -> bool {
-
         let now = Instant::now();
         if let Some(prev_instant) = self.prev_instants.get(key) {
             if now.duration_since(*prev_instant) < COMMENT_RATE_LIMIT {
@@ -154,8 +156,16 @@ impl Comments {
         Ok(comment)
     }
 
-    pub fn get(&self, slug: &str) -> Option<&Vec<Comment>> {
+    pub fn get_for(&self, slug: &str) -> Option<&Vec<Comment>> {
         self.comments.get(slug)
+    }
+
+    pub fn count_for(&self, slug: &str) -> usize {
+        if let Some(c) = self.comments.get(slug) {
+            c.len()
+        } else {
+            0
+        }
     }
 }
 

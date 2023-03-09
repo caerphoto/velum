@@ -1,4 +1,5 @@
 use crate::errors::{ParseError, ParseResult};
+use crate::typography::typogrified;
 use pulldown_cmark::{self as cmark, Event, Tag};
 use regex::Regex;
 use serde::Serialize;
@@ -15,11 +16,6 @@ fn safe_truncate(s: &str, max_chars: usize) -> &str {
         None => s,
         Some((idx, _)) => &s[..idx],
     }
-}
-
-struct Typograph {
-    r: Regex,
-    s: &'static str,
 }
 
 // Struct for creating and managing article data
@@ -112,48 +108,6 @@ impl Builder {
             .join("\n")
     }
 
-    fn typogrify(text: &str) -> String {
-        lazy_static! {
-            static ref REPLACEMENTS: Vec<Typograph> = vec![
-                Typograph { r: Regex::new("``").unwrap(), s: "“"},
-                Typograph { r: Regex::new("''").unwrap(), s: "”" },
-
-                // Decades, e.g. ’80s - may sometimes be wrong if it encounters a quote
-                // that starts with a decade, e.g. '80s John Travolta was awesome.'
-                Typograph { r: Regex::new(r"['‘](\d\d)s").unwrap(),  s: "’$1s" },
-
-                // Order of these is imporant – opening quotes need to be done first.
-                Typograph { r: Regex::new("`").unwrap(), s: "‘" },
-                Typograph { r: Regex::new(r#"(^|\s|\()""#).unwrap(), s: "$1“" }, // ldquo
-                Typograph { r: Regex::new(r#"""#).unwrap(),          s: "”" },   // rdquo
-
-                Typograph { r: Regex::new(r"(^|\s|\()'").unwrap(),   s: "$1‘" }, // lsquo
-                Typograph { r: Regex::new("'").unwrap(),             s: "’" },   // rsquo
-
-                // Dashes
-                // \u2009 = thin space
-                // \u200a = hair space
-                // \u2013 = en dash
-                // \u2014 = em dash
-                Typograph { r: Regex::new(r"\b–\b").unwrap(),   s: "\u{200a}\u{2013}\u{200a}" },
-                Typograph { r: Regex::new(r"\b—\b").unwrap(),   s: "\u{200a}\u{2014}\u{200a}" },
-                Typograph { r: Regex::new(" — ").unwrap(),      s: "\u{200a}\u{2014}\u{200a}" },
-                Typograph { r: Regex::new("---").unwrap(),      s: "\u{200a}\u{2014}\u{200a}" },
-                Typograph { r: Regex::new(" - | -- ").unwrap(), s: "\u{2009}\u{2013}\u{2009}" },
-                Typograph { r: Regex::new("--").unwrap(),       s: "\u{200a}\u{2013}\u{200a}" },
-
-                Typograph { r: Regex::new(r"\.\.\.").unwrap(), s: "…" } // hellip
-            ];
-        }
-
-        let mut new_text = String::from(text);
-        for typograph in REPLACEMENTS.iter() {
-            new_text = typograph.r.replace_all(&new_text, typograph.s).into_owned();
-        }
-
-        new_text
-    }
-
     pub fn content_preview(&self, max_len: usize) -> String {
         let content = self.main_content();
         let parser = cmark::Parser::new(&content);
@@ -165,7 +119,7 @@ impl Builder {
             }
         }
 
-        let truncated = Builder::typogrify(safe_truncate(&parts.join(" "), max_len));
+        let truncated = typogrified(safe_truncate(&parts.join(" "), max_len));
         if truncated.len() < max_len { truncated } else { truncated + "…" }
     }
 
@@ -194,7 +148,7 @@ impl Builder {
                     if in_code_block {
                         Event::Text(text)
                     } else {
-                        Event::Text(Builder::typogrify(&text).into())
+                        Event::Text(typogrified(&text).into())
                     }
                 },
                 _ => event
@@ -231,6 +185,7 @@ pub struct ParsedArticle {
     pub source_filename: std::path::PathBuf,
     pub timestamp: i64,
     pub tags: Vec<String>,
+    pub comment_count: usize,
     pub prev: Option<ArticlePrevNext>,
     pub next: Option<ArticlePrevNext>,
 }
@@ -248,6 +203,7 @@ impl TryFrom<&Builder> for ParsedArticle {
             source_filename: b.source_filename.clone(),
             timestamp: b.timestamp,
             tags: b.tags(),
+            comment_count: 0,
             prev: None,
             next: None,
         })

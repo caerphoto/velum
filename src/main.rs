@@ -1,4 +1,5 @@
 mod commondata;
+mod typography;
 mod article;
 mod hb;
 mod comments;
