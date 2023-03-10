@@ -199,7 +199,11 @@ pub async fn asset_handler(
         let service = get_service(ServeFile::new(fs_path))
             .handle_error(error_handler);
         let mut result = service.oneshot(req).await.unwrap();
-        result.headers_mut().typed_insert(CacheControl::new().with_max_age(ONE_YEAR));
+        result.headers_mut().typed_insert(
+            CacheControl::new()
+                .with_public()
+                .with_max_age(ONE_YEAR)
+        );
 
         Ok(result)
     }
