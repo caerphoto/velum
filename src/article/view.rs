@@ -2,7 +2,7 @@ use regex::Regex;
 use serde::Serialize;
 use crate::{
     CommonData,
-    comments::Comment,
+    comments::{Comment, Comments},
     article::storage::PaginatedArticles,
 };
 
@@ -19,6 +19,7 @@ pub struct IndexRenderView<'a> {
     search_tag: Option<&'a str>,
     article_count: usize,
     articles: Vec<&'a ParsedArticle>,
+    comment_counts: Vec<usize>,
     body_class: &'a str,
     content_dir: &'a str,
     theme: String,
@@ -62,10 +63,17 @@ impl<'a> IndexRenderView<'a> {
             search_tag: tag,
             article_count: article_list.total_articles,
             articles: article_list.articles.clone(), // is a vec of refs, so clone is cheap
+            comment_counts: Self::get_comment_counts(&article_list.articles, &data.comments),
             content_dir: &data.config.content_dir,
             theme,
             home_page_info,
         }
+    }
+
+    fn get_comment_counts(articles: &[&ParsedArticle], comments: &Comments) -> Vec<usize> {
+        articles.iter()
+            .map(|a| comments.count_for(&a.slug))
+            .collect()
     }
 }
 
@@ -128,7 +136,7 @@ impl<'a> ArticleRenderView<'a> {
         Self {
             title: &article.title,
             blog_title: &data.config.blog_title,
-            comments: data.comments.get(&article.slug),
+            comments: data.comments.get_for(&article.slug),
             article,
             return_path,
             body_class: "article",

@@ -22,7 +22,7 @@ impl CommonData {
     pub fn new() -> Self {
         let config = Config::load().expect("Failed to load config");
         let articles = gather_fs_articles(&config).expect("gather FS articles");
-        let comments = Comments::new(&config);
+        let comments = Comments::load(&config);
         Self {
             hbs: create_handlebars(&config),
             articles,
