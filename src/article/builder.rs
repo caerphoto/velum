@@ -69,7 +69,7 @@ impl Builder {
             .filter_map(|c| {
                 if c.is_ascii_alphanumeric() {
                     Some(c.to_ascii_lowercase())
-                } else if c.is_whitespace() {
+                } else if c.is_whitespace() || c == '-' {
                     Some('-')
                 } else {
                     None
