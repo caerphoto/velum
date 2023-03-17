@@ -2,6 +2,7 @@ use crate::errors::{ParseError, ParseResult};
 use crate::typography::typogrified;
 use pulldown_cmark::{self as cmark, Event, Tag};
 use regex::Regex;
+use unicode_normalization::UnicodeNormalization;
 use serde::Serialize;
 use std::io::{self, ErrorKind};
 use std::path::{PathBuf, Path};
@@ -60,14 +61,20 @@ impl Builder {
     /// Converts the given string to a URL-safe, lowercase version
     pub fn slug_from(text: &str) -> String {
         lazy_static! {
-            static ref INVALID_CHARS: Regex = Regex::new(r"[^a-z0-9\-]").unwrap();
-        }
-        lazy_static! {
             static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap();
         }
 
-        let lowercase = text.to_lowercase();
-        let simplified = INVALID_CHARS.replace_all(&lowercase, "-");
+        // Extract ASCII characters, with diacritics removed
+        let simplified = text.nfd() // normalised form, decomposed
+            .filter_map(|c| {
+                if c.is_ascii_alphanumeric() {
+                    Some(c.to_ascii_lowercase())
+                } else if c.is_whitespace() || c == '-' {
+                    Some('-')
+                } else {
+                    None
+                }
+            }).collect::<String>();
         let desequentialized = SEQUENTIAL_HYPEHNS.replace_all(&simplified, "-");
         String::from(desequentialized.trim_matches('-'))
     }
