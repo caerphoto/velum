@@ -11,7 +11,6 @@ use std::{
         PathBuf,
     },
     time::{
-        self,
         UNIX_EPOCH,
         Duration,
         SystemTime,
@@ -185,8 +184,6 @@ pub async fn asset_handler(
     State(data): State<SharedData>,
     req: Request<Body>,
 ) -> Result<Response<BoxBody>, HtmlResponse> {
-    let now = time::Instant::now();
-
     let content_dir = data.read().config.content_dir.clone();
     let fs_path = build_fs_path(&content_dir, &path);
 
@@ -197,10 +194,7 @@ pub async fn asset_handler(
     );
 
     if fs_path.ends_with("manifest.js") {
-        let res = js_manifest_response(&fs_path);
-        let elapsed = now.elapsed().as_micros();
-        log::info!("Built JS MANIFEST response in {elapsed}µs");
-        res
+        js_manifest_response(&fs_path)
     } else {
         let service = get_service(ServeFile::new(fs_path))
             .handle_error(error_handler);
@@ -211,8 +205,6 @@ pub async fn asset_handler(
                 .with_max_age(ONE_YEAR)
         );
 
-        let elapsed = now.elapsed().as_micros();
-        log::info!("Built ASSET response in {elapsed}µs");
         Ok(result)
     }
 }
