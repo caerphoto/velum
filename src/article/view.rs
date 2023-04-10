@@ -1,9 +1,13 @@
+use std::collections::{HashMap, HashSet};
 use regex::Regex;
 use serde::Serialize;
 use crate::{
     CommonData,
     comments::{Comment, Comments},
-    article::storage::PaginatedArticles,
+    article::storage::{
+        fetch_by_slug,
+        PaginatedArticles,
+    }
 };
 
 use super::builder::ParsedArticle;
@@ -77,6 +81,17 @@ impl<'a> IndexRenderView<'a> {
     }
 }
 
+// Integer division rounding up, for calculating page count
+fn div_ceil(lhs: usize, rhs: usize) -> usize {
+    let d = lhs / rhs;
+    let r = lhs % rhs;
+    if r > 0 && rhs > 0 {
+        d + 1
+    } else {
+        d
+    }
+}
+
 #[derive(Serialize)]
 pub struct RssArticleView<'a> {
     title: &'a str,
@@ -113,24 +128,28 @@ pub struct RssIndexView<'a> {
     pub articles: Vec<RssArticleView<'a>>,
 }
 
+const MAX_RELATED_ARTICLES: usize = 5;
+
 #[derive(Serialize)]
 pub struct ArticleRenderView<'a> {
     title: &'a str,
     //blog_title: String,
     blog_title: &'a str,
     article: &'a ParsedArticle,
+    related_articles: Vec<&'a ParsedArticle>,
     comments: Option<&'a Vec<Comment>>,
-    return_path: String,
+    return_path: &'a str,
     body_class: &'a str,
     content_dir: &'a str,
-    theme: String,
+    theme: &'a str,
 }
 
 impl<'a> ArticleRenderView<'a> {
     pub fn new(
         article: &'a ParsedArticle,
-        return_path: String,
-        theme: String,
+        all_articles: &'a [ParsedArticle],
+        return_path: &'a str,
+        theme: &'a str,
         data: &'a CommonData,
     ) -> Self {
         Self {
@@ -138,6 +157,7 @@ impl<'a> ArticleRenderView<'a> {
             blog_title: &data.config.blog_title,
             comments: data.comments.get_for(&article.slug),
             article,
+            related_articles: related_articles(article, all_articles),
             return_path,
             body_class: "article",
             content_dir: &data.config.content_dir,
@@ -146,14 +166,30 @@ impl<'a> ArticleRenderView<'a> {
     }
 }
 
-// Integer division rounding up, for calculating page count
-fn div_ceil(lhs: usize, rhs: usize) -> usize {
-    let d = lhs / rhs;
-    let r = lhs % rhs;
-    if r > 0 && rhs > 0 {
-        d + 1
-    } else {
-        d
-    }
-}
+fn related_articles<'a>(article: &'a ParsedArticle, all_articles: &'a [ParsedArticle]) -> Vec<&'a ParsedArticle> {
+    let mut related_slugs: HashMap<&String, usize> = HashMap::new();
+    let a_tags: HashSet<&String> = HashSet::from_iter(article.tags.iter());
 
+    for b in all_articles {
+        let common_tag_count = HashSet::from_iter(b.tags.iter())
+            .intersection(&a_tags)
+            .count();
+        if common_tag_count > 0 && article.slug != b.slug {
+            related_slugs.insert(&b.slug, common_tag_count);
+        }
+    }
+
+    let mut related_slugs: Vec<(String, usize)> = related_slugs.iter()
+        .map(|kv| {
+            let key = String::from(&**kv.0);
+            (key, *kv.1)
+        })
+        .collect();
+
+    related_slugs.sort_by(|a, b| b.1.cmp(&a.1));
+    related_slugs.iter()
+        .map(|kv| fetch_by_slug(&kv.0, all_articles).unwrap()) // unwrap is fine here; we know the
+                                                               // article exists
+        .take(MAX_RELATED_ARTICLES)
+        .collect()
+}

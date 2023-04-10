@@ -535,6 +535,23 @@ nav {
     grid-template-rows: auto auto auto;
 }
 
+.article nav.other-articles {
+    grid-template-columns: 1fr;
+    width: var(--content-width);
+    margin: 0 auto;
+}
+
+.related-articles-header,
+.related-articles {
+    grid-column: 1/4;
+    max-width: var(--content-width);
+    margin: 0 auto;
+}
+
+.related-articles-header {
+    margin-top: 1em;
+}
+
 nav .more-articles-text {
     text-align: center;
     grid-row: 1/2;

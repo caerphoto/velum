@@ -94,10 +94,12 @@ impl Builder {
 
     pub fn tags(&self) -> Vec<String> {
         if let Some(line) = self.tags_line() {
-            line.trim_matches('|')
+            let mut tags: Vec<String> = line.trim_matches('|')
                 .split(',')
                 .map(|t| Builder::slug_from(t.trim()))
-                .collect()
+                .collect();
+            tags.sort();
+            tags
         } else {
             Vec::new()
         }

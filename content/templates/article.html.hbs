@@ -21,14 +21,14 @@
 </article>
 
 <nav class="next-prev">
-  <p class="more-articles-text">More articles:</p>
+  <p class="more-articles-text">Article navigation:</p>
   {{#if article.prev}}
   <div class="nav-prev">
     <a href="/article/{{article.prev.slug}}">&larr; {{article.prev.title}}</a>
   </div>
   {{else}}
   <div class="nav-prev">
-    <span>↻ no more articles</span>
+    <span>↻ no more newer articles</span>
   </div>
   {{/if}}
   <span class="nav-sep">&middot;</span>
@@ -38,12 +38,19 @@
   </div>
   {{else}}
   <div class="nav-next">
-    <span>no more articles ↺</span>
+    <span>no more older articles ↺</span>
   </div>
   {{/if}}
   <p class="footer-home-link-box">
   <a href="{{return_path}}" class="index-link">↰ {{{return_text return_path}}}</a>
   </p>
+
+  <h3 class="related-articles-header">Related articles:</h3>
+  <ul class="related-articles">
+    {{#each related_articles}}
+    <li><a href="/article/{{slug}}">{{title}}</a></li>
+    {{/each}}
+  </ul>
 </nav>
 
 {{> _footer}}
