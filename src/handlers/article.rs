@@ -79,6 +79,7 @@ pub async fn article_handler(
         let theme = theme(cookies);
         let render_data = ArticleRenderView::new(
             article,
+            &data.articles,
             &return_path,
             &theme,
             &data,

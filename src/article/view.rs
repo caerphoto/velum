@@ -77,6 +77,17 @@ impl<'a> IndexRenderView<'a> {
     }
 }
 
+// Integer division rounding up, for calculating page count
+fn div_ceil(lhs: usize, rhs: usize) -> usize {
+    let d = lhs / rhs;
+    let r = lhs % rhs;
+    if r > 0 && rhs > 0 {
+        d + 1
+    } else {
+        d
+    }
+}
+
 #[derive(Serialize)]
 pub struct RssArticleView<'a> {
     title: &'a str,
@@ -129,6 +140,7 @@ pub struct ArticleRenderView<'a> {
 impl<'a> ArticleRenderView<'a> {
     pub fn new(
         article: &'a ParsedArticle,
+        all_articles: &'a [ParsedArticle],
         return_path: &'a str,
         theme: &'a str,
         data: &'a CommonData,
@@ -146,14 +158,6 @@ impl<'a> ArticleRenderView<'a> {
     }
 }
 
-// Integer division rounding up, for calculating page count
-fn div_ceil(lhs: usize, rhs: usize) -> usize {
-    let d = lhs / rhs;
-    let r = lhs % rhs;
-    if r > 0 && rhs > 0 {
-        d + 1
-    } else {
-        d
-    }
+fn related_articles<'a>(article: &'a ParsedArticle, all_articles: &'a [ParsedArticle]) -> Vec<&'a ParsedArticle> {
+    Vec::new()
 }
-
