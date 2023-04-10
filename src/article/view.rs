@@ -120,17 +120,17 @@ pub struct ArticleRenderView<'a> {
     blog_title: &'a str,
     article: &'a ParsedArticle,
     comments: Option<&'a Vec<Comment>>,
-    return_path: String,
+    return_path: &'a str,
     body_class: &'a str,
     content_dir: &'a str,
-    theme: String,
+    theme: &'a str,
 }
 
 impl<'a> ArticleRenderView<'a> {
     pub fn new(
         article: &'a ParsedArticle,
-        return_path: String,
-        theme: String,
+        return_path: &'a str,
+        theme: &'a str,
         data: &'a CommonData,
     ) -> Self {
         Self {

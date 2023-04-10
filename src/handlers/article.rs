@@ -76,10 +76,11 @@ pub async fn article_handler(
     let return_path = return_path(&data.config.blog_host, referer);
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
+        let theme = theme(cookies);
         let render_data = ArticleRenderView::new(
             article,
-            return_path,
-            theme(cookies),
+            &return_path,
+            &theme,
             &data,
         );
         match  data.hbs.render("article", &render_data) {
