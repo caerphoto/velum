@@ -250,6 +250,7 @@ input#ts-nightsight {
 
 #theme-selector-box input:checked {
     background-color: var(--link-normal);
+    box-shadow: inset 0 0 0 3px var(--alt-bg);
 }
 
 #home-page-info {
