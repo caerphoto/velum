@@ -10,6 +10,8 @@ enum Rep {
 impl Replacer for &Rep {
     fn replace_append(&mut self, caps: &Captures, dst: &mut String) {
         match self {
+            // these implementations are basically copied from
+            //https://docs.rs/regex/latest/src/regex/re_unicode.rs.html
             Rep::Str(s) => caps.expand(s, dst),
             Rep::Fn(f) => dst.push_str(f(caps).as_ref()),
         }
