@@ -2,7 +2,9 @@ use std::fmt;
 use regex::Regex;
 use unicode_normalization::UnicodeNormalization;
 
-pub struct Slug(String);
+pub struct Slug {
+    slug: String,
+}
 
 impl Slug {
     /// Converts the given string to a URL-safe, lowercase version
@@ -23,13 +25,13 @@ impl Slug {
                 }
             }).collect::<String>();
         let desequentialized = SEQUENTIAL_HYPEHNS.replace_all(&simplified, "-");
-        Self(String::from(desequentialized.trim_matches('-')))
+        Self { slug: String::from(desequentialized.trim_matches('-')) }
     }
 }
 
 impl fmt::Display for Slug {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.slug)
     }
 }
 impl From<&str> for Slug {
@@ -45,12 +47,12 @@ impl From<String> for Slug {
 impl std::ops::Add<&str> for Slug {
     type Output = String;
     fn add(self, other: &str) -> Self::Output {
-        self.0 + other
+        self.slug + other
     }
 }
 
 impl From<Slug> for String {
     fn from(item: Slug) -> Self {
-        item.0
+        item.slug
     }
 }
