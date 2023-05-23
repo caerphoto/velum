@@ -1,12 +1,12 @@
 use crate::errors::{ParseError, ParseResult};
+use crate::slug::Slug;
 use crate::typography::typogrified;
 use pulldown_cmark::{self as cmark, Event, Tag};
 use regex::Regex;
-use unicode_normalization::UnicodeNormalization;
 use serde::Serialize;
 use std::io::{self, ErrorKind};
 use std::path::{PathBuf, Path};
-use std::{fs, time};
+use std::{fmt, fs, time};
 
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
 
@@ -58,29 +58,8 @@ impl Builder {
             })
     }
 
-    /// Converts the given string to a URL-safe, lowercase version
-    pub fn slug_from(text: &str) -> String {
-        lazy_static! {
-            static ref SEQUENTIAL_HYPEHNS: Regex = Regex::new(r"-+").unwrap();
-        }
-
-        // Extract ASCII characters, with diacritics removed
-        let simplified = text.nfd() // normalised form, decomposed
-            .filter_map(|c| {
-                if c.is_ascii_alphanumeric() {
-                    Some(c.to_ascii_lowercase())
-                } else if c.is_whitespace() || c == '-' {
-                    Some('-')
-                } else {
-                    None
-                }
-            }).collect::<String>();
-        let desequentialized = SEQUENTIAL_HYPEHNS.replace_all(&simplified, "-");
-        String::from(desequentialized.trim_matches('-'))
-    }
-
-    pub fn slug(&self) -> ParseResult<String> {
-        Ok(Builder::slug_from(&self.title()?))
+    pub fn slug(&self) -> ParseResult<Slug> {
+        Ok(Slug::new(&self.title()?))
     }
 
     fn tags_line(&self) -> Option<String> {
@@ -96,7 +75,7 @@ impl Builder {
         if let Some(line) = self.tags_line() {
             let mut tags: Vec<String> = line.trim_matches('|')
                 .split(',')
-                .map(|t| Builder::slug_from(t.trim()))
+                .map(|t| Slug::new(t.trim()).into())
                 .collect();
             tags.sort();
             tags
@@ -204,7 +183,7 @@ impl TryFrom<&Builder> for ParsedArticle {
     fn try_from(b: &Builder) -> Result<Self, Self::Error> {
         let title = b.title()?;
         Ok(ParsedArticle {
-            slug: b.slug()?, // borrow here before
+            slug: b.slug()?.into(), // borrow here before
             title,                       // move here
             parsed_content: b.parsed_content(),
             base_content: b.content.clone(),
@@ -226,8 +205,8 @@ impl TryFrom<Builder> for ParsedArticle {
     }
 }
 
-impl std::fmt::Display for Builder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Builder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "Filename: {}, slug: {}",
