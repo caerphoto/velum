@@ -32,27 +32,27 @@ pub fn typogrified(text: &str) -> String {
 
             // Decades, e.g. ’80s - may sometimes be wrong if it encounters a quote
             // that starts with a decade, e.g. '80s John Travolta was awesome.'
-            Typograph { rx: Regex::new(r"['‘](\d\d)s").unwrap(),  rep: Rep::Str("’$1s")  },
+            Typograph { rx: Regex::new(r"['‘](\d\d)s").unwrap(),  rep: Rep::Str("’$1s") },
 
             // Order of these is imporant – opening quotes need to be done first.
-            Typograph { rx: Regex::new("`").unwrap(), rep: Rep::Str("‘")  },
-            Typograph { rx: Regex::new(r#"(^|\s|\()""#).unwrap(), rep: Rep::Str("$1“")  }, // ldquo
-            Typograph { rx: Regex::new(r#"""#).unwrap(),          rep: Rep::Str("”")  },   // rdquo
+            Typograph { rx: Regex::new("`").unwrap(), rep: Rep::Str("‘") },
+            Typograph { rx: Regex::new(r#"(^|\s|\()""#).unwrap(), rep: Rep::Str("$1“") }, // ldquo
+            Typograph { rx: Regex::new(r#"""#).unwrap(),          rep: Rep::Str("”") },   // rdquo
 
-            Typograph { rx: Regex::new(r"(^|\s|\()'").unwrap(),   rep: Rep::Str("$1‘")  }, // lsquo
-            Typograph { rx: Regex::new("'").unwrap(),             rep: Rep::Str("’")  },   // rsquo
+            Typograph { rx: Regex::new(r"(^|\s|\()'").unwrap(),   rep: Rep::Str("$1‘") }, // lsquo
+            Typograph { rx: Regex::new("'").unwrap(),             rep: Rep::Str("’") },   // rsquo
 
             // Dashes
             // \u2009 = thin space
             // \u200a = hair space
             // \u2013 = en dash
             // \u2014 = em dash
-            Typograph { rx: Regex::new(r"\b–\b").unwrap(),   rep: Rep::Str("\u{200a}\u{2013}\u{200a}")  },
-            Typograph { rx: Regex::new(r"\b—\b").unwrap(),   rep: Rep::Str("\u{200a}\u{2014}\u{200a}")  },
-            Typograph { rx: Regex::new(" — ").unwrap(),      rep: Rep::Str("\u{200a}\u{2014}\u{200a}")  },
-            Typograph { rx: Regex::new("---").unwrap(),      rep: Rep::Str("\u{200a}\u{2014}\u{200a}")  },
-            Typograph { rx: Regex::new(" - | -- ").unwrap(), rep: Rep::Str("\u{2009}\u{2013}\u{2009}")  },
-            Typograph { rx: Regex::new("--").unwrap(),       rep: Rep::Str("\u{200a}\u{2013}\u{200a}")  },
+            Typograph { rx: Regex::new(r"\b–\b").unwrap(),   rep: Rep::Str("\u{200a}\u{2013}\u{200a}") },
+            Typograph { rx: Regex::new(r"\b—\b").unwrap(),   rep: Rep::Str("\u{200a}\u{2014}\u{200a}") },
+            Typograph { rx: Regex::new(" — ").unwrap(),      rep: Rep::Str("\u{200a}\u{2014}\u{200a}") },
+            Typograph { rx: Regex::new("---").unwrap(),      rep: Rep::Str("\u{200a}\u{2014}\u{200a}") },
+            Typograph { rx: Regex::new(" - | -- ").unwrap(), rep: Rep::Str("\u{2009}\u{2013}\u{2009}") },
+            Typograph { rx: Regex::new("--").unwrap(),       rep: Rep::Str("\u{200a}\u{2013}\u{200a}") },
 
             Typograph { rx: Regex::new(r"\.\.\.").unwrap(), rep: Rep::Str("…") }, // hellip
 
