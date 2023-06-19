@@ -1,15 +1,14 @@
 (function() {
     if (!window.EXIF) return;
-    let exifPopover;
+    let exifPopover = document.createElement("div");
 
     function positionFromImage(img) {
-        const clientRect = img.getBoundingClientRect();
+        const imgRect = img.getBoundingClientRect();
         const popoverRect = exifPopover.getBoundingClientRect();
 
         return {
-            left: clientRect.left + window.scrollX,
-            top: clientRect.top + clientRect.height - popoverRect.height +
-                window.scrollY,
+            left: imgRect.left + window.scrollX,
+            top: imgRect.top + imgRect.height - popoverRect.height + window.scrollY,
         };
     }
 
@@ -25,8 +24,8 @@
         if (img.nodeName !== "IMG") return;
         if (!hasLoaded(img)) return;
 
+        exifPopover.classList.add("active");
         const popoverPosition = positionFromImage(img);
-
         exifPopover.style.top = popoverPosition.top + "px";
         exifPopover.style.left = popoverPosition.left + "px";
 
@@ -39,17 +38,17 @@
                 return;
             }
 
-            let model = data.LensModel || "(lens name unavailable)";
-            model = model.replace("Fujifilm Fujinon", "");
+            let lensName = data.LensModel || "(lens name unavailable)";
+            let cameraName = data.Model;
+            lensName = lensName.replace("Fujifilm Fujinon", "");
             const length = Math.round(data.FocalLength) || "--";
             const aperture = data.FNumber || "--";
 
-            exifPopover.innerHTML = [
-                length + "mm",
-                "f/" + aperture,
-            ].join(" &middot; ") +
-                '<br><span class="lens-name">' + model + "</span>";
-            exifPopover.classList.add("active");
+            exifPopover.innerHTML =
+                `<span class="exif-data">${length}mm</span> at
+                <span class="exif-data">f/${aperture}</span><br>
+                <span class="exif-data">${lensName}</span> on
+                <span class="exif-data">${cameraName}</span>`;
         });
     }
 
@@ -57,9 +56,8 @@
         exifPopover.classList.remove("active");
     }
 
-    exifPopover = document.createElement("div");
-    exifPopover.innerHTML = "--<br>--";
     exifPopover.id = "exif-popover";
+    exifPopover.innerHTML = "--<br>--";
     document.body.appendChild(exifPopover);
     document.body.addEventListener("mouseover", showExifOnImage);
     document.body.addEventListener("mouseout", hideExif);

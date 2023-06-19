@@ -498,7 +498,7 @@ p.img img {
     position: absolute;
     display: none;
     background-color: rgba(0, 0, 0, 0.5);
-    color: #eee;
+    color: #aaa;
     padding: 0.5em;
     font-size: 0.8rem;
     border-radius: 0.5em;
@@ -508,6 +508,10 @@ p.img img {
 
 #exif-popover.active {
     display: block;
+}
+
+.exif-data {
+    color: #eee;
 }
 
 .article p,
