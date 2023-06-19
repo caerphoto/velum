@@ -47,7 +47,7 @@ use axum_macros::debug_handler;
 use tower_http::services::ServeFile;
 use tower::ServiceExt;
 
-use crate::SharedData;
+use crate::{SharedData, hb::helpers::path_with_timestamp};
 use super::{
     HtmlResponse,
     server_error,
@@ -102,6 +102,12 @@ fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), 
     Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
 }
 
+fn write_compiled_manifest(buf: &[u8], path: &PathBuf, last_modified: SystemTime) -> IoResult<()> {
+    let compiled_manifest_path = path_with_timestamp(path, last_modified);
+    log::info!("Writing compiled manifest data to {compiled_manifest_path:?}");
+    fs::write(compiled_manifest_path, buf)
+}
+
 fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<SystemTime, HtmlResponse> {
     let prefix = match manifest_path.parent() {
         Some(p) => p.to_path_buf(),
@@ -116,7 +122,11 @@ fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<System
         .map_err(|_| server_error("Failed to concatenate files"))?;
     buf.append(&mut Vec::from(manifest_js.as_bytes()));
     if let Err(e) = set_file_mtime(manifest_path, FileTime::from_system_time(last_modified)) {
-        log::error!("Failed to update last modified time on JS manifest: {:?}", e);
+        log::error!("Failed to update last modified time on JS manifest: {e:?}");
+    }
+
+    if let Err(e) = write_compiled_manifest(buf, manifest_path, last_modified) {
+        log::error!("Failed too write compiled manifest file: {e:?}");
     }
 
     Ok(last_modified)

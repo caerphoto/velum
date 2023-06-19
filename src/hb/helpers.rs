@@ -1,9 +1,10 @@
 use chrono::prelude::*;
 use chrono::{DateTime, Duration, LocalResult};
 use ordinal::Ordinal;
-use std::path::PathBuf;
-use std::fs;
+use std::{fs, path::{Path, PathBuf}, time::SystemTime};
 use handlebars::{Handlebars, handlebars_helper};
+
+use crate::config::TIMESTAMP_FORMAT;
 
 fn pluralize(word: &str, num: i64) -> (String, i64) {
     if num == 1 {
@@ -11,6 +12,20 @@ fn pluralize(word: &str, num: i64) -> (String, i64) {
     } else {
         (word.to_string() + "s", num)
     }
+}
+
+pub fn path_with_timestamp<P: AsRef<Path>>(path: P, time: SystemTime) -> PathBuf {
+    let dt: DateTime<Utc> = time.into();
+    let timestamp = dt.format(TIMESTAMP_FORMAT);
+    let p = path.as_ref();
+    if let (Some(stem), Some(ext)) = (p.file_stem(), p.extension()) {
+        let mut new_stem = stem.to_os_string();
+        new_stem.push(format!("-{timestamp}"));
+        p.with_file_name(new_stem).with_extension(ext)
+    } else {
+        p.into()
+    }
+
 }
 
 handlebars_helper!(date_from_timestamp: |ts: i64| {
@@ -159,17 +174,16 @@ handlebars_helper!(asset_path: |filename: String| {
         .join(&filename);
     let base_path = String::from("/assets/");
 
-    let mut new_filename = filename.clone();
 
-    if let Ok(metadata) = fs::metadata(real_path) {
+    let new_filename = if let Ok(metadata) = fs::metadata(real_path) {
         if let Ok(date) = metadata.modified() {
-            let dt: DateTime<Utc> = date.into();
-            let timestamp = dt.format("%Y%m%d%H%M%S");
-            if let Some((pre, suf)) = filename.rsplit_once('.') {
-                new_filename = format!("{pre}-{timestamp}.{suf}");
-            }
+            path_with_timestamp(&filename, date).to_string_lossy().to_string()
+        } else {
+            filename
         }
-    }
+    } else {
+        filename
+    };
     base_path + &new_filename
 });
 

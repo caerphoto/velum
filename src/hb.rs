@@ -1,4 +1,4 @@
-mod helpers;
+pub mod helpers;
 
 use std::path::{Path, PathBuf};
 use handlebars::Handlebars;
