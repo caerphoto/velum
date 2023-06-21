@@ -102,8 +102,7 @@ pub fn create_article(
 
     let builder = Builder::from_file(&temp_filename, data.config.max_preview_length)?;
     if let Ok(slug) = builder.slug() {
-        let new_filename =
-            temp_filename.with_file_name(format!("{slug}{}.md", builder.timestamp));
+        let new_filename = temp_filename.with_file_name(format!("{slug}{}.md", builder.timestamp));
         log::info!("temp: {:?}, new: {:?}", temp_filename, new_filename);
         if new_filename.is_file() {
             return Err(io::Error::new(ErrorKind::Other, "File already exists"));
