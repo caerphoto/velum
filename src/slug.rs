@@ -1,5 +1,5 @@
-use std::fmt;
 use regex::Regex;
+use std::fmt;
 use unicode_normalization::UnicodeNormalization;
 
 pub struct Slug {
@@ -14,7 +14,8 @@ impl Slug {
         }
 
         // Extract ASCII characters, with diacritics removed
-        let simplified = s.nfd() // normalised form, decomposed
+        let simplified = s
+            .nfd() // normalised form, decomposed
             .filter_map(|c| {
                 if c.is_ascii_alphanumeric() {
                     Some(c.to_ascii_lowercase())
@@ -23,9 +24,12 @@ impl Slug {
                 } else {
                     None
                 }
-            }).collect::<String>();
+            })
+            .collect::<String>();
         let desequentialized = SEQUENTIAL_HYPEHNS.replace_all(&simplified, "-");
-        Self { slug: String::from(desequentialized.trim_matches('-')) }
+        Self {
+            slug: String::from(desequentialized.trim_matches('-')),
+        }
     }
 }
 

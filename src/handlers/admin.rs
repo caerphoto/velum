@@ -1,52 +1,30 @@
 mod thumbnails;
 
 use std::{
+    collections::HashMap,
     error::Error,
-    fs::{remove_file, self, OpenOptions},
-    io::{Write, Error as IoError},
-    path::{Path as OsPath, PathBuf}, collections::HashMap,
+    fs::{self, remove_file, OpenOptions},
+    io::{Error as IoError, Write},
+    path::{Path as OsPath, PathBuf},
 };
 
-use uuid::Uuid;
 use serde::Deserialize;
 use serde_json::json;
+use uuid::Uuid;
 
 use axum::{
-    body::{Full, Bytes},
+    body::{Bytes, Full},
+    extract::{multipart::MultipartError, Form, Multipart, Path, State},
     http::StatusCode,
+    response::{Html, IntoResponse, Redirect, Response},
     Json,
-    extract::{
-        State,
-        Path,
-        Form,
-        Multipart,
-        multipart::MultipartError,
-    },
-    response::{
-        Html,
-        Response,
-        IntoResponse,
-        Redirect,
-    },
 };
-use tower_cookies::Cookies;
 use chrono::prelude::*;
+use tower_cookies::Cookies;
 
-use crate::{
-    SharedData, commondata::CommonData,
-    article::storage,
-};
-use super::{
-    empty_response,
-    server_error,
-    server_error_page,
-};
-use thumbnails::{
-    get_image_list,
-    ThumbsRemaining,
-    ImageListEntry,
-    NameParts,
-};
+use super::{empty_response, server_error, server_error_page};
+use crate::{article::storage, commondata::CommonData, SharedData};
+use thumbnails::{get_image_list, ImageListEntry, NameParts, ThumbsRemaining};
 
 const THIRTY_DAYS: i64 = 60 * 60 * 24 * 30;
 const SEE_OTHER: u16 = 303;
@@ -67,14 +45,18 @@ struct UploadedImageData {
 // Use for pages that render HTML
 macro_rules! ensure_logged_in {
     ($d:ident, $c:ident) => {
-        if needs_to_log_in(&$d, &$c) { return redirect_to("/login"); }
+        if needs_to_log_in(&$d, &$c) {
+            return redirect_to("/login");
+        }
     };
 }
 
 // Use for API endpoints
 macro_rules! ensure_authorized {
     ($d:ident, $c:ident) => {
-        if needs_to_log_in(&$d, &$c) { return Err(StatusCode::UNAUTHORIZED); }
+        if needs_to_log_in(&$d, &$c) {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
     };
 }
 
@@ -84,9 +66,7 @@ fn needs_to_log_in(data: &SharedData, cookies: &Cookies) -> bool {
         .get("velum_session_id")
         .map(|c| c.value().to_string());
     let sid = data.session_id.as_ref();
-    sid.is_none()
-        || session_id.is_none()
-        || sid.unwrap() != session_id.as_ref().unwrap()
+    sid.is_none() || session_id.is_none() || sid.unwrap() != session_id.as_ref().unwrap()
 }
 
 // TODO: include other non-common-denominator characters are replaced
@@ -98,10 +78,7 @@ pub fn redirect_to<T>(path: &'static str) -> Result<T, Redirect> {
     Err(Redirect::to(path))
 }
 
-fn render_login_page(
-    data: &SharedData,
-    error_msg: Option<&str>,
-) -> HtmlOrRedirect  {
+fn render_login_page(data: &SharedData, error_msg: Option<&str>) -> HtmlOrRedirect {
     let data = data.read();
     let blog_title = &data.config.blog_title;
     match data.hbs.render(
@@ -112,18 +89,16 @@ fn render_login_page(
             "blog_title": blog_title,
             "error_msg": error_msg,
             "content_dir": &data.config.content_dir,
-        })
+        }),
     ) {
         Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
-        Err(e) => Ok(server_error_page(
-            &format!("Failed to render article in index. Error: {e:?}"))
-        )
+        Err(e) => Ok(server_error_page(&format!(
+            "Failed to render article in index. Error: {e:?}"
+        ))),
     }
 }
 
-pub async fn login_page_handler(
-    State(data): State<SharedData>,
-) -> impl IntoResponse {
+pub async fn login_page_handler(State(data): State<SharedData>) -> impl IntoResponse {
     render_login_page(&data, None)
 }
 
@@ -131,8 +106,13 @@ pub async fn do_login_handler(
     State(data): State<SharedData>,
     Form(form_data): Form<LoginFormData>,
 ) -> Result<Response<Full<Bytes>>, impl IntoResponse> {
-    let hash = data.read().config.secrets.admin_password_hash
-        .as_ref().cloned()
+    let hash = data
+        .read()
+        .config
+        .secrets
+        .admin_password_hash
+        .as_ref()
+        .cloned()
         .unwrap_or_default();
     let verified = bcrypt::verify(form_data.password, &hash).unwrap_or(false);
 
@@ -149,13 +129,10 @@ pub async fn do_login_handler(
         .header("Set-Cookie", cookie)
         .status(SEE_OTHER)
         .body(Bytes::new().into())
-        .unwrap()
-    )
+        .unwrap())
 }
 
-pub async fn do_logout_handler(
-    State(data): State<SharedData>,
-) -> Response<Full<Bytes>> {
+pub async fn do_logout_handler(State(data): State<SharedData>) -> Response<Full<Bytes>> {
     let mut data = data.write();
 
     // Note expiry date: setting a date in the past is the spec-compliant way
@@ -181,9 +158,9 @@ pub async fn rebuild_index_handler(
 
     if let Err(e) = data.rebuild() {
         log::error!("Failed to rebuild article index index: {e:?}");
-        Ok(server_error_page(
-            &format!("Failed to render article in index. Error: {e:?}")
-        ))
+        Ok(server_error_page(&format!(
+            "Failed to render article in index. Error: {e:?}"
+        )))
     } else {
         redirect_to("/admin")
     }
@@ -203,18 +180,15 @@ pub async fn create_article_handler(
                 log::error!("Failed to rebuild article index: {:?}", err);
                 Ok(server_error("Error rebuilding article index"))
             } else {
-                match data.hbs.render(
-                    "_admin_article_list_item",
-                    &view
-                ) {
-                    Ok(b) =>  Ok((StatusCode::OK, Html(b))),
+                match data.hbs.render("_admin_article_list_item", &view) {
+                    Ok(b) => Ok((StatusCode::OK, Html(b))),
                     Err(e) => {
                         log::error!("Failed to render list item: {:?}", e);
                         Ok(server_error("Error rendering new item for list"))
                     }
                 }
             }
-        },
+        }
         Err(err) => {
             log::error!("Failed to create article: {:?}", err);
             Ok(server_error("Error creating article"))
@@ -252,7 +226,7 @@ pub async fn delete_article_handler(
     ensure_logged_in!(data, cookies);
     let filename = match storage::fetch_by_slug(&slug, &data.read().articles) {
         Some(article) => article.source_filename.clone(),
-        None =>          return Ok(empty_response(StatusCode::NOT_FOUND)),
+        None => return Ok(empty_response(StatusCode::NOT_FOUND)),
     };
 
     if let Err(err) = storage::delete_article(filename) {
@@ -277,26 +251,32 @@ pub async fn delete_image_handler(
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
     match NameParts::new(&path) {
-        Ok(parts) => {
-            match ImageListEntry::thumbnail_file_name(&parts.file_name) {
-                Ok(thumb_name) => {
-                    let thumb_path = parts.dir.join(&thumb_name);
-                    let (ri, rt) = (remove_file(&path), remove_file(thumb_path));
-                    if ri.is_err() {
-                        log::error!("Failed to delete image {:?}: {:?}", path, ri.unwrap_err());
-                        return Ok(server_error("Error deleting image"));
-                    }
-                    log::info!("Deleted image {:?}", path);
-                    if rt.is_err() {
-                        log::error!("Failed to delete thumbnail {:?}: {:?}", path, rt.unwrap_err());
-                        return Ok(server_error("Error deleting image"));
-                    }
-                    log::info!("Deleted thumbnail {:?}", thumb_name);
-                },
-                Err(e) => {
-                    log::error!("Failed to get thumbnail name from {:?}: {:?}", parts.file_name, e);
+        Ok(parts) => match ImageListEntry::thumbnail_file_name(&parts.file_name) {
+            Ok(thumb_name) => {
+                let thumb_path = parts.dir.join(&thumb_name);
+                let (ri, rt) = (remove_file(&path), remove_file(thumb_path));
+                if ri.is_err() {
+                    log::error!("Failed to delete image {:?}: {:?}", path, ri.unwrap_err());
                     return Ok(server_error("Error deleting image"));
                 }
+                log::info!("Deleted image {:?}", path);
+                if rt.is_err() {
+                    log::error!(
+                        "Failed to delete thumbnail {:?}: {:?}",
+                        path,
+                        rt.unwrap_err()
+                    );
+                    return Ok(server_error("Error deleting image"));
+                }
+                log::info!("Deleted thumbnail {:?}", thumb_name);
+            }
+            Err(e) => {
+                log::error!(
+                    "Failed to get thumbnail name from {:?}: {:?}",
+                    parts.file_name,
+                    e
+                );
+                return Ok(server_error("Error deleting image"));
             }
         },
         Err(e) => {
@@ -314,7 +294,7 @@ fn get_thumbs_remaining(data: &CommonData) -> ThumbsRemaining {
     ThumbsRemaining { count, total }
 }
 
-pub async fn check_thumb_progress (
+pub async fn check_thumb_progress(
     State(data): State<SharedData>,
     cookies: Cookies,
 ) -> Result<Json<ThumbsRemaining>, StatusCode> {
@@ -335,8 +315,11 @@ async fn gather_fields(mut form_data: Multipart) -> Vec<UploadedImageData> {
     let mut fields = Vec::new();
 
     while let Ok(Some(field)) = form_data.next_field().await {
-        let file_name = sanitize_file_name(field.file_name()
-            .expect("Read image file name from form data"));
+        let file_name = sanitize_file_name(
+            field
+                .file_name()
+                .expect("Read image file name from form data"),
+        );
         let bytes = field.bytes().await;
         fields.push(UploadedImageData { file_name, bytes })
     }
@@ -353,7 +336,7 @@ fn save_file<P: AsRef<OsPath>>(file_name: P, bytes: &Bytes) -> Result<(), IoErro
     file.write_all(bytes)
 }
 
-pub async fn upload_image_handler (
+pub async fn upload_image_handler(
     State(data): State<SharedData>,
     cookies: Cookies,
     form_data: Multipart,
@@ -369,15 +352,18 @@ pub async fn upload_image_handler (
             Ok(bytes) => {
                 if let Err(e) = fs::create_dir_all(&dir) {
                     log::error!("Error creating image directory {:?}: {:?}", dir, e);
-                return Ok(server_error("Error creating image directory"));
+                    return Ok(server_error("Error creating image directory"));
                 } else if let Err(e) = save_file(&path, bytes) {
                     log::error!("Error saving file {:?}: {:?}", path, e);
                     return Ok(server_error("Error saving image file"));
                 }
-            },
+            }
             Err(e) => {
                 log::error!("Error reading form data: {:?}", e);
-                return Ok(server_error(&format!("Error reading uploaded form data: {:#?}", e.source())));
+                return Ok(server_error(&format!(
+                    "Error reading uploaded form data: {:#?}",
+                    e.source()
+                )));
             }
         }
     }
@@ -401,32 +387,27 @@ pub async fn admin_page_handler(
             "blog_title": blog_title,
             "articles": &data.articles,
             "content_dir": &data.config.content_dir,
-        })
+        }),
     ) {
-        Ok(rendered_page) => Ok((
-            StatusCode::OK,
-            Html(rendered_page),
-        )),
-        Err(e) => Ok(server_error(
-            &format!("Failed to render article in index. Error: {e:?}"))
-        )
+        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Err(e) => Ok(server_error(&format!(
+            "Failed to render article in index. Error: {e:?}"
+        ))),
     }
 }
 
 // NOTE: this assumes directories are named according to the pattern used by
 // get_current_images_dir, i.e. <content_dir>/images/yyyy/mm
 fn sorted_dir_keys<K: AsRef<OsPath>, V>(h: &HashMap<K, V>) -> Vec<String> {
-    let mut sorted: Vec<String> = h.keys()
-        .map(|path| path.as_ref().to_string_lossy().to_string() )
+    let mut sorted: Vec<String> = h
+        .keys()
+        .map(|path| path.as_ref().to_string_lossy().to_string())
         .collect();
     sorted.sort_by_key(|path| std::cmp::Reverse(path.to_uppercase()));
     sorted
 }
 
-pub async fn image_list_handler(
-    State(data): State<SharedData>,
-    cookies: Cookies,
-) -> HtmlOrStatus {
+pub async fn image_list_handler(State(data): State<SharedData>, cookies: Cookies) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
 
     let (image_dirs, thumbs_remaining) = get_image_list(&data);
@@ -439,13 +420,11 @@ pub async fn image_list_handler(
             "dir_keys": dir_keys,
             "image_dirs": image_dirs,
             "thumbs_remaining": thumbs_remaining,
-        })
+        }),
     ) {
-        Ok(rendered_page) => {
-            Ok((StatusCode::OK, Html(rendered_page)))
-        },
-        Err(e) => Ok(server_error(
-            &format!("Failed to render image list. Error: {e:?}"))
-        )
+        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Err(e) => Ok(server_error(&format!(
+            "Failed to render image list. Error: {e:?}"
+        ))),
     }
 }

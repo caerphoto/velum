@@ -1,12 +1,12 @@
-use std::collections::HashSet;
-use std::path::PathBuf;
-use handlebars::Handlebars;
-use crate::hb::create_handlebars;
-use crate::article::gather_fs_articles;
-use crate::errors::ParseError;
 use crate::article::builder::ParsedArticle;
+use crate::article::gather_fs_articles;
 use crate::comments::Comments;
 use crate::config::Config;
+use crate::errors::ParseError;
+use crate::hb::create_handlebars;
+use handlebars::Handlebars;
+use std::collections::HashSet;
+use std::path::PathBuf;
 
 pub struct CommonData {
     pub hbs: Handlebars<'static>,
@@ -35,10 +35,9 @@ impl CommonData {
     }
 
     pub fn rebuild(&mut self) -> Result<(), ParseError> {
-        gather_fs_articles(&self.config)
-            .map(|articles| {
-                self.articles = articles;
-            })
+        gather_fs_articles(&self.config).map(|articles| {
+            self.articles = articles;
+        })
     }
 }
 

@@ -19,13 +19,17 @@ impl fmt::Debug for ParseError {
 
 impl From<io::Error> for ParseError {
     fn from(error: io::Error) -> Self {
-        Self { cause: format!("IO error: {:?}", error.to_string()) }
+        Self {
+            cause: format!("IO error: {:?}", error.to_string()),
+        }
     }
 }
 
 impl From<String> for ParseError {
     fn from(msg: String) -> Self {
-        Self { cause: format!("ParseError: {msg}") }
+        Self {
+            cause: format!("ParseError: {msg}"),
+        }
     }
 }
 

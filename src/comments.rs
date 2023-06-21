@@ -1,15 +1,15 @@
 // TODO: figure out how editing comments is going to work. maybe?
 
-use std::fs::{File, OpenOptions};
-use std::path::{Path, PathBuf};
-use std::time::{Instant, Duration};
-use std::net::SocketAddr;
-use std::io::{self, BufRead, prelude::*};
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
-use serde_json::json;
 use crate::config::Config;
 use crate::typography::typogrified;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::collections::HashMap;
+use std::fs::{File, OpenOptions};
+use std::io::{self, prelude::*, BufRead};
+use std::net::SocketAddr;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 const COMMENT_RATE_LIMIT: Duration = Duration::from_millis(2000);
 
@@ -57,7 +57,9 @@ impl CommentLine {
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
+where
+    P: AsRef<Path>,
+{
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
@@ -71,7 +73,9 @@ pub struct Comments {
 
 impl Comments {
     fn create_comments_file<P>(filename: P) -> bool
-    where P: AsRef<Path> {
+    where
+        P: AsRef<Path>,
+    {
         File::create(filename).is_ok()
     }
 
@@ -83,9 +87,13 @@ impl Comments {
 
         if let Ok(lines) = lines {
             for line in lines {
-                if line.is_err() { continue; }
+                if line.is_err() {
+                    continue;
+                }
                 let cl: Result<CommentLine, _> = serde_json::from_str(&line.unwrap());
-                if cl.is_err() { continue; }
+                if cl.is_err() {
+                    continue;
+                }
                 let cl = cl.unwrap();
                 let comment: Comment = Comment::from(&cl);
                 let article_comments: Option<&mut Vec<Comment>> = comments.get_mut(&cl.slug);
@@ -109,9 +117,7 @@ impl Comments {
 
     fn save_comment(&self, slug: &str, comment: &Comment) {
         let cl = CommentLine::from_comment(comment, slug);
-        let file = OpenOptions::new()
-            .append(true)
-            .open(&self.filename);
+        let file = OpenOptions::new().append(true).open(&self.filename);
 
         if file.is_err() {
             log::error!("Failed to open comments file for appending");
@@ -133,7 +139,12 @@ impl Comments {
         false
     }
 
-    pub fn add(&mut self, slug: &str, comment: Comment, addr: Option<SocketAddr>) -> Result<Comment, String> {
+    pub fn add(
+        &mut self,
+        slug: &str,
+        comment: Comment,
+        addr: Option<SocketAddr>,
+    ) -> Result<Comment, String> {
         if addr.is_none() {
             log::error!("Attempt to comment with no supplied IP");
             return Err("No IP supplied".into());
@@ -142,12 +153,15 @@ impl Comments {
         let ip = addr.unwrap().ip();
         let instants_key = ip.to_string() + slug;
         let now = Instant::now();
-        if self.is_limited(&instants_key) { return Err("IP is rate limited".into()) }
+        if self.is_limited(&instants_key) {
+            return Err("IP is rate limited".into());
+        }
 
         if let Some(article_comments) = self.comments.get_mut(&slug.to_string()) {
             article_comments.push(comment.clone());
         } else {
-            self.comments.insert(slug.to_string(), vec![comment.clone()]);
+            self.comments
+                .insert(slug.to_string(), vec![comment.clone()]);
         }
         self.prev_instants.insert(instants_key, now);
 
@@ -168,4 +182,3 @@ impl Comments {
         }
     }
 }
-

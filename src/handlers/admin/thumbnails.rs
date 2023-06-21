@@ -8,9 +8,8 @@ use std::{
 
 use futures::executor::block_on;
 use image::{
-    GenericImageView,
-    ImageFormat,
     imageops::{resize, FilterType},
+    GenericImageView, ImageFormat,
 };
 use serde::Serialize;
 use walkdir::{DirEntry, WalkDir};
@@ -41,11 +40,11 @@ impl NameParts {
         let path = path.as_ref();
         match (path.parent(), path.file_name()) {
             (Some(p), Some(f)) => Ok(Self {
-                    path: path.into(),
-                    dir: p.into(),
-                    file_name: f.into(),
-                }),
-            _ => Err(ThumbError::new(path))
+                path: path.into(),
+                dir: p.into(),
+                file_name: f.into(),
+            }),
+            _ => Err(ThumbError::new(path)),
         }
     }
 }
@@ -86,7 +85,9 @@ impl fmt::Display for ThumbError {
         match self.kind {
             ThumbErrorKind::Name => write!(f, "thumbnail name error: {}", self.orig_file_name),
             ThumbErrorKind::File => write!(f, "thumbnail file error: {:?}", self.details),
-            ThumbErrorKind::AlreadyExists => write!(f, "thumbnail {:?} already exists", self.orig_file_name),
+            ThumbErrorKind::AlreadyExists => {
+                write!(f, "thumbnail {:?} already exists", self.orig_file_name)
+            }
         }
     }
 }
@@ -120,16 +121,19 @@ impl ImageListEntry {
             .to_string_lossy()
             .to_string();
         let orig_file_name = file_name.to_string_lossy().to_string();
-        Ok(Self { orig_file_name, thumbnail_file_name })
+        Ok(Self {
+            orig_file_name,
+            thumbnail_file_name,
+        })
     }
     pub fn thumbnail_file_name<P: AsRef<OsPath>>(file_name: P) -> Result<PathBuf, ThumbError> {
         let file_name = file_name.as_ref();
         if let (Some(stem), Some(ext)) = (file_name.file_stem(), file_name.extension()) {
             Ok(PathBuf::from(
                 stem.to_string_lossy().to_string()
-                + THUMBNAIL_SUFFIX
-                + "."
-                + &ext.to_string_lossy()
+                    + THUMBNAIL_SUFFIX
+                    + "."
+                    + &ext.to_string_lossy(),
             ))
         } else {
             Err(ThumbError::new(file_name))
@@ -174,7 +178,12 @@ fn generate_thumb_path(parts: &NameParts) -> Result<PathBuf, ThumbError> {
     }
 }
 
-async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: SharedData) -> Result<(), ThumbError> {
+async fn create_thumbnail(
+    parts: NameParts,
+    index: usize,
+    count: usize,
+    data: SharedData,
+) -> Result<(), ThumbError> {
     let progress_val = parts.path.clone();
     let ftsize = THUMB_SIZE as f64;
     let thumb_path = match generate_thumb_path(&parts) {
@@ -196,7 +205,12 @@ async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: Sh
             } else {
                 ((ftsize / (h / w)) as u32, ftsize as u32)
             };
-            log::info!("[{}/{}] Creating thumbnail for {:?} ...", index, count, thumb_path);
+            log::info!(
+                "[{}/{}] Creating thumbnail for {:?} ...",
+                index,
+                count,
+                thumb_path
+            );
             let thumb = resize(&img, tw, th, FilterType::Triangle);
             if let Err(e) = thumb.save_with_format(&thumb_path, ImageFormat::Jpeg) {
                 log::error!("  ...failed to save thumbnail {:?}: {:?}", thumb_path, e);
@@ -205,11 +219,14 @@ async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: Sh
                 log::info!("  ...saved thumbnail {:?}", thumb_path);
                 Ok(())
             }
-        },
+        }
         Err(e) => {
             log::error!(
                 "[{}/{}] Failed to open image {:?} for thumbnail generation: {:?}",
-                index, count, parts.path, e
+                index,
+                count,
+                parts.path,
+                e
             );
             Err(e.into())
         }
@@ -223,19 +240,20 @@ async fn create_thumbnail(parts: NameParts, index: usize, count: usize, data: Sh
 }
 
 fn is_valid_image_file(entry: &DirEntry) -> bool {
-    let is_image = entry.path().extension()
+    let is_image = entry
+        .path()
+        .extension()
         .map(|ext| {
             let ext = ext.to_ascii_lowercase();
             ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "gif"
         })
         .unwrap_or(false);
-    let is_thumb = entry.path().file_stem()
+    let is_thumb = entry
+        .path()
+        .file_stem()
         .and_then(|stem| stem.to_str())
-        .map(|stem| {
-            stem.ends_with(THUMBNAIL_SUFFIX)
-        })
+        .map(|stem| stem.ends_with(THUMBNAIL_SUFFIX))
         .unwrap_or(true);
-
 
     (is_image || entry.file_type().is_dir()) && !is_thumb
 }
@@ -243,7 +261,7 @@ fn is_valid_image_file(entry: &DirEntry) -> bool {
 fn file_sorter(a: &DirEntry, b: &DirEntry) -> std::cmp::Ordering {
     if let (Ok(ma), Ok(mb)) = (a.metadata(), b.metadata()) {
         if let (Ok(ta), Ok(tb)) = (ma.modified(), mb.modified()) {
-            return tb.cmp(&ta) // newest first
+            return tb.cmp(&ta); // newest first
         }
     }
 
@@ -262,13 +280,15 @@ pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, Thu
     for entry in iter {
         match entry {
             Ok(dir_entry) => {
-                if dir_entry.file_type().is_dir() { continue; }
+                if dir_entry.file_type().is_dir() {
+                    continue;
+                }
                 let path = dir_entry.path();
                 match NameParts::new(path) {
                     Ok(parts) => image_files.push(parts),
                     Err(e) => log::error!("Failed to create name parts from {:?}: {:?}", path, e),
                 }
-            },
+            }
             Err(e) => log::error!("Unable to read dir entry: {:?}", e),
         }
     }
@@ -284,9 +304,7 @@ pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, Thu
             }
         } else {
             data.write().thumb_progress.insert(parts.path.clone());
-            thumbnail_futures.push(
-                create_thumbnail(parts.clone(), i + 1, count, data.clone())
-            );
+            thumbnail_futures.push(create_thumbnail(parts.clone(), i + 1, count, data.clone()));
         }
 
         let key = &parts.dir;
@@ -296,8 +314,12 @@ pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, Thu
             }
         } else {
             match ImageListDir::new(parts) {
-                Ok(ild) => { filenames.insert(key.clone(), ild); },
-                Err(e) => { log::error!("Failed to create new image list dir: {:?}", e); },
+                Ok(ild) => {
+                    filenames.insert(key.clone(), ild);
+                }
+                Err(e) => {
+                    log::error!("Failed to create new image list dir: {:?}", e);
+                }
             }
         }
     }
@@ -316,6 +338,11 @@ pub fn get_image_list(data: &SharedData) -> (HashMap<PathBuf, ImageListDir>, Thu
         }
     });
 
-    (filenames, ThumbsRemaining { count: remaining, total: remaining })
+    (
+        filenames,
+        ThumbsRemaining {
+            count: remaining,
+            total: remaining,
+        },
+    )
 }
-

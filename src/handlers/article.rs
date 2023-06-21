@@ -1,28 +1,17 @@
 use std::time;
 
 use axum::{
-    http::{
-        StatusCode,
-        Uri,
-    },
-    response::{Html, IntoResponse},
     extract::{Path, State},
+    http::{StatusCode, Uri},
+    response::{Html, IntoResponse},
 };
 use headers::HeaderMap;
-use tower_cookies::Cookies;
 use regex::Regex;
+use tower_cookies::Cookies;
 
+use super::{log_elapsed, not_found, server_error, theme};
+use crate::article::{storage::fetch_by_slug, view::ArticleRenderView};
 use crate::SharedData;
-use crate::article::{
-    storage::fetch_by_slug,
-    view::ArticleRenderView,
-};
-use super::{
-    log_elapsed,
-    server_error,
-    not_found,
-    theme,
-};
 
 fn return_path(blog_host: &str, uri: Option<String>) -> String {
     lazy_static! {
@@ -35,10 +24,14 @@ fn return_path(blog_host: &str, uri: Option<String>) -> String {
         ).unwrap();
     }
     let default_path = "/".to_string();
-    if uri.is_none() { return default_path; }
+    if uri.is_none() {
+        return default_path;
+    }
     if let Ok(referer) = uri.unwrap().parse::<Uri>() {
         if let Some(host) = referer.host() {
-            if host != blog_host { return default_path }
+            if host != blog_host {
+                return default_path;
+            }
         }
         if referer.path() == "/" || INDEX_PATH.is_match(referer.path()) {
             return referer.path().to_string();
@@ -77,25 +70,17 @@ pub async fn article_handler(
 
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
         let theme = theme(cookies);
-        let render_data = ArticleRenderView::new(
-            article,
-            &data.articles,
-            &return_path,
-            &theme,
-            &data,
-        );
-        match  data.hbs.render("article", &render_data) {
+        let render_data =
+            ArticleRenderView::new(article, &data.articles, &return_path, &theme, &data);
+        match data.hbs.render("article", &render_data) {
             Ok(rendered_page) => {
-                let reply = (StatusCode:: OK, Html(rendered_page));
+                let reply = (StatusCode::OK, Html(rendered_page));
                 log_elapsed("ARTICLE", Some(&slug), None, now);
                 reply
-            },
-            Err(e) => {
-                server_error(&format!( "Failed to render article. Error: {e:?}"))
             }
+            Err(e) => server_error(&format!("Failed to render article. Error: {e:?}")),
         }
     } else {
         not_found(None)
     }
 }
-

@@ -5,7 +5,6 @@ const CONFIG_FILE: &str = "./Settings.toml";
 const SECRETS_FILE: &str = "./Secrets.toml";
 const BCRYPT_HASH_COST: u32 = 8;
 
-
 pub const TIMESTAMP_FORMAT: &str = "%Y%m%d%H%M%S";
 
 #[derive(Clone, Default, Serialize, Deserialize)]

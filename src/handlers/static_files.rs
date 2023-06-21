@@ -1,57 +1,28 @@
 use std::{
-    io::{
-        prelude::*,
-        BufReader,
-        Read,
-        Result as IoResult,
-    },
     fs,
-    path::{
-        Path as FsPath,
-        PathBuf,
-    },
-    time::{
-        UNIX_EPOCH,
-        Duration,
-        SystemTime,
-    },
+    io::{prelude::*, BufReader, Read, Result as IoResult},
+    path::{Path as FsPath, PathBuf},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use filetime::{
-    FileTime,
-    set_file_mtime,
-};
+use filetime::{set_file_mtime, FileTime};
 
-use headers::{
-    HeaderMapExt,
-    CacheControl,
-    ContentLength,
-    ContentType,
-    LastModified,
-};
+use headers::{CacheControl, ContentLength, ContentType, HeaderMapExt, LastModified};
 use regex::Regex;
 
 use axum::{
-    body::{
-        boxed,
-        Body,
-        Full as FullBody,
-        BoxBody
-    },
+    body::{boxed, Body, BoxBody, Full as FullBody},
     extract::{Path, State},
     http::{Request, StatusCode},
     response::{IntoResponse, Response},
     routing::get_service,
 };
 use axum_macros::debug_handler;
-use tower_http::services::ServeFile;
 use tower::ServiceExt;
+use tower_http::services::ServeFile;
 
-use crate::{SharedData, hb::helpers::path_with_timestamp};
-use super::{
-    HtmlResponse,
-    server_error,
-};
+use super::{server_error, HtmlResponse};
+use crate::{hb::helpers::path_with_timestamp, SharedData};
 
 const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
 
@@ -64,11 +35,14 @@ fn read_file_bytes<P: AsRef<FsPath>>(filename: P, buf: &mut Vec<u8>) -> IoResult
     Ok(modified)
 }
 
-fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<SystemTime, HtmlResponse> {
+fn concat_files<P: AsRef<FsPath>>(
+    paths: Vec<P>,
+    buf: &mut Vec<u8>,
+) -> Result<SystemTime, HtmlResponse> {
     let separator = b';';
-    let last_modified = paths.iter()
+    let last_modified = paths
+        .iter()
         .map(|p| {
-
             if let Ok(last_modified) = read_file_bytes(p, buf) {
                 buf.push(separator);
                 last_modified
@@ -83,15 +57,17 @@ fn concat_files<P: AsRef<FsPath>>(paths: Vec<P>, buf: &mut Vec<u8>) -> Result<Sy
 
 fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), HtmlResponse> {
     let mut filepaths: Vec<PathBuf> = Vec::new();
-    let manifest = fs::File::open(manifest_path)
-        .map_err(|_| server_error(
-            &format!(
-                "Failed to open manifest file {}",
-                manifest_path.to_string_lossy()
-            )))?;
+    let manifest = fs::File::open(manifest_path).map_err(|_| {
+        server_error(&format!(
+            "Failed to open manifest file {}",
+            manifest_path.to_string_lossy()
+        ))
+    })?;
     let mut manifest_code: Vec<String> = Vec::new();
     for line in BufReader::new(manifest).lines() {
-        if line.is_err() { continue; }
+        if line.is_err() {
+            continue;
+        }
         let line = line.unwrap();
         if let Some(p) = line.strip_prefix("//=") {
             filepaths.push((p.to_string() + ".js").into())
@@ -109,18 +85,19 @@ fn write_compiled_manifest(buf: &[u8], path: &PathBuf, last_modified: SystemTime
     fs::write(compiled_manifest_path, buf)
 }
 
-fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<SystemTime, HtmlResponse> {
+fn compile_manifest(
+    manifest_path: &PathBuf,
+    buf: &mut Vec<u8>,
+) -> Result<SystemTime, HtmlResponse> {
     let prefix = match manifest_path.parent() {
         Some(p) => p.to_path_buf(),
-        None => PathBuf::from("/")
+        None => PathBuf::from("/"),
     };
     let (paths, manifest_js) = extract_filepaths(manifest_path)
         .map_err(|_| server_error("Failed to extract file paths"))?;
-    let paths = paths.iter()
-        .map(|p| prefix.join(p))
-        .collect();
-    let last_modified = concat_files(paths, buf)
-        .map_err(|_| server_error("Failed to concatenate files"))?;
+    let paths = paths.iter().map(|p| prefix.join(p)).collect();
+    let last_modified =
+        concat_files(paths, buf).map_err(|_| server_error("Failed to concatenate files"))?;
     buf.append(&mut Vec::from(manifest_js.as_bytes()));
     if let Err(e) = set_file_mtime(manifest_path, FileTime::from_system_time(last_modified)) {
         log::error!("Failed to update last modified time on JS manifest: {e:?}");
@@ -134,7 +111,11 @@ fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<System
     Ok(last_modified)
 }
 
-fn build_response(filename: &PathBuf, last_modified: SystemTime, buf: Vec<u8>) -> Response<BoxBody> {
+fn build_response(
+    filename: &PathBuf,
+    last_modified: SystemTime,
+    buf: Vec<u8>,
+) -> Response<BoxBody> {
     let ct = mime_guess::from_path(filename).first_or_octet_stream();
     let len = buf.len() as u64;
     let mut res = Response::builder()
@@ -175,9 +156,7 @@ fn build_fs_path(content_dir: &str, path: &str) -> PathBuf {
     }
 
     let utpath = untimestamped_path(path);
-    PathBuf::from(content_dir)
-        .join("assets")
-        .join(utpath)
+    PathBuf::from(content_dir).join("assets").join(utpath)
 }
 
 async fn error_handler(error: std::io::Error) -> impl IntoResponse {
@@ -215,11 +194,9 @@ pub async fn asset_handler(
         let service = get_service(ServeFile::new(fs_path))
             .handle_error(error_handler);
         let mut result = service.oneshot(req).await.unwrap();
-        result.headers_mut().typed_insert(
-            CacheControl::new()
-                .with_public()
-                .with_max_age(ONE_YEAR)
-        );
+        result
+            .headers_mut()
+            .typed_insert(CacheControl::new().with_public().with_max_age(ONE_YEAR));
 
         Ok(result)
     }

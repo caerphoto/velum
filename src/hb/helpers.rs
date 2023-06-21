@@ -1,8 +1,12 @@
 use chrono::prelude::*;
 use chrono::{DateTime, Duration, LocalResult};
+use handlebars::{handlebars_helper, Handlebars};
 use ordinal::Ordinal;
-use std::{fs, path::{Path, PathBuf}, time::SystemTime};
-use handlebars::{Handlebars, handlebars_helper};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 
 use crate::config::TIMESTAMP_FORMAT;
 
@@ -25,7 +29,6 @@ pub fn path_with_timestamp<P: AsRef<Path>>(path: P, time: SystemTime) -> PathBuf
     } else {
         p.into()
     }
-
 }
 
 handlebars_helper!(date_from_timestamp: |ts: i64| {

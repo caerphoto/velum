@@ -1,4 +1,4 @@
-use regex::{Regex, Captures, Replacer};
+use regex::{Captures, Regex, Replacer};
 
 type ReplacerFn = fn(&Captures) -> String;
 
@@ -17,7 +17,6 @@ impl Replacer for &Rep {
         }
     }
 }
-
 
 struct Typograph {
     rx: Regex,
@@ -65,7 +64,10 @@ pub fn typogrified(text: &str) -> String {
 
     let mut new_text = String::from(text);
     for typograph in REPLACEMENTS.iter() {
-        new_text = typograph.rx.replace_all(&new_text, &typograph.rep).into_owned();
+        new_text = typograph
+            .rx
+            .replace_all(&new_text, &typograph.rep)
+            .into_owned();
     }
 
     new_text

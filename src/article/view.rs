@@ -1,14 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use crate::{
+    article::storage::{fetch_by_slug, PaginatedArticles},
+    comments::{Comment, Comments},
+    CommonData,
+};
 use regex::Regex;
 use serde::Serialize;
-use crate::{
-    CommonData,
-    comments::{Comment, Comments},
-    article::storage::{
-        fetch_by_slug,
-        PaginatedArticles,
-    }
-};
+use std::collections::{HashMap, HashSet};
 
 use super::builder::ParsedArticle;
 
@@ -75,7 +72,8 @@ impl<'a> IndexRenderView<'a> {
     }
 
     fn get_comment_counts(articles: &[&ParsedArticle], comments: &Comments) -> Vec<usize> {
-        articles.iter()
+        articles
+            .iter()
             .map(|a| comments.count_for(&a.slug))
             .collect()
     }
@@ -100,16 +98,20 @@ pub struct RssArticleView<'a> {
     timestamp: i64,
 }
 
-impl <'a>RssArticleView<'a> {
-    pub fn from_parsed_article<'b>(article: &'b ParsedArticle, blog_url: &'b str) -> RssArticleView<'b> {
+impl<'a> RssArticleView<'a> {
+    pub fn from_parsed_article<'b>(
+        article: &'b ParsedArticle,
+        blog_url: &'b str,
+    ) -> RssArticleView<'b> {
         lazy_static! {
-            static ref RELATIVE_IMG_URL: Regex = Regex::new(r#"<(img|a)( .*)* (src|href)="/([^"]+)""#).unwrap();
+            static ref RELATIVE_IMG_URL: Regex =
+                Regex::new(r#"<(img|a)( .*)* (src|href)="/([^"]+)""#).unwrap();
         }
 
         let trimmed_url = blog_url.trim_end_matches('/');
         let modified_content = RELATIVE_IMG_URL.replace_all(
             &article.parsed_content,
-            format!(r#"<$1$2 $3="{trimmed_url}/$4""#)
+            format!(r#"<$1$2 $3="{trimmed_url}/$4""#),
         );
         RssArticleView {
             title: article.title.as_ref(),
@@ -166,7 +168,10 @@ impl<'a> ArticleRenderView<'a> {
     }
 }
 
-fn related_articles<'a>(article: &'a ParsedArticle, all_articles: &'a [ParsedArticle]) -> Vec<&'a ParsedArticle> {
+fn related_articles<'a>(
+    article: &'a ParsedArticle,
+    all_articles: &'a [ParsedArticle],
+) -> Vec<&'a ParsedArticle> {
     let mut related_slugs: HashMap<&String, usize> = HashMap::new();
     let a_tags: HashSet<&String> = HashSet::from_iter(article.tags.iter());
 
@@ -179,7 +184,8 @@ fn related_articles<'a>(article: &'a ParsedArticle, all_articles: &'a [ParsedArt
         }
     }
 
-    let mut related_slugs: Vec<(String, usize)> = related_slugs.iter()
+    let mut related_slugs: Vec<(String, usize)> = related_slugs
+        .iter()
         .map(|kv| {
             let key = String::from(&**kv.0);
             (key, *kv.1)
@@ -187,9 +193,10 @@ fn related_articles<'a>(article: &'a ParsedArticle, all_articles: &'a [ParsedArt
         .collect();
 
     related_slugs.sort_by(|a, b| b.1.cmp(&a.1));
-    related_slugs.iter()
+    related_slugs
+        .iter()
         .map(|kv| fetch_by_slug(&kv.0, all_articles).unwrap()) // unwrap is fine here; we know the
-                                                               // article exists
+        // article exists
         .take(MAX_RELATED_ARTICLES)
         .collect()
 }
