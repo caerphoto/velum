@@ -34,9 +34,12 @@ pub fn typogrified(text: &str) -> String {
             Typograph { rx: Regex::new(r"['‘](\d\d)s").unwrap(),  rep: Rep::Str("’$1s") },
 
             // Order of these is imporant – opening quotes need to be done first.
-            Typograph { rx: Regex::new("`").unwrap(), rep: Rep::Str("‘") },
             Typograph { rx: Regex::new(r#"(^|\s|\()""#).unwrap(), rep: Rep::Str("$1“") }, // ldquo
             Typograph { rx: Regex::new(r#"""#).unwrap(),          rep: Rep::Str("”") },   // rdquo
+
+            // 's at the beginning of a text node, which usually means the node is following
+            // another element like <code>, eg "the `code`'s formatting".
+            Typograph { rx: Regex::new(r"'s\b").unwrap(),         rep: Rep::Str("’s") },  // rsquo
 
             Typograph { rx: Regex::new(r"(^|\s|\()'").unwrap(),   rep: Rep::Str("$1‘") }, // lsquo
             Typograph { rx: Regex::new("'").unwrap(),             rep: Rep::Str("’") },   // rsquo
