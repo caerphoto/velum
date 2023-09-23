@@ -66,7 +66,7 @@ fn set_prev_next(articles: &mut Vec<ParsedArticle>) {
             None
         };
         let next = articles.get(i + 1).map(ArticlePrevNext::from);
-        let mut a = &mut articles[i];
+        let a = &mut articles[i];
         a.prev = prev;
         a.next = next;
     }

@@ -1,14 +1,12 @@
-(function (D) {
+(function(D) {
     const selector = D.querySelector('#theme-selector-box');
     if (!selector) return;
 
     const root = D.documentElement;
     const validThemes = Array.from(selector.querySelectorAll('input'))
         .map(i => i.value)
-        .reduce((obj, val) => {obj[val] = true; return obj}, {});
-    const DEFAULT_THEME = 'light';
-
-    if (!selector) return;
+        .reduce((obj, val) => { obj[val] = true; return obj }, {});
+    const DEFAULT_THEME = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 
     function getCookie(name) {
         const value = `; ${document.cookie}`;
@@ -16,11 +14,10 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
     }
 
-    // TODO: don't hard-code default selection
     let currentTheme = getCookie('theme') || DEFAULT_THEME;
     if (!validThemes[currentTheme]) currentTheme = DEFAULT_THEME;
 
-    const TEN_YEARS = 60*60*24*365*2;
+    const TEN_YEARS = 60 * 60 * 24 * 365 * 2;
 
     function changeTheme(event) {
         const theme = event.target.value;

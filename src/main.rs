@@ -58,6 +58,7 @@ async fn main() {
     let listen_ip = config.listen_ip.parse::<IpAddr>()
         .unwrap_or_else(|_| panic!("Failed to parse listen IP from {}", &config.listen_ip));
     let listen_port = config.listen_port;
+    log::info!("Listening on http://{}:{}/ ...", &listen_ip, &listen_port);
     let listen = SocketAddr::new(listen_ip, listen_port);
 
     axum::Server::bind(&listen)

@@ -102,6 +102,7 @@ fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), 
     Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
 }
 
+#[allow(dead_code)] // won't be used in debug mode
 fn write_compiled_manifest(buf: &[u8], path: &PathBuf, last_modified: SystemTime) -> IoResult<()> {
     let compiled_manifest_path = path_with_timestamp(path, last_modified);
     log::info!("Writing compiled manifest data to {compiled_manifest_path:?}");
@@ -125,6 +126,7 @@ fn compile_manifest(manifest_path: &PathBuf, buf: &mut Vec<u8>) -> Result<System
         log::error!("Failed to update last modified time on JS manifest: {e:?}");
     }
 
+    #[cfg(not(debug_assertions))]
     if let Err(e) = write_compiled_manifest(buf, manifest_path, last_modified) {
         log::error!("Failed too write compiled manifest file: {e:?}");
     }
@@ -161,13 +163,16 @@ fn untimestamped_path(path: &str) -> PathBuf {
 }
 
 fn build_fs_path(content_dir: &str, path: &str) -> PathBuf {
-    let real_path = PathBuf::from(content_dir)
-        .join("assets")
-        .join(path);
+    #[cfg(not(debug_assertions))]
+    {
+        let real_path = PathBuf::from(content_dir)
+            .join("assets")
+            .join(path);
 
-    // We can return the timestamped path if a file with the timestamp actually exists, e.g. for
-    // precompiled JS files.
-    if real_path.exists() { return real_path; }
+        // We can return the timestamped path if a file with the timestamp actually exists, e.g. for
+        // precompiled JS files.
+        if real_path.exists() { return real_path; }
+    }
 
     let utpath = untimestamped_path(path);
     PathBuf::from(content_dir)
@@ -197,15 +202,16 @@ pub async fn asset_handler(
     let content_dir = data.read().config.content_dir.clone();
     let fs_path = build_fs_path(&content_dir, &path);
 
-    log::info!(
-        "Serving assset {} from file {}",
-        &path,
-        &fs_path.to_string_lossy()
-    );
-
     if fs_path.ends_with("manifest.js") {
+        log::info!("Serving JS manifest");
         js_manifest_response(&fs_path)
     } else {
+        log::info!(
+            "Serving assset {} from file {}",
+            &path,
+            &fs_path.to_string_lossy()
+        );
+
         let service = get_service(ServeFile::new(fs_path))
             .handle_error(error_handler);
         let mut result = service.oneshot(req).await.unwrap();
