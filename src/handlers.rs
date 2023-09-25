@@ -7,7 +7,7 @@ pub mod static_files;
 use std::{
     fs,
     path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH, Instant},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 use axum::{
@@ -52,7 +52,6 @@ pub fn log_elapsed(thing: &str, thing_name: Option<&str>, page: Option<usize>, f
     } else {
         log::info!("Rendered {thing}{thing_name} in {elapsed}{unit}s");
     }
-
 }
 
 // TODO: render HTML from file
@@ -91,7 +90,10 @@ pub fn empty_response(code: StatusCode) -> HtmlResponse {
 pub fn server_error_page(msg: &str) -> HtmlResponse {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
-        Html(render_error_page(StatusCode::INTERNAL_SERVER_ERROR, Some(msg))),
+        Html(render_error_page(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Some(msg),
+        )),
     )
 }
 

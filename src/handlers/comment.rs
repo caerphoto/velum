@@ -1,26 +1,14 @@
-use std::net::SocketAddr;
 use axum::{
+    extract::{ConnectInfo, Json, Path, State},
     http::StatusCode,
-    response::{
-        Html,
-        IntoResponse,
-    },
-    extract::{
-        ConnectInfo,
-        Json,
-        Path,
-        State
-    },
+    response::{Html, IntoResponse},
 };
 use serde::Deserialize;
+use std::net::SocketAddr;
 
-use axum_macros::debug_handler;
-use crate::{
-    SharedData,
-    comments::Comment,
-    typography::typogrified,
-};
 use super::create_timestamp;
+use crate::{comments::Comment, typography::typogrified, SharedData};
+use axum_macros::debug_handler;
 
 #[derive(Deserialize)]
 pub struct JsonComment {
@@ -48,13 +36,12 @@ pub async fn comment_handler(
         log::info!("Saved comment on article '{}'", &slug);
         (
             StatusCode::OK,
-            Html(data.hbs.render("_comment", &saved).expect("Render comment"))
+            Html(data.hbs.render("_comment", &saved).expect("Render comment")),
         )
     } else {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Html("Failed to save comment".to_string())
+            Html("Failed to save comment".to_string()),
         )
     }
-
 }

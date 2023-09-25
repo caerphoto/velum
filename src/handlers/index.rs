@@ -1,5 +1,5 @@
 use axum::{
-    extract::{State, Path},
+    extract::{Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect, Response},
 };
@@ -7,19 +7,11 @@ use axum_macros::debug_handler;
 use std::time;
 use tower_cookies::Cookies;
 
-use super::{
-    log_elapsed,
-    server_error,
-    theme
-};
+use super::{log_elapsed, server_error, theme};
 
 use crate::article::{
     storage::{fetch_paginated_articles, PaginatedArticles},
-    view::{
-        IndexRenderView,
-        RssIndexView,
-        RssArticleView,
-    },
+    view::{IndexRenderView, RssArticleView, RssIndexView},
 };
 use crate::CommonData;
 use crate::SharedData;
@@ -32,14 +24,7 @@ fn render_article_list(
     theme: String,
     data: &CommonData,
 ) -> (StatusCode, Html<String>) {
-    let render_data = IndexRenderView::new(
-        &article_list,
-        tag,
-        page,
-        page_size,
-        theme,
-        data
-    );
+    let render_data = IndexRenderView::new(&article_list, tag, page, page_size, theme, data);
 
     let status = if article_list.total_articles > 0 {
         StatusCode::OK
@@ -47,17 +32,14 @@ fn render_article_list(
         StatusCode::NOT_FOUND
     };
 
-    match data.hbs.render( "index", &render_data) {
+    match data.hbs.render("index", &render_data) {
         Ok(rendered_page) => (status, Html(rendered_page)),
-        Err(e) => server_error(&format!( "Failed to render article in index. Error: {e:?}")),
+        Err(e) => server_error(&format!("Failed to render article in index. Error: {e:?}")),
     }
 }
 
 #[debug_handler]
-pub async fn home_handler(
-    State(data): State<SharedData>,
-    cookies: Cookies,
-) -> impl IntoResponse {
+pub async fn home_handler(State(data): State<SharedData>, cookies: Cookies) -> impl IntoResponse {
     index_handler(Path(String::from("0")), State(data), cookies).await
 }
 
@@ -70,7 +52,9 @@ pub async fn index_handler(
     // NOTE: eventually this should be removed, once the requests for the old route taper off
     let parse_result = page_or_slug.parse::<usize>();
     if parse_result.is_err() {
-        return Err(Redirect::permanent(&(String::from("/article/") + &page_or_slug)))
+        return Err(Redirect::permanent(
+            &(String::from("/article/") + &page_or_slug),
+        ));
     }
     let page = parse_result.unwrap();
 
@@ -80,14 +64,7 @@ pub async fn index_handler(
     let page_size = data.config.page_size;
     let article_list = fetch_paginated_articles(page, page_size, None, &data.articles);
 
-    let response = render_article_list(
-        article_list,
-        None,
-        page,
-        page_size,
-        theme(cookies),
-        &data,
-    );
+    let response = render_article_list(article_list, None, page, page_size, theme(cookies), &data);
     log_elapsed("ARTICLE INDEX", None, Some(page), now);
 
     Ok(response)
@@ -101,9 +78,7 @@ fn build_rss_articles(data: &CommonData) -> Vec<RssArticleView> {
         .collect()
 }
 
-pub async fn rss_handler(
-    State(data): State<SharedData>,
-) -> impl IntoResponse {
+pub async fn rss_handler(State(data): State<SharedData>) -> impl IntoResponse {
     let now = time::Instant::now();
     let data = data.read();
     let articles = build_rss_articles(&data);
@@ -114,22 +89,19 @@ pub async fn rss_handler(
         articles,
     };
 
-    let res = Response::builder()
-        .header("Content-Type", "application/rss+xml;charset=utf-8");
+    let res = Response::builder().header("Content-Type", "application/rss+xml;charset=utf-8");
 
     match data.hbs.render("rss", &render_data) {
         Ok(rendered_doc) => {
             log_elapsed("RSS FEED", None, None, now);
-            res.status(StatusCode::OK)
-                .body(rendered_doc)
-                .unwrap()
-        },
+            res.status(StatusCode::OK).body(rendered_doc).unwrap()
+        }
         Err(e) => {
             log::error!("Error rendering RSS feed: {:?}", e);
             res.status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body("Error rendering RSS feed".to_string())
                 .unwrap()
-        },
+        }
     }
 }
 

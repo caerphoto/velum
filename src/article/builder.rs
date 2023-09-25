@@ -5,7 +5,7 @@ use pulldown_cmark::{self as cmark, Event, Tag};
 use regex::Regex;
 use serde::Serialize;
 use std::io::{self, ErrorKind};
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::{fmt, fs, time};
 
 const UNIX_EPOCH: time::SystemTime = time::SystemTime::UNIX_EPOCH;
@@ -73,7 +73,8 @@ impl Builder {
 
     pub fn tags(&self) -> Vec<String> {
         if let Some(line) = self.tags_line() {
-            let mut tags: Vec<String> = line.trim_matches('|')
+            let mut tags: Vec<String> = line
+                .trim_matches('|')
                 .split(',')
                 .map(|t| Slug::new(t.trim()).into())
                 .collect();
@@ -103,44 +104,47 @@ impl Builder {
         for event in parser {
             if let Event::Text(text) = event {
                 parts.push(text.to_string());
-                if parts.len() >= max_len { break; }
+                if parts.len() >= max_len {
+                    break;
+                }
             }
         }
 
         let truncated = typogrified(safe_truncate(&parts.join(" "), max_len));
-        if truncated.len() < max_len { truncated } else { truncated + "…" }
+        if truncated.len() < max_len {
+            truncated
+        } else {
+            truncated + "…"
+        }
     }
 
     pub fn parsed_content(&self) -> String {
         let content = self.main_content();
         let parser = cmark::Parser::new(&content);
         let mut in_code_block = false;
-        let typographic_parser = parser.map(|event| {
-            match event {
-                Event::Start(tag) => {
-                    if let Tag::CodeBlock(_) = tag {
-                        in_code_block = true;
-                    }
-                    Event::Start(tag)
-
-                },
-                Event::End(tag) => {
-                    if let Tag::CodeBlock(_) = tag {
-                        if in_code_block {
-                            in_code_block = false;
-                        }
-                    }
-                    Event::End(tag)
+        let typographic_parser = parser.map(|event| match event {
+            Event::Start(tag) => {
+                if let Tag::CodeBlock(_) = tag {
+                    in_code_block = true;
                 }
-                Event::Text(text) => {
-                    if in_code_block {
-                        Event::Text(text)
-                    } else {
-                        Event::Text(typogrified(&text).into())
-                    }
-                },
-                _ => event
+                Event::Start(tag)
             }
+            Event::End(tag) => {
+                if let Tag::CodeBlock(_) = tag {
+                    if in_code_block {
+                        in_code_block = false;
+                    }
+                }
+                Event::End(tag)
+            }
+            Event::Text(text) => {
+                if in_code_block {
+                    Event::Text(text)
+                } else {
+                    Event::Text(typogrified(&text).into())
+                }
+            }
+            _ => event,
         });
         let mut parsed = String::new();
         cmark::html::push_html(&mut parsed, typographic_parser);
@@ -184,7 +188,7 @@ impl TryFrom<&Builder> for ParsedArticle {
         let title = b.title()?;
         Ok(ParsedArticle {
             slug: b.slug()?.into(), // borrow here before
-            title,                       // move here
+            title,                  // move here
             parsed_content: b.parsed_content(),
             base_content: b.content.clone(),
             preview: b.content_preview(b.max_preview_length),
