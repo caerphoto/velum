@@ -182,7 +182,7 @@ pub async fn asset_handler(
     let fs_path = build_fs_path(&content_dir, &path);
 
     if fs_path.ends_with("manifest.js") {
-        log::info!("Serving JS manifest");
+        log::info!("Rebuilding and serving JS manifest");
         js_manifest_response(&fs_path)
     } else {
         log::info!(
