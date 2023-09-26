@@ -21,8 +21,14 @@ use axum_macros::debug_handler;
 use tower::ServiceExt;
 use tower_http::services::ServeFile;
 
-use super::{server_error, HtmlResponse};
-use crate::{hb::helpers::path_with_timestamp, SharedData};
+use crate::{
+    SharedData,
+    hb::helpers::path_with_timestamp
+};
+use super::{
+    HtmlResponse,
+    server_error,
+};
 
 const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
 
@@ -78,7 +84,6 @@ fn extract_filepaths(manifest_path: &PathBuf) -> Result<(Vec<PathBuf>, String), 
     Ok((filepaths, String::from(";") + &manifest_code.join("\n")))
 }
 
-#[allow(dead_code)] // won't be used in debug mode
 fn write_compiled_manifest(buf: &[u8], path: &PathBuf, last_modified: SystemTime) -> IoResult<()> {
     let compiled_manifest_path = path_with_timestamp(path, last_modified);
     log::info!("Writing compiled manifest data to {compiled_manifest_path:?}");
@@ -103,11 +108,11 @@ fn compile_manifest(
         log::error!("Failed to update last modified time on JS manifest: {e:?}");
     }
 
-    #[cfg(not(debug_assertions))]
-    if let Err(e) = write_compiled_manifest(buf, manifest_path, last_modified) {
-        log::error!("Failed too write compiled manifest file: {e:?}");
+    if !cfg!(debug_assertions) {
+        if let Err(e) = write_compiled_manifest(buf, manifest_path, last_modified) {
+            log::error!("Failed too write compiled manifest file: {e:?}");
+        }
     }
-
     Ok(last_modified)
 }
 
@@ -144,8 +149,7 @@ fn untimestamped_path(path: &str) -> PathBuf {
 }
 
 fn build_fs_path(content_dir: &str, path: &str) -> PathBuf {
-    #[cfg(not(debug_assertions))]
-    {
+    if !cfg!(debug_assertions) {
         let real_path = PathBuf::from(content_dir)
             .join("assets")
             .join(path);
