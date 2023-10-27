@@ -33,10 +33,10 @@ pub fn path_with_timestamp<P: AsRef<Path>>(path: P, time: SystemTime) -> PathBuf
 
 handlebars_helper!(date_from_timestamp: |ts: i64| {
     if let LocalResult::Single(dt) = Utc.timestamp_millis_opt(ts) {
-        format!("{} {} {}",
+        format!("{} {} of {}",
             dt.format("%A"), // Day
             Ordinal(dt.day()), // Date
-            dt.format("%B %Y") // Month, year, time
+            dt.format("%B %Y") // Month, year
         )
     } else {
         format!("<invalid timestamp: {ts}>")
