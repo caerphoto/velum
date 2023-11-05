@@ -1,5 +1,5 @@
-use std::fs;
 use std::path::Path;
+use walkdir::WalkDir;
 
 fn should_skip(path: &Path, matching_ext: &str) -> bool {
     if path.is_dir() {
@@ -13,8 +13,8 @@ pub fn paths_with_ext_in_dir<F>(matching_ext: &str, dir: &Path, mut f: F)
 where
     F: FnMut(&Path),
 {
-    for entry in fs::read_dir(dir).unwrap() {
-        let path = entry.expect("Invalid entry").path();
+    for entry in WalkDir::new(dir) {
+        let path = entry.expect("Invalid entry").into_path();
         if should_skip(&path, matching_ext) {
             continue;
         }

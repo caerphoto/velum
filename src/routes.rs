@@ -15,6 +15,7 @@ use crate::handlers::{
         admin_page_handler, check_thumb_progress, create_article_handler, delete_article_handler,
         delete_image_handler, do_login_handler, do_logout_handler, image_list_handler,
         login_page_handler, rebuild_index_handler, update_article_handler, upload_image_handler,
+        admin_article_list_handler,
     },
     article::{article_handler, article_text_handler},
     comment::comment_handler,
@@ -46,6 +47,9 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/images", post(upload_image_handler))
         .layer(DefaultBodyLimit::max(25 * 1024 * 1024));
 
+    let admin_routes = Router::new()
+        .route("/articles", get(admin_article_list_handler));
+
     Router::new()
         .route("/", get(home_handler))
         .route("/articles/:page_or_slug", get(index_handler))
@@ -62,10 +66,12 @@ pub fn init(shared_data: SharedData) -> Router {
         )
         .route("/rss", get(rss_handler))
         .route("/comment/:slug", post(comment_handler))
+
         .route("/login", get(login_page_handler))
         .route("/login", post(do_login_handler))
         .route("/logout", post(do_logout_handler))
         .route("/admin", get(admin_page_handler))
+        .nest("/admin/sections", admin_routes)
         .route("/rebuild_index", post(rebuild_index_handler))
         .route("/articles", post(create_article_handler))
         .route("/article/:slug", put(update_article_handler))
@@ -74,6 +80,7 @@ pub fn init(shared_data: SharedData) -> Router {
         .merge(img_upload_route)
         .route("/check_thumb_progress", get(check_thumb_progress))
         .route("/images/*path", delete(delete_image_handler))
+
         .route("/assets/*path", get(asset_handler))
         .nest_service("/content/images/", image_dir_service)
         .with_state(shared_data)

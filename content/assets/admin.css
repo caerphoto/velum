@@ -74,6 +74,10 @@ body.admin footer {
     grid-area: footer;
 }
 
+body.admin footer p {
+    margin-top: 0;
+}
+
 .link-box.logout {
     grid-column: 3/4;
     justify-self: end;
@@ -125,70 +129,22 @@ button:hover {
     box-shadow: 0 3px 3px -2px rgba(0, 0, 0, 0.4);
 }
 
-#admin-list-sections,
-#admin-article-editor {
+#sidebar {
+    grid-row: 2/3;
+    grid-column: 1/2;
     display: grid;
-}
-
-#admin-list-sections {
-    grid-template-rows: 2.5rem calc(100vh - 7rem);
     grid-template-columns: 1fr;
-    grid-area: sidebar-l;
-    padding: 0 0 0.5rem 0;
-    margin-top: 0.5rem;
+    grid-template-rows: auto auto auto;
 }
 
-.tabs {
-    margin: 0;
-    padding: 0 0.5rem;
-    border-bottom: 1px solid var(--tab-border);
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    z-index: 1;
+#sidebar button {
+    writing-mode: vertical-lr;
+    rotate: 180deg;
 }
 
-.tab {
-    display: grid; /* just so labels can be vertically centred */
-    box-sizing: border-box;
-    flex-basis: 33%;
-    align-content: stretch;
-    list-style: none;
-    margin: 0 -1px 0 0;
-    padding: 0;
-    border-radius: 0.2rem 0.2rem 0 0;
-    border-width: 1px 0 0 1px;
-    border-style: solid;
-    border-color: var(--tab-border);
-    background-color: var(--tab-inactive-bg);
-    text-align: center;
-    box-shadow: inset 0 -2px 2px -1px rgba(0, 0, 0, 0.1);
-}
-
-.tab.active {
-    background-color: var(--tab-active-bg);
-    box-shadow: 0 5px 0 -1px var(--tab-active-bg);
-}
-
-.tab:last-child {
-    border-right-width: 1px;
-}
-
-.tab a {
-    text-decoration: none;
-    display: block;
-    padding-top: 0.5rem;
-    color: var(--plain-text);
-}
-
-.tab-content {
-    display: none;
-    border-right: 1px solid var(--tab-border);
-    background-color: var(--control-bg);
-}
-
-.tab-content.active {
-    display: grid;
+#section-content {
+    grid-column: 2/5;
+    grid-row: 2/3;
 }
 
 #admin-article-manager {

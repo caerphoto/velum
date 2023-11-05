@@ -396,6 +396,27 @@ pub async fn admin_page_handler(
     }
 }
 
+pub async fn admin_article_list_handler(
+    State(data): State<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
+
+    let data = data.read();
+    match data.hbs.render(
+        "admin/_articles",
+        &json!({
+            "articles": &data.articles,
+            "content_dir": &data.config.content_dir,
+        }),
+    ) {
+        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Err(e) => Ok(server_error(&format!(
+            "Failed to render article in index. Error: {e:?}"
+        ))),
+    }
+}
+
 // NOTE: this assumes directories are named according to the pattern used by
 // get_current_images_dir, i.e. <content_dir>/images/yyyy/mm
 fn sorted_dir_keys<K: AsRef<OsPath>, V>(h: &HashMap<K, V>) -> Vec<String> {
