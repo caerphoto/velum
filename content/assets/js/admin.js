@@ -13,7 +13,7 @@
     const editor = $("#article-editor-input");
     const saveBtn = $("#save-article button");
     const successMsg = $("#save-success");
-    const listSectionTabContaner = $("#admin-list-sections-tabs");
+    const listSectionTabContainer = $("#admin-list-sections-tabs");
     const listSectionTabs = $$("#admin-list-sections-tabs li");
     const listSections = $$('.tab-content[data-tab-set="admin-list-section"]');
 
@@ -139,19 +139,21 @@
         fetchArticleText(slug);
     }
 
-    function activateTabContent(sectionId) {
+    function activateTab(event) {
+        if (event instanceof Event) {
+            event.preventDefault();
+        } else {
+            event = { target: event };
+        }
+        const target = event.target;
+        const sectionId = target.getAttribute("href");
         listSections.forEach((s) => s.classList.remove("active"));
         D.querySelector(sectionId).classList.add("active");
-    }
-
-    listSectionTabContaner.addEventListener("click", (event) => {
-        if (event.target.nodeName !== "A") return;
-        event.preventDefault();
-
-        activateTabContent(event.target.getAttribute("href"));
         listSectionTabs.forEach((t) => t.classList.remove("active"));
-        event.target.parentNode.classList.add("active");
-    });
+        target.parentNode.classList.add("active");
+        return false;
+    }
+    window.activateTab = activateTab;
 
     function setImageListLoading() {
         imageList.innerHTML = "<li>Fetching thumbnails&hellip;</li>";
@@ -323,6 +325,5 @@
         setImageListUploading();
     });
 
-    activateTabContent($(".tab.active a").getAttribute("href"));
-    loadImageList();
+    activateTab($(".tab.active a"));
 })(window.document);
