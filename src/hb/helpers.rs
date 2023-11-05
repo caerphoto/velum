@@ -22,10 +22,16 @@ pub fn path_with_timestamp<P: AsRef<Path>>(path: P, time: SystemTime) -> PathBuf
     let dt: DateTime<Utc> = time.into();
     let timestamp = dt.format(TIMESTAMP_FORMAT);
     let p = path.as_ref();
+    println!("Converting {:?} to timestamped path", p);
     if let (Some(stem), Some(ext)) = (p.file_stem(), p.extension()) {
+        println!("Got a stem {:?} and ext {:?}", stem, ext);
         let mut new_stem = stem.to_os_string();
-        new_stem.push(format!("-{timestamp}"));
-        p.with_file_name(new_stem).with_extension(ext)
+        new_stem.push(format!("-{timestamp}."));
+        new_stem.push(ext);
+        println!("New stem: {:?}", new_stem);
+        let result = p.with_file_name(new_stem);
+        println!("New result: {:?}", result);
+        result
     } else {
         p.into()
     }
