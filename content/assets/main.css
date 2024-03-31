@@ -355,6 +355,10 @@ footer a:visited {
     color: var(--link-header);
 }
 
+blockquote {
+    color: var(--alt-text);
+}
+
 #article-body {
     border-bottom: 1px solid var(--separator-color);
     padding-bottom: 1em;
