@@ -21,14 +21,8 @@ use axum_macros::debug_handler;
 use tower::ServiceExt;
 use tower_http::services::ServeFile;
 
-use crate::{
-    SharedData,
-    hb::helpers::path_with_timestamp
-};
-use super::{
-    HtmlResponse,
-    server_error,
-};
+use super::{server_error, HtmlResponse};
+use crate::{hb::helpers::path_with_timestamp, SharedData};
 
 const ONE_YEAR: Duration = Duration::new(31_536_000, 0);
 
@@ -150,13 +144,13 @@ fn untimestamped_path(path: &str) -> PathBuf {
 
 fn build_fs_path(content_dir: &str, path: &str) -> PathBuf {
     if !cfg!(debug_assertions) {
-        let real_path = PathBuf::from(content_dir)
-            .join("assets")
-            .join(path);
+        let real_path = PathBuf::from(content_dir).join("assets").join(path);
 
         // We can return the timestamped path if a file with the timestamp actually exists, e.g. for
         // precompiled JS files.
-        if real_path.exists() { return real_path; }
+        if real_path.exists() {
+            return real_path;
+        }
     }
 
     let utpath = untimestamped_path(path);
@@ -182,8 +176,8 @@ pub async fn asset_handler(
     State(data): State<SharedData>,
     req: Request<Body>,
 ) -> Result<Response<BoxBody>, HtmlResponse> {
-    let content_dir = data.read().config.content_dir.clone();
-    let fs_path = build_fs_path(&content_dir, &path);
+    let content_dir = &data.read().config.content_dir;
+    let fs_path = build_fs_path(content_dir, &path);
 
     if fs_path.ends_with("manifest.js") {
         log::info!("Rebuilding and serving JS manifest");
@@ -195,8 +189,7 @@ pub async fn asset_handler(
             &fs_path.to_string_lossy()
         );
 
-        let service = get_service(ServeFile::new(fs_path))
-            .handle_error(error_handler);
+        let service = get_service(ServeFile::new(fs_path)).handle_error(error_handler);
         let mut result = service.oneshot(req).await.unwrap();
         result
             .headers_mut()
