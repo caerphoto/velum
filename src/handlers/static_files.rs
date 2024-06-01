@@ -176,10 +176,12 @@ pub async fn asset_handler(
     State(data): State<SharedData>,
     req: Request<Body>,
 ) -> Result<Response<BoxBody>, HtmlResponse> {
-    let content_dir = &data.read().config.content_dir;
-    let fs_path = build_fs_path(content_dir, &path);
+    let fs_path = {
+        let content_dir = &data.read().config.content_dir;
+        build_fs_path(content_dir, &path)
+    };
 
-    if fs_path.ends_with("manifest.js") {
+    if fs_path.file_name().is_some_and(|n| n.eq_ignore_ascii_case("manifest.js")) {
         log::info!("Rebuilding and serving JS manifest");
         js_manifest_response(&fs_path)
     } else {
@@ -189,7 +191,14 @@ pub async fn asset_handler(
             &fs_path.to_string_lossy()
         );
 
-        let service = get_service(ServeFile::new(fs_path)).handle_error(error_handler);
+        let service = if fs_path.extension().is_some_and(|e| e.eq_ignore_ascii_case("css")) {
+            // ServeFile::new can't assume our CSS is UTF-8, so we have to be explicit
+            let mime = mime::TEXT_CSS_UTF_8;
+            get_service(ServeFile::new_with_mime(fs_path, &mime)).handle_error(error_handler)
+        } else {
+            log::info!("Serving normal asset");
+            get_service(ServeFile::new(fs_path)).handle_error(error_handler)
+        };
         let mut result = service.oneshot(req).await.unwrap();
         result
             .headers_mut()
