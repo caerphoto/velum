@@ -12,16 +12,19 @@
   <h1>Blog Admin</h1>
 </header>
 
-<div id="sidebar" hx-target="#section-content" role="tablist" _="on htmx:afterOnLoad set @aria-selected of <[aria-selected=true]/> to false tell the target set @aria-selected to true">
-  <button role="tab" aria-controls="tab-content" aria-selected="true" hx-get="/admin/sections/articles">Articles</button>
-  <button role="tab" aria-controls="tab-content" aria-selected="false" hx-get="/admin/sections/images">Images</button>
-  <button role="tab" aria-controls="tab-content" aria-selected="false" hx-get="/admin/sections/comments">Comments</button>
-</div>
+<section id="admin-nav" x-data="{ tab: 'articles' }">
+  <div id="sidebar" role="tablist">
+    <button x-on:click="tab = 'articles'" :class="tab === 'articles' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="true" >Articles</button>
+    <button x-on:click="tab = 'images'" :class="tab === 'images' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="false">Images</button>
+    <button x-on:click="tab = 'comments'" :class="tab === 'comments' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="false">Comments</button>
+  </div>
 
-<div id="section-content" role="tabpanel" hx-trigger="load" hx-get="/admin/sections/articles"></div>
+  <div x-show="tab === 'articles'" class="admin-tab-content" role="tabpanel">{{> admin/_articles }}</div>
+  <div x-show="tab === 'images'" class="admin-tab-content" role="tabpanel">{{> _admin_image_list }}</div>
+  <div x-show="tab === 'comments'" class="admin-tab-content" role="tabpanel">{{> admin/_comments }}</div>
+</section>
 
-
-<script src="{{asset_path "js/htmx.min.js"}}"></script>
-<script src="{{asset_path "js/_hyperscript.min.js"}}"></script>
+<script src="{{asset_path "js/htmx.min.js"}}" defer></script>
+<script src="{{asset_path "js/alpine.min.js"}}" defer></script>
 
 {{> _footer}}

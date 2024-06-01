@@ -291,11 +291,11 @@ h2 {
 
 .article-list h2 a {
     text-decoration: none;
-    border-bottom: 1px solid var(--link-normal);
+    border-bottom: 3px dotted var(--link-normal);
 }
 
 .article-list h2 a:visited {
-    border-color: var(--subdued-text);
+    border-color: var(--link-visited);
 }
 
 .article-list h2 a:hover {

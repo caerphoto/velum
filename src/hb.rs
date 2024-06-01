@@ -33,7 +33,7 @@ pub fn create_handlebars(config: &Config) -> Handlebars<'static> {
 
     paths_with_ext_in_dir("hbs", &dir, |path| {
         let template_name = template_name(path, &dir);
-        log::debug!("registering template {template_name} from {}", path.display());
+        log::info!("registering template `{template_name}` from {}", path.display());
         hb.register_template_file(&template_name, path)
             .unwrap_or_else(|e| {
                 panic!("Failed to register template {template_name} with path {path:?}. Error: {e}")

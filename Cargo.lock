@@ -1935,6 +1935,7 @@ dependencies = [
  "image",
  "lazy_static",
  "log",
+ "mime",
  "mime_guess",
  "ordinal",
  "parking_lot",
