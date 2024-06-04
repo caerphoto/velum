@@ -1,4 +1,4 @@
-<form id="editor-form" hx-put="/article/{{slug}}">
+<form id="editor-form" hx-put="/article/{{slug}}" hx-swap="none">
   <div id="editor-controls">
     <button id="editor-save-and-close" type="submit" @click="adminContent = 'nav'">&larr; Save and Close</button>
     <button id="editor-save" type="button" hx-put="/article/{{slug}}">Save</button>

@@ -42,6 +42,11 @@ struct UploadedImageData {
     bytes: Result<Bytes, MultipartError>,
 }
 
+#[derive(Deserialize)]
+pub struct UpdateArticleData {
+    content: String,
+}
+
 // Use for pages that render HTML
 macro_rules! ensure_logged_in {
     ($d:ident, $c:ident) => {
@@ -228,9 +233,10 @@ pub async fn update_article_handler(
     Path(slug): Path<String>,
     State(data): State<SharedData>,
     cookies: Cookies,
-    new_content: String,
+    Form(form_data): Form<UpdateArticleData>,
 ) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
+    let new_content = form_data.content;
     let mut data = data.write();
     if let Err(err) = storage::update_article(&slug, &new_content, &mut data) {
         log::error!("Failed to update article: {:?}", err);
