@@ -528,7 +528,7 @@ hr {
     border-style: solid;
 }
 
-nav {
+article + nav {
     display: grid;
     grid-template-columns: 1fr 6em 1fr;
     grid-template-rows: 1fr;

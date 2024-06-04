@@ -1,10 +1,13 @@
-<ul id="article-list">
+<ul id="article-list" hx-target="#editor-form" hx-swap="outerHTML">
   {{#each articles}}
     <li class="admin-article-list_item" data-slug="{{this.slug}}">
-      <a data-slug="{{this.slug}}" href="#{{this.slug}}">{{this.title}}</a>
+      <a data-slug="{{this.slug}}"
+        hx-get="/admin/editor/{{this.slug}}"
+        @click="adminContent = 'article-editor'"
+        href="#{{this.slug}}"
+      >{{this.title}}</a>
       <a href="/article/{{this.slug}}" target="velum-{{this.slug}}" class="admin-open-article-link" title="open article in new window">↗</a>
       <button type="button" data-slug="{{this.slug}}" data-title="{{this.title}}" class="delete">Delete</button>
-      <br>
       <span class="date">{{date_from_timestamp this.timestamp}}</span>
     </li>
   {{/each}}
