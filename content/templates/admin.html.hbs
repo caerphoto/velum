@@ -12,19 +12,30 @@
   <h1>Blog Admin</h1>
 </header>
 
-<section id="admin-nav" x-data="{ tab: 'articles' }">
-  <div id="sidebar" role="tablist">
-    <button x-on:click="tab = 'articles'" :class="tab === 'articles' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="true" >Articles</button>
-    <button x-on:click="tab = 'images'" :class="tab === 'images' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="false">Images</button>
-    <button x-on:click="tab = 'comments'" :class="tab === 'comments' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="false">Comments</button>
-  </div>
+<section id="admin-content" x-data="{ adminContent: 'nav' }">
+  <nav id="admin-nav" x-show="adminContent === 'nav'" x-data="{ tab: 'articles' }">
+    <div id="sidebar" role="tablist">
+      <button x-on:click="tab = 'articles'" :class="tab === 'articles' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="true" >Articles</button>
+      <button x-on:click="tab = 'images'"   :class="tab === 'images'   ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="false">Images</button>
+      <button x-on:click="tab = 'comments'" :class="tab === 'comments' ? 'active' : ''" role="tab" aria-controls="tab-content" aria-selected="false">Comments</button>
+    </div>
 
-  <div x-show="tab === 'articles'" class="admin-tab-content" role="tabpanel">{{> admin/_articles }}</div>
-  <div x-show="tab === 'images'" class="admin-tab-content" role="tabpanel">{{> _admin_image_list }}</div>
-  <div x-show="tab === 'comments'" class="admin-tab-content" role="tabpanel">{{> admin/_comments }}</div>
+    <div x-show="tab === 'articles'" class="admin-tab-content" role="tabpanel">{{> admin/_articles }}</div>
+    <div x-show="tab === 'images'"   class="admin-tab-content" role="tabpanel">{{> admin/_image_list }}</div>
+    <div x-show="tab === 'comments'" class="admin-tab-content" role="tabpanel">{{> admin/_comments }}</div>
+  </nav>
+
+  <div id="article-editor" x-show="adminContent === 'article-editor'">
+    <nav id="editor-nav">
+      <button id="editor-cancel" type="button" @click="adminContent = 'nav'">&times; Cancel</button>
+    </nav>
+    <div id="editor-thumbnails">thumbnails</div>
+    <div id="editor-form"><!-- filled by HTMX --></div>
+  </div>
 </section>
 
 <script src="{{asset_path "js/htmx.min.js"}}" defer></script>
 <script src="{{asset_path "js/alpine.min.js"}}" defer></script>
+<script src="{{asset_path "js/admin_new.js"}}" defer></script>
 
 {{> _footer}}

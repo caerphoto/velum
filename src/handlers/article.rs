@@ -47,9 +47,13 @@ pub async fn article_text_handler(
 ) -> impl IntoResponse {
     let data = data.read();
     if let Some(article) = fetch_by_slug(&slug, &data.articles) {
-        (StatusCode::OK, article.base_content.clone())
+        (
+            StatusCode::OK,
+            [("HX-Trigger", "updateText")],
+            article.base_content.clone()
+        )
     } else {
-        (StatusCode::NOT_FOUND, "Article not found".to_string())
+        (StatusCode::NOT_FOUND, [("", "")], "Article not found".to_string())
     }
 }
 

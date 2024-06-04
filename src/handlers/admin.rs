@@ -180,7 +180,7 @@ pub async fn create_article_handler(
                 log::error!("Failed to rebuild article index: {:?}", err);
                 Ok(server_error("Error rebuilding article index"))
             } else {
-                match data.hbs.render("_admin_article_list_item", &view) {
+                match data.hbs.render("admin/_article_list_item", &view) {
                     Ok(b) => Ok((StatusCode::OK, Html(b))),
                     Err(e) => {
                         log::error!("Failed to render list item: {:?}", e);
@@ -193,6 +193,34 @@ pub async fn create_article_handler(
             log::error!("Failed to create article: {:?}", err);
             Ok(server_error("Error creating article"))
         }
+    }
+}
+
+pub async fn editor_form_handler(
+    Path(slug): Path<String>,
+    State(data): State<SharedData>,
+    cookies: Cookies,
+) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
+
+    let data = data.read();
+
+    let content = if let Some(article) = storage::fetch_by_slug(&slug, &data.articles) {
+        article.base_content.clone()
+    } else {
+        return Err(StatusCode::NOT_FOUND)
+    };
+    match data.hbs.render(
+        "admin/_editor",
+        &json!({
+            "slug": slug,
+            "content": content
+        }),
+    ) {
+        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Err(e) => Ok(server_error_page(&format!(
+            "Failed to render editor form. Error: {e:?}"
+        ))),
     }
 }
 
@@ -436,7 +464,7 @@ pub async fn image_list_handler(State(data): State<SharedData>, cookies: Cookies
     let dir_keys = sorted_dir_keys(&image_dirs);
 
     match data.hbs.render(
-        "_admin_image_list",
+        "admin/_image_list",
         &json!({
             "dir_keys": dir_keys,
             "image_dirs": image_dirs,

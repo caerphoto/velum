@@ -14,8 +14,8 @@ use crate::handlers::{
     admin::{
         admin_page_handler, check_thumb_progress, create_article_handler, delete_article_handler,
         delete_image_handler, do_login_handler, do_logout_handler, image_list_handler,
-        login_page_handler, rebuild_index_handler, update_article_handler, upload_image_handler,
-        admin_article_list_handler,
+        login_page_handler, rebuild_index_handler, editor_form_handler, update_article_handler,
+        upload_image_handler, admin_article_list_handler,
     },
     article::{article_handler, article_text_handler},
     comment::comment_handler,
@@ -71,6 +71,7 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/login", post(do_login_handler))
         .route("/logout", post(do_logout_handler))
         .route("/admin", get(admin_page_handler))
+        .route("/admin/editor/:slug", get(editor_form_handler))
         .nest("/admin/sections", admin_routes)
         .route("/rebuild_index", post(rebuild_index_handler))
         .route("/articles", post(create_article_handler))
