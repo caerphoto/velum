@@ -1,6 +1,6 @@
-<form id="editor-form" hx-put="/article/{{slug}}" hx-swap="none">
+<form id="editor-form" hx-put="/article/{{slug}}" hx-swap="none" @htmx:after-settle="Alpine.store('editor', event.target.elements.content)">
   <div id="editor-controls">
-    <button id="editor-save-and-close" type="submit" @click="adminContent = 'nav'">&larr; Save and Close</button>
+    <button id="editor-save-and-close" type="submit" @click="adminContent = 'nav'">&times; Save and Close</button>
     <button id="editor-save" type="button" hx-put="/article/{{slug}}">Save</button>
   </div>
   <textarea name="content">{{content}}</textarea>
