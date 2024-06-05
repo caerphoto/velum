@@ -36,6 +36,14 @@
 
     --spinner-size: 20px;
     --heading-font-family: var(--admin-font-family);
+    
+    --thumb-input-bg: #eee;
+    --thumb-input-bg-hover: #eee;
+    --thumb-input-bg-focus: #fff;
+    --thumb-input-color-hover: #88f;
+
+    --thumb-input-border: #ccc;
+    --thumb-input-border-focus: #888;
 }
 
 html.admin {
@@ -48,7 +56,8 @@ body.admin {
     padding: 0;
     display: grid;
     height: 100vh;
-    grid-template-rows: 3.5rem 1fr 2.5rem;
+    overflow: hidden;
+    grid-template-rows: 3.5rem 1fr 0.5rem;
     grid-template-columns: 1fr;
     grid-template-areas:
         "header"
@@ -133,12 +142,14 @@ button:hover {
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
+    overflow: hidden;
 }
 
 #admin-nav {
     display: grid;
     grid-template-columns: 2em 1fr;
     grid-template-rows: 1fr;
+    overflow: hidden;
 }
 
 #sidebar {
@@ -166,6 +177,7 @@ button:hover {
 .admin-tab-content {
     grid-row: 1/2;
     grid-column: 2/3;
+    overflow: auto;
 }
 
 #section-content {
@@ -337,8 +349,11 @@ button:hover {
     grid-template-rows: 125px min-content;
     grid-template-columns: 100%;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    cursor: alias;
     padding-bottom: 1px;
+}
+
+#editor-thumbnails .image-list figure {
+    cursor: alias;
 }
 
 .image-list figure:hover {
@@ -375,6 +390,25 @@ button:hover {
 
 .image-list figure:hover .delete-image {
     opacity: 1;
+}
+
+.image-list input {
+    border: 1px solid var(--thumb-input-border);
+    background-color: var(--thumb-input-bg);
+    text-align: center;
+    display: block;
+    grid-row: 2/3;
+    grid-column: 1/2;
+    justify-self: stretch;
+}
+
+.image-list input:hover {
+    color: var(--thumb-input-color-hover);
+}
+
+.image-list input:focus {
+    background-color: var(--thumb-input-bg-focus);
+    border-color: var(--thumb-input-border-focus);
 }
 
 .admin-main-section form {
@@ -449,6 +483,7 @@ button:hover {
     grid-template-rows: 2.5rem 1fr;
     grid-template-columns: 30% 1fr;
     padding: 0.5rem 0.5rem 0.5rem 0.25rem;
+    overflow: hidden;
 }
 
 .htmx-request {
@@ -485,6 +520,11 @@ button:hover {
 #editor-thumbnails {
     grid-row: 2/3;
     grid-column: 1/2;
+    overflow: auto;
+}
+
+#editor-thumbnails .delete-image {
+    display: none;
 }
 
 #editor-form {

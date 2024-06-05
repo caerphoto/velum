@@ -13,9 +13,10 @@ use tower_http::{compression::CompressionLayer, services::ServeDir, timeout::Tim
 use crate::handlers::{
     admin::{
         admin_page_handler, check_thumb_progress, create_article_handler, delete_article_handler,
-        delete_image_handler, do_login_handler, do_logout_handler, image_list_handler,
-        login_page_handler, rebuild_index_handler, editor_form_handler, update_article_handler,
-        upload_image_handler, admin_article_list_handler,
+        delete_image_handler, do_login_handler, do_logout_handler,
+        admin_image_editor_list_handler, article_image_list_handler, login_page_handler,
+        rebuild_index_handler, editor_form_handler, update_article_handler, upload_image_handler,
+        admin_article_list_handler,
     },
     article::{article_handler, article_text_handler},
     comment::comment_handler,
@@ -77,7 +78,8 @@ pub fn init(shared_data: SharedData) -> Router {
         .route("/articles", post(create_article_handler))
         .route("/article/:slug", put(update_article_handler))
         .route("/article/:slug", delete(delete_article_handler))
-        .route("/all_images", get(image_list_handler))
+        .route("/admin/article_all_images", get(article_image_list_handler))
+        .route("/admin/image_editor_images", get(admin_image_editor_list_handler))
         .merge(img_upload_route)
         .route("/check_thumb_progress", get(check_thumb_progress))
         .route("/images/*path", delete(delete_image_handler))

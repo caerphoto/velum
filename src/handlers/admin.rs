@@ -319,7 +319,7 @@ pub async fn delete_image_handler(
         }
     }
 
-    image_list_handler(State(data), cookies).await
+    admin_image_editor_list_handler(State(data), cookies).await
 }
 
 fn get_thumbs_remaining(data: &CommonData) -> ThumbsRemaining {
@@ -402,7 +402,7 @@ pub async fn upload_image_handler(
         }
     }
 
-    image_list_handler(State(data), cookies).await
+    admin_image_editor_list_handler(State(data), cookies).await
 }
 
 pub async fn admin_page_handler(
@@ -462,7 +462,7 @@ fn sorted_dir_keys<K: AsRef<OsPath>, V>(h: &HashMap<K, V>) -> Vec<String> {
     sorted
 }
 
-pub async fn image_list_handler(State(data): State<SharedData>, cookies: Cookies) -> HtmlOrStatus {
+pub async fn article_image_list_handler(State(data): State<SharedData>, cookies: Cookies) -> HtmlOrStatus {
     ensure_authorized!(data, cookies);
 
     let (image_dirs, thumbs_remaining) = get_image_list(&data);
@@ -470,7 +470,29 @@ pub async fn image_list_handler(State(data): State<SharedData>, cookies: Cookies
     let dir_keys = sorted_dir_keys(&image_dirs);
 
     match data.hbs.render(
-        "admin/_image_list",
+        "admin/_article_image_list",
+        &json!({
+            "dir_keys": dir_keys,
+            "image_dirs": image_dirs,
+            "thumbs_remaining": thumbs_remaining,
+        }),
+    ) {
+        Ok(rendered_page) => Ok((StatusCode::OK, Html(rendered_page))),
+        Err(e) => Ok(server_error(&format!(
+            "Failed to render image list. Error: {e:?}"
+        ))),
+    }
+}
+
+pub async fn admin_image_editor_list_handler(State(data): State<SharedData>, cookies: Cookies) -> HtmlOrStatus {
+    ensure_authorized!(data, cookies);
+
+    let (image_dirs, thumbs_remaining) = get_image_list(&data);
+    let data = data.read();
+    let dir_keys = sorted_dir_keys(&image_dirs);
+
+    match data.hbs.render(
+        "admin/_image_editor_list",
         &json!({
             "dir_keys": dir_keys,
             "image_dirs": image_dirs,

@@ -1,0 +1,25 @@
+<p>Click image to insert it into the article, or Shift-Click to open it in a new window.</p>
+<ul class="image-list" data-initial-count="{{thumbs_remaining.total}}" data-remaining="{{thumbs_remaining.count}}" @click="imageListClickHandler($event)">
+{{#each dir_keys }}
+<li class="image-list_dir">
+  <h4>{{this}}</h4>
+  <ul class="image-list_images">
+    {{#with (lookup ../image_dirs[this]) }}
+    {{#each this.file_names}}
+    <li class="image-list_images--image">
+      <figure data-path="/{{../this.dir}}/{{this.orig_file_name}}" data-file-name="{{this.orig_file_name}}">
+        <img
+          alt="thumnail image in {{../this.dir}}"
+          title="{{this.orig_file_name}}"
+          src="/{{../this.dir}}/{{this.thumbnail_file_name}}"
+          loading="lazy"
+        >
+        <figcaption>{{this.orig_file_name}}</figcaption>
+      </figure>
+    </li>
+    {{/each}}
+    {{/with}}
+  </ul>
+</li>
+{{/each}}
+</ul>
