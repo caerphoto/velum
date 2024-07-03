@@ -44,7 +44,9 @@ html.light {
 }
 
 html.light .theme-selector-icon {
+    /*
     background-image: url('/assets/bulb-icon.svg');
+    */
 }
 
 html.dark {
@@ -75,7 +77,9 @@ html.dark {
 }
 
 html.dark .theme-selector-icon {
+    /*
     background-image: url('/assets/bulb-icon-dark.svg');
+    */
 }
 
 html.nightsight {
@@ -106,7 +110,9 @@ html.nightsight {
 }
 
 html.nightsight .theme-selector-icon {
+    /*
     background-image: url('/assets/bulb-icon-red.svg');
+    */
 }
 
 body {
@@ -202,13 +208,23 @@ footer .feed-link img {
 
 .theme-selector-icon {
     display: block;
+    /*
     width: 19px;
     height: 20px;
+    */
     margin: 0 0.2rem;
+    padding-top: 2px;
 }
 
 .theme-selector-icon.dim {
+    text-shadow: 0 1px 8px rgba(255, 255, 255, 0.4);
+    /*
     transform: scale(60%);
+    */
+}
+
+.theme-selector-icon.bright {
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 -1px 5px rgba(0, 0, 0, 0.3);
 }
 
 #theme-selector-box .joiner {
