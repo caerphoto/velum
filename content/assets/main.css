@@ -380,6 +380,9 @@ blockquote {
     padding-bottom: 1em;
 }
 
+.tags-label {
+    display: none;
+}
 ul.article-list,
 ul.tags {
     list-style: none;
@@ -643,6 +646,12 @@ input[type="submit"]:hover {
 #comments input,
 #comments textarea {
     display: block;
+}
+
+#comments label + br,
+#comments input + br,
+#comments textarea + br {
+    display: none;
 }
 
 #comments input,

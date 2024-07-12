@@ -12,6 +12,7 @@
 <article>
   <section id="article-body" class="post-content">
     <h3 class="timestamp">{{date_from_timestamp article.timestamp}}</h3>
+    <span class="tags-label">Tags:</span>
     {{{render_tags article.tags None}}}
     {{{article.parsed_content}}}
   </section>
@@ -21,7 +22,7 @@
 </article>
 
 <nav class="next-prev">
-  <p class="more-articles-text">Article navigation:</p>
+  <h3 class="more-articles-text">Article navigation:</h3>
   {{#if article.prev}}
   <div class="nav-prev">
     <a href="/article/{{article.prev.slug}}">&larr; {{article.prev.title}}</a>
