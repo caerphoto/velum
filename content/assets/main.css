@@ -305,6 +305,10 @@ h2 {
     line-height: 1.4;
 }
 
+@view-transition {
+    navigation: auto;
+}
+
 .article-list h2 a {
     text-decoration: none;
     border-bottom: 3px dotted var(--link-normal);

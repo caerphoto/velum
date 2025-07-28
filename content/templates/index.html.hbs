@@ -34,7 +34,10 @@
       <ul class="article-list">
         {{#each articles}}
         <li class="article-list_item">
-          <h2><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
+          <h2
+            class="index-article-title"
+            style="view-transition-name: article-{{this.slug}}"
+          ><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
           <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
           <p class="content-preview">{{this.preview}}</p>
           <span class="tags-label">Tags:</span>
