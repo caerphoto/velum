@@ -2,7 +2,10 @@
 
 <header>
   <div class="home link-box">
-    <a href="{{return_path}}" class="index-link">&larr; {{{return_text return_path}}}</a>
+    <a
+      href="{{return_path}}#index-article-{{article.slug}}"
+      class="index-link"
+    >&larr; {{{return_text return_path}}}</a>
   </div>
   <!-- <div class="logout link-box">{{{blog_title}}}</div> -->
   {{> _theme_selector}}
