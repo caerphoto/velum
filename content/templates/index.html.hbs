@@ -33,11 +33,11 @@
     {{#if (gt article_count 0)}}
       <ul class="article-list">
         {{#each articles}}
-        <li class="article-list_item">
-          <h2
-            class="index-article-title"
-            style="view-transition-name: article-{{this.slug}}"
-          ><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
+        <li
+          class="article-list_item"
+          style="view-transition-name: article-{{this.slug}}"
+        >
+          <h2 class="index-article-title"><a href="/article/{{this.slug}}">{{this.title}}</a></h2>
           <h3 class="timestamp">{{date_from_timestamp this.timestamp}}</h3>
           <p class="content-preview">{{this.preview}}</p>
           <span class="tags-label">Tags:</span>

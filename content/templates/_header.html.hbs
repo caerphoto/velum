@@ -22,4 +22,9 @@
     <link rel="preload" as="style" href="{{asset_path "prism-rose-pine-moon-alt.css"}}" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{asset_path "prism.css"}}"></noscript>
   </head>
-  <body class="{{body_class}}">
+  <body
+    {{#if (eq body_class "article") }}
+      style="view-transition-name: article-{{article.slug}}"
+    {{/if}}
+    class="{{body_class}}"
+  >
