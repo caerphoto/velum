@@ -693,6 +693,9 @@ input[type="submit"]:hover {
     header {
         grid-template-columns: 1fr 0 2fr;
     }
+    #theme-selector-box .joiner {
+        letter-spacing: -0.5em;
+    }
     header h1 {
         padding-left: 0.5rem;
         grid-column: 1/4;
