@@ -555,6 +555,7 @@ hr {
     border-style: solid;
 }
 
+header + nav,
 article + nav {
     display: grid;
     grid-template-columns: 1fr 6em 1fr;
